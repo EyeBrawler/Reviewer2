@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="Reviewer2.Blazor/Reviewer2.Blazor.csproj" />
+  <Project Path="Reviewer2.Data/Reviewer2.Data.csproj" />
+</Solution>
