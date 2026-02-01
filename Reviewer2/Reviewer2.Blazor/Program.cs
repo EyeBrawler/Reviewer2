@@ -72,10 +72,11 @@ Log.Logger = new LoggerConfiguration()
     .CreateLogger();
 
 
-builder.Services.AddIdentityCore<ApplicationUser>(options =>
+builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
     {
         options.SignIn.RequireConfirmedAccount = true;
         options.Stores.SchemaVersion = IdentitySchemaVersions.Version3;
+        options.User.RequireUniqueEmail = true;
     })
     .AddEntityFrameworkStores<ApplicationContext>()
     .AddSignInManager()

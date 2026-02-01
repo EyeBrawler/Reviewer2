@@ -2,16 +2,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Reviewer2.Data.Context;
 
-public class ApplicationContext : DbContext
+public class ApplicationContext(DbContextOptions<ApplicationContext> options) : DbContext(options)
 {
-    /// <inheritdoc />
-    public ApplicationContext()
-    {
-        
-    }
-    /// <inheritdoc />
-    public ApplicationContext(DbContextOptions<ApplicationContext> options) : base(options)
-    {
-        
-    }
+    // DbSet<Paper>, DbSet<Review>, etc.
 }
