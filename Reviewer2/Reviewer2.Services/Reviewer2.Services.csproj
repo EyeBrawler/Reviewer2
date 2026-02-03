@@ -6,4 +6,11 @@
         <LangVersion>14</LangVersion>
         <Nullable>enable</Nullable>
     </PropertyGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\Reviewer2.Data\Reviewer2.Data.csproj" />
+    </ItemGroup>
+    <ItemGroup>
+      <PackageReference Include="Microsoft.AspNetCore.Identity" Version="2.3.9" />
+      <PackageReference Include="Serilog" Version="4.3.0" />
+    </ItemGroup>
 </Project>
