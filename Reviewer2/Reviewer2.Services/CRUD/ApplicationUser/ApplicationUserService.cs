@@ -235,6 +235,7 @@ public class ApplicationUserService : IApplicationUserService
         }
     }
     
+    /// <inheritdoc />
     public async Task<RegisterUserResult> RegisterAsync(
         string email,
         string password)
@@ -280,5 +281,33 @@ public class ApplicationUserService : IApplicationUserService
                 null);
         }
     }
+    
+    /// <inheritdoc />
+    public async Task<LoginResult> PasswordLoginAsync(
+        string email,
+        string password,
+        bool rememberMe)
+    {
+        var result = await _signInManager.PasswordSignInAsync(
+            email,
+            password,
+            rememberMe,
+            lockoutOnFailure: false);
 
+        return MapSignInResult(result);
+    }
+    
+    private static LoginResult MapSignInResult(SignInResult result)
+    {
+        if (result.Succeeded)
+            return new(LoginOutcome.Success);
+
+        if (result.RequiresTwoFactor)
+            return new(LoginOutcome.RequiresTwoFactor);
+
+        if (result.IsLockedOut)
+            return new(LoginOutcome.LockedOut);
+
+        return new(LoginOutcome.Failed);
+    }
 }

@@ -100,4 +100,15 @@ public interface IApplicationUserService
     /// roles, and generating an email confirmation token when registration succeeds.
     /// </remarks>
     Task<RegisterUserResult> RegisterAsync(string email, string password);
+    
+    /// <summary>
+    /// Attempts to sign in a user using email and password credentials.
+    /// </summary>
+    /// <returns>
+    /// A <see cref="LoginResult"/> describing the outcome of the login attempt.
+    /// </returns>
+    Task<LoginResult> PasswordLoginAsync(
+        string email,
+        string password,
+        bool rememberMe);
 }
