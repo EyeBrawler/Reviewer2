@@ -6,6 +6,7 @@ using System.Transactions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Reviewer2.Data.Context;
+using Reviewer2.Services.DTOs.ApplicationUser;
 using Serilog;
 
 namespace Reviewer2.Services.CRUD.ApplicationUser;
@@ -233,4 +234,51 @@ public class ApplicationUserService : IApplicationUserService
             return false;
         }
     }
+    
+    public async Task<RegisterUserResult> RegisterAsync(
+        string email,
+        string password)
+    {
+        try
+        {
+            var user = new ApplicationUser
+            {
+                UserName = email,
+                Email = email
+            };
+
+            var result = await _userManager.CreateAsync(user, password);
+
+            if (!result.Succeeded)
+            {
+                return new RegisterUserResult(
+                    false,
+                    result.Errors,
+                    null,
+                    null);
+            }
+
+            await _userManager.AddToRoleAsync(user, DefaultRole);
+
+            var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+
+            Log.Information("Registered new user {UserId}", user.Id);
+
+            return new RegisterUserResult(
+                true,
+                null,
+                user,
+                token);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Error registering user");
+            return new RegisterUserResult(
+                false,
+                [new IdentityError { Description = "Registration failed." }],
+                null,
+                null);
+        }
+    }
+
 }

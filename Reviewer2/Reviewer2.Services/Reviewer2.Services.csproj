@@ -6,9 +6,19 @@
         <LangVersion>14</LangVersion>
         <Nullable>enable</Nullable>
     </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+        <DocumentationFile>bin\Debug\Reviewer2.Services.xml</DocumentationFile>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+        <DocumentationFile>bin\Release\Reviewer2.Services.xml</DocumentationFile>
+    </PropertyGroup>
+    
     <ItemGroup>
         <ProjectReference Include="..\Reviewer2.Data\Reviewer2.Data.csproj" />
     </ItemGroup>
+    
     <ItemGroup>
       <PackageReference Include="Microsoft.AspNetCore.Identity" Version="2.3.9" />
       <PackageReference Include="Serilog" Version="4.3.0" />

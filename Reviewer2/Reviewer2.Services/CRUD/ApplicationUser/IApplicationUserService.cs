@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
+using Reviewer2.Services.DTOs.ApplicationUser;
 
 namespace Reviewer2.Services.CRUD.ApplicationUser;
 
@@ -79,4 +80,24 @@ public interface IApplicationUserService
     ///</summary>
     ///<returns>Updated ApplicationUser object</returns>
     public Task<bool> UpdateApplicationUser(ApplicationUser applicationUser);
+    
+    /// <summary>
+    /// Registers a new application user with the specified credentials.
+    /// </summary>
+    /// <param name="email">
+    /// The email address to associate with the new user account. This value is used
+    /// as both the user's email and username.
+    /// </param>
+    /// <param name="password">
+    /// The password for the new user account.
+    /// </param>
+    /// <returns>
+    /// A <see cref="RegisterUserResult"/> describing the outcome of the registration
+    /// attempt, including any validation or identity errors.
+    /// </returns>
+    /// <remarks>
+    /// Implementations are responsible for creating the user, assigning any default
+    /// roles, and generating an email confirmation token when registration succeeds.
+    /// </remarks>
+    Task<RegisterUserResult> RegisterAsync(string email, string password);
 }

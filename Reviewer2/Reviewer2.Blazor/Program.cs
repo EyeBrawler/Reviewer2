@@ -5,6 +5,7 @@ using Reviewer2.Blazor.Components;
 using Reviewer2.Blazor.Components.Account;
 using Reviewer2.Data.Context;
 using Reviewer2.Data.Models;
+using Reviewer2.Services.CRUD.ApplicationUser;
 using Serilog;
 using Serilog.Events;
 
@@ -47,6 +48,7 @@ builder.Services.AddRazorComponents()
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<IdentityRedirectManager>();
 builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
+builder.Services.AddScoped<IApplicationUserService, ApplicationUserService>();
 
 builder.Services.AddRazorPages();
 
