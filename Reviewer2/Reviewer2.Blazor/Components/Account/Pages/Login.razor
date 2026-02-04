@@ -74,6 +74,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        Input ??= new InputModel();
         _editContext = new EditContext(Input);
 
         if (HttpMethods.IsGet(HttpContext.Request.Method))

@@ -51,13 +51,13 @@
     private IEnumerable<IdentityError>? _identityErrors;
 
     [SupplyParameterFromForm]
-    private InputModel Input { get; set; } = default!;
+    private InputModel Input { get; set; } = new();
 
     [SupplyParameterFromQuery]
     private string? ReturnUrl { get; set; }
 
     private string? Message => _identityErrors is null ? null : $"Error: {string.Join(", ", _identityErrors.Select(error => error.Description))}";
-
+    
     public async Task RegisterUser(EditContext editContext)
     {
         var result = await ApplicationUserService.RegisterAsync(
