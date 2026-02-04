@@ -4,7 +4,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <UserSecretsId>aspnet-Reviewer2_Blazor-bf2c8444-b5be-4af7-a63c-595d9c786ad7</UserSecretsId>
+    <UserSecretsId>bff48c65-f477-4a96-b4ab-0223c04f3b7a</UserSecretsId>
     <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
   </PropertyGroup>
 
