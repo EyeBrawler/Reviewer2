@@ -111,4 +111,17 @@ public interface IApplicationUserService
         string email,
         string password,
         bool rememberMe);
+    
+    /// <summary>
+    /// Initiates a password reset request for the specified email address.
+    /// </summary>
+    /// <param name="email">
+    /// The email address associated with the account requesting a password reset.
+    /// </param>
+    /// <returns>
+    /// A <see cref="PasswordResetRequest"/> containing the encoded reset token and email
+    /// if the request can be fulfilled; otherwise, <c>null</c>.
+    /// This method does not disclose whether the email corresponds to an existing account.
+    /// </returns>
+    Task<PasswordResetRequest?> RequestPasswordResetAsync(string email);
 }

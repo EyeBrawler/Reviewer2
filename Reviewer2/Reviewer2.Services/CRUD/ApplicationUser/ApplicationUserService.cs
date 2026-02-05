@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using System.Transactions;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Reviewer2.Data.Context;
 using Reviewer2.Services.DTOs.ApplicationUser;
@@ -310,4 +312,21 @@ public class ApplicationUserService : IApplicationUserService
 
         return new(LoginOutcome.Failed);
     }
+    
+    /// <inheritdoc />
+    public async Task<PasswordResetRequest?> RequestPasswordResetAsync(string email)
+    {
+        var user = await _userManager.FindByEmailAsync(email);
+        if (user is null || !await _userManager.IsEmailConfirmedAsync(user))
+        {
+            return null;
+        }
+
+        var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+        var encodedToken = WebEncoders.Base64UrlEncode(
+            Encoding.UTF8.GetBytes(token));
+
+        return new PasswordResetRequest(email, encodedToken);
+    }
+
 }
