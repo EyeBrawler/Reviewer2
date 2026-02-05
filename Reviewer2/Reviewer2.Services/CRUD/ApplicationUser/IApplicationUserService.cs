@@ -124,4 +124,25 @@ public interface IApplicationUserService
     /// This method does not disclose whether the email corresponds to an existing account.
     /// </returns>
     Task<PasswordResetRequest?> RequestPasswordResetAsync(string email);
+    
+    /// <summary>
+    /// Confirms a pending email address change for a user account.
+    /// </summary>
+    /// <param name="userId">
+    /// The unique identifier of the user whose email address is being changed.
+    /// </param>
+    /// <param name="newEmail">
+    /// The new email address to associate with the user account.
+    /// </param>
+    /// <param name="encodedToken">
+    /// A URL-safe, encoded confirmation token generated when the email change was requested.
+    /// </param>
+    /// <returns>
+    /// A result indicating whether the email change was successfully confirmed,
+    /// along with an optional error message if the operation failed.
+    /// </returns>
+    Task<EmailChangeConfirmationResult> ConfirmEmailChangeAsync(
+        string userId,
+        string newEmail,
+        string encodedToken);
 }

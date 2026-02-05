@@ -329,4 +329,37 @@ public class ApplicationUserService : IApplicationUserService
         return new PasswordResetRequest(email, encodedToken);
     }
 
+    /// <inheritdoc />
+    public async Task<EmailChangeConfirmationResult> ConfirmEmailChangeAsync(
+        string userId,
+        string newEmail,
+        string encodedToken)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user is null)
+            return new(false, "Invalid email change request.");
+
+        string token;
+        try
+        {
+            token = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(encodedToken));
+        }
+        catch
+        {
+            return new EmailChangeConfirmationResult(false, "Invalid confirmation token.");
+        }
+
+        var changeResult = await _userManager.ChangeEmailAsync(user, newEmail, token);
+        if (!changeResult.Succeeded)
+            return new EmailChangeConfirmationResult(false, "Error changing email.");
+
+        var usernameResult = await _userManager.SetUserNameAsync(user, newEmail);
+        if (!usernameResult.Succeeded)
+            return new EmailChangeConfirmationResult(false, "Error updating username.");
+
+        await _signInManager.RefreshSignInAsync(user);
+
+        return new(true);
+    }
+
 }
