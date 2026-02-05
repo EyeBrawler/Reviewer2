@@ -1,23 +1,17 @@
 ﻿@page "/Account/ConfirmEmail"
 
-@using System.Text
-@using Microsoft.AspNetCore.Identity
-@using Microsoft.AspNetCore.WebUtilities
-@using Reviewer2.Data.Models
+@using Reviewer2.Services.CRUD.ApplicationUser
 
-@inject UserManager<ApplicationUser> UserManager
+@inject IApplicationUserService ApplicationUserService
 @inject IdentityRedirectManager RedirectManager
 
 <PageTitle>Confirm email</PageTitle>
 
 <h1>Confirm email</h1>
-<StatusMessage Message="@statusMessage" />
+<StatusMessage Message="@_statusMessage" />
 
 @code {
-    private string? statusMessage;
-
-    [CascadingParameter]
-    private HttpContext HttpContext { get; set; } = default!;
+    private string? _statusMessage;
 
     [SupplyParameterFromQuery]
     private string? UserId { get; set; }
@@ -27,23 +21,16 @@
 
     protected override async Task OnInitializedAsync()
     {
-        if (UserId is null || Code is null)
+        if (string.IsNullOrWhiteSpace(UserId) || string.IsNullOrWhiteSpace(Code))
         {
-            RedirectManager.RedirectTo("");
+            RedirectManager.RedirectTo("Account/Login");
             return;
         }
 
-        var user = await UserManager.FindByIdAsync(UserId);
-        if (user is null)
-        {
-            HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
-            statusMessage = $"Error loading user with ID {UserId}";
-        }
-        else
-        {
-            var code = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(Code));
-            var result = await UserManager.ConfirmEmailAsync(user, code);
-            statusMessage = result.Succeeded ? "Thank you for confirming your email." : "Error confirming your email.";
-        }
+        var result = await ApplicationUserService.ConfirmEmailAsync(UserId, Code);
+
+        _statusMessage = result.Succeeded
+            ? "Thank you for confirming your email."
+            : result.ErrorMessage;
     }
 }

@@ -361,5 +361,25 @@ public class ApplicationUserService : IApplicationUserService
 
         return new(true);
     }
+    
+    /// <inheritdoc />
+    public async Task<EmailConfirmationResult> ConfirmEmailAsync(
+        string userId,
+        string encodedToken)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user is null)
+        {
+            return new EmailConfirmationResult(false, "User not found.");
+        }
+
+        var token = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(encodedToken));
+        var result = await _userManager.ConfirmEmailAsync(user, token);
+
+        return result.Succeeded
+            ? new EmailConfirmationResult(true)
+            : new EmailConfirmationResult(false, "Error confirming your email.");
+    }
+
 
 }

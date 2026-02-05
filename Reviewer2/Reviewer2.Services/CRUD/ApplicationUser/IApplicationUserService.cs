@@ -145,4 +145,21 @@ public interface IApplicationUserService
         string userId,
         string newEmail,
         string encodedToken);
+    
+    /// <summary>
+    /// Confirms a user's email address using a confirmation token.
+    /// </summary>
+    /// <param name="userId">
+    /// The unique identifier of the user whose email address is being confirmed.
+    /// </param>
+    /// <param name="encodedToken">
+    /// A URL-safe, encoded email confirmation token.
+    /// </param>
+    /// <returns>
+    /// A result indicating whether the email confirmation succeeded,
+    /// including an optional error message if the operation failed.
+    /// </returns>
+    Task<EmailConfirmationResult> ConfirmEmailAsync(
+        string userId,
+        string encodedToken);
 }
