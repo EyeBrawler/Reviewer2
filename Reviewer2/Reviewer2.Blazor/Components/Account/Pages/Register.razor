@@ -7,11 +7,11 @@
 @using Microsoft.AspNetCore.WebUtilities
 @using Reviewer2.Data.Models
 @using Reviewer2.Services.CRUD.ApplicationUser
+@using Serilog
 
 @inject IApplicationUserService ApplicationUserService
 @inject SignInManager<ApplicationUser> SignInManager
 @inject IEmailSender<ApplicationUser> EmailSender
-@inject ILogger<Register> Logger
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
 
@@ -73,7 +73,7 @@
         var user = result.User!;
         var userId = user.Id;
 
-        Logger.LogInformation("User created a new account.");
+        Log.Information("User created a new account.");
 
         var code = WebEncoders.Base64UrlEncode(
             Encoding.UTF8.GetBytes(result.EmailConfirmationToken!));

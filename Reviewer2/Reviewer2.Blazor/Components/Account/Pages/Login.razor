@@ -5,9 +5,9 @@
 @using Microsoft.AspNetCore.Identity
 @using Reviewer2.Services.CRUD.ApplicationUser
 @using Reviewer2.Services.DTOs.ApplicationUser
+@using Serilog
 
 @inject IApplicationUserService ApplicationUserService
-@inject ILogger<Login> Logger
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
 
@@ -97,7 +97,7 @@
         switch (result.Outcome)
         {
             case LoginOutcome.Success:
-                Logger.LogInformation("User logged in.");
+                Log.Information("User logged in.");
                 RedirectManager.RedirectTo(ReturnUrl);
                 break;
 
@@ -112,7 +112,7 @@
                 break;
 
             case LoginOutcome.LockedOut:
-                Logger.LogWarning("User account locked out.");
+                Log.Warning("User account locked out.");
                 RedirectManager.RedirectTo("Account/Lockout");
                 break;
 
