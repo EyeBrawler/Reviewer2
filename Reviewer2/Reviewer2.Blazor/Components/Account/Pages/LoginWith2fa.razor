@@ -1,55 +1,69 @@
 ﻿@page "/Account/LoginWith2fa"
 
 @using System.ComponentModel.DataAnnotations
-@using Microsoft.AspNetCore.Identity
-@using Reviewer2.Data.Models
-@using Serilog
+@using Reviewer2.Services.CRUD.ApplicationUser
+@using Reviewer2.Services.DTOs.ApplicationUser
 
-@inject SignInManager<ApplicationUser> SignInManager
-@inject UserManager<ApplicationUser> UserManager
+@inject IApplicationUserService ApplicationUserService
 @inject IdentityRedirectManager RedirectManager
 
 <PageTitle>Two-factor authentication</PageTitle>
 
 <h1>Two-factor authentication</h1>
 <hr />
+
 <StatusMessage Message="@message" />
-<p>Your login is protected with an authenticator app. Enter your authenticator code below.</p>
+
+<p>
+    Your login is protected with an authenticator app.
+    Enter your authenticator code below.
+</p>
+
 <div class="row">
     <div class="col-md-4">
-        <EditForm Model="Input" FormName="login-with-2fa" OnValidSubmit="OnValidSubmitAsync" method="post">
+        <EditForm Model="Input" FormName="login-with-2fa" OnValidSubmit="OnValidSubmitAsync">
             <input type="hidden" name="ReturnUrl" value="@ReturnUrl" />
             <input type="hidden" name="RememberMe" value="@RememberMe" />
+
             <DataAnnotationsValidator />
             <ValidationSummary class="text-danger" role="alert" />
+
             <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.TwoFactorCode" id="Input.TwoFactorCode" class="form-control" autocomplete="off" />
-                <label for="Input.TwoFactorCode" class="form-label">Authenticator code</label>
-                <ValidationMessage For="() => Input.TwoFactorCode" class="text-danger" />
+                <InputText @bind-Value="Input.TwoFactorCode"
+                           id="Input.TwoFactorCode"
+                           class="form-control"
+                           autocomplete="off" />
+                <label for="Input.TwoFactorCode">Authenticator code</label>
+                <ValidationMessage For="() => Input.TwoFactorCode" />
             </div>
+
             <div class="checkbox mb-3">
-                <label for="remember-machine" class="form-label">
+                <label>
                     <InputCheckbox @bind-Value="Input.RememberMachine" />
                     Remember this machine
                 </label>
             </div>
-            <div>
-                <button type="submit" class="w-100 btn btn-lg btn-primary">Log in</button>
-            </div>
+
+            <button type="submit" class="w-100 btn btn-lg btn-primary">
+                Log in
+            </button>
         </EditForm>
     </div>
 </div>
+
 <p>
-    Don't have access to your authenticator device? You can
-    <a href="Account/LoginWithRecoveryCode?ReturnUrl=@ReturnUrl">log in with a recovery code</a>.
+    Don't have access to your authenticator device?
+    You can
+    <a href="Account/LoginWithRecoveryCode?ReturnUrl=@ReturnUrl">
+        log in with a recovery code
+    </a>.
 </p>
 
 @code {
     private string? message;
-    private ApplicationUser user = default!;
 
     [SupplyParameterFromForm]
-    private InputModel Input { get; set; } = default!;
+    private InputModel Input { get; set; } = new();
 
     [SupplyParameterFromQuery]
     private string? ReturnUrl { get; set; }
@@ -59,41 +73,44 @@
 
     protected override async Task OnInitializedAsync()
     {
-        Input ??= new();
+        // Ensures the user completed the username/password step
+        var user = await ApplicationUserService.GetPendingTwoFactorUserAsync();
 
-        // Ensure the user has gone through the username & password screen first
-        user = await SignInManager.GetTwoFactorAuthenticationUserAsync() ??
-            throw new InvalidOperationException("Unable to load two-factor authentication user.");
+        if (user is null)
+        {
+            throw new InvalidOperationException(
+                "No user is currently pending two-factor authentication.");
+        }
     }
 
     private async Task OnValidSubmitAsync()
     {
-        var authenticatorCode = Input.TwoFactorCode!.Replace(" ", string.Empty).Replace("-", string.Empty);
-        var result = await SignInManager.TwoFactorAuthenticatorSignInAsync(authenticatorCode, RememberMe, Input.RememberMachine);
-        var userId = await UserManager.GetUserIdAsync(user);
+        var result = await ApplicationUserService.SignInWithAuthenticatorAsync(
+            Input.TwoFactorCode!,
+            RememberMe,
+            Input.RememberMachine);
 
-        if (result.Succeeded)
+        switch (result.Outcome)
         {
-            Log.Information("User with ID '{UserId}' logged in with 2fa.", userId);
-            RedirectManager.RedirectTo(ReturnUrl);
-        }
-        else if (result.IsLockedOut)
-        {
-            Log.Warning("User with ID '{UserId}' account locked out.", userId);
-            RedirectManager.RedirectTo("Account/Lockout");
-        }
-        else
-        {
-            Log.Warning("Invalid authenticator code entered for user with ID '{UserId}'.", userId);
-            message = "Error: Invalid authenticator code.";
+            case TwoFactorSignInOutcome.Success:
+                RedirectManager.RedirectTo(ReturnUrl);
+                break;
+
+            case TwoFactorSignInOutcome.LockedOut:
+                RedirectManager.RedirectTo("Account/Lockout");
+                break;
+
+            case TwoFactorSignInOutcome.InvalidCode:
+            default:
+                message = result.ErrorMessage ?? "Invalid authenticator code.";
+                break;
         }
     }
 
     private sealed class InputModel
     {
         [Required]
-        [StringLength(7, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 6)]
-        [DataType(DataType.Text)]
+        [StringLength(7, MinimumLength = 6)]
         [Display(Name = "Authenticator code")]
         public string? TwoFactorCode { get; set; }
 

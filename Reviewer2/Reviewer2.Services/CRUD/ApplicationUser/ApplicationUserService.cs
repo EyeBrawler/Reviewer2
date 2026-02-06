@@ -381,5 +381,57 @@ public class ApplicationUserService : IApplicationUserService
             : new EmailConfirmationResult(false, "Error confirming your email.");
     }
 
+    /// <inheritdoc />
+    public async Task<ApplicationUser?> GetPendingTwoFactorUserAsync()
+    {
+        return await _signInManager.GetTwoFactorAuthenticationUserAsync();
+    }
+    
+    /// <inheritdoc />
+    public async Task<TwoFactorSignInResult> SignInWithAuthenticatorAsync(
+        string twoFactorCode,
+        bool rememberMe,
+        bool rememberMachine)
+    {
+        var user = await _signInManager.GetTwoFactorAuthenticationUserAsync();
+        if (user is null)
+        {
+            throw new InvalidOperationException(
+                "No user is currently pending two-factor authentication.");
+        }
 
+        var normalizedCode = twoFactorCode
+            .Replace(" ", string.Empty)
+            .Replace("-", string.Empty);
+
+        var result = await _signInManager.TwoFactorAuthenticatorSignInAsync(
+            normalizedCode,
+            rememberMe,
+            rememberMachine);
+
+        var userId = await _userManager.GetUserIdAsync(user);
+
+        if (result.Succeeded)
+        {
+            Log.Information(
+                "User with ID '{UserId}' logged in with 2FA.", userId);
+
+            return new TwoFactorSignInResult(TwoFactorSignInOutcome.Success);
+        }
+
+        if (result.IsLockedOut)
+        {
+            Log.Warning(
+                "User with ID '{UserId}' account locked out during 2FA.", userId);
+
+            return new TwoFactorSignInResult(TwoFactorSignInOutcome.LockedOut);
+        }
+
+        Log.Warning(
+            "Invalid authenticator code entered for user with ID '{UserId}'.", userId);
+
+        return new TwoFactorSignInResult(
+            TwoFactorSignInOutcome.InvalidCode,
+            "Error: Invalid authenticator code.");
+    }
 }

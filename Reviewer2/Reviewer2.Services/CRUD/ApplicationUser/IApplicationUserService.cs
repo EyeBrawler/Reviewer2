@@ -162,4 +162,29 @@ public interface IApplicationUserService
     Task<EmailConfirmationResult> ConfirmEmailAsync(
         string userId,
         string encodedToken);
+    
+    /// <summary>
+    /// Retrieves the user currently undergoing two-factor authentication.
+    /// </summary>
+    /// <returns>
+    /// The pending two-factor authentication user, or <c>null</c> if no such user exists.
+    /// </returns>
+    Task<ApplicationUser?> GetPendingTwoFactorUserAsync();
+
+
+    /// <summary>
+    /// Attempts to complete a two-factor authentication sign-in using an authenticator code.
+    /// </summary>
+    /// <param name="twoFactorCode">The authenticator code entered by the user.</param>
+    /// <param name="rememberMe">Whether the sign-in should persist across browser sessions.</param>
+    /// <param name="rememberMachine">
+    /// Whether the current machine should be remembered and bypass two-factor authentication in the future.
+    /// </param>
+    /// <returns>
+    /// A <see cref="TwoFactorSignInResult"/> describing the outcome of the sign-in attempt.
+    /// </returns>
+    Task<TwoFactorSignInResult> SignInWithAuthenticatorAsync(
+        string twoFactorCode,
+        bool rememberMe,
+        bool rememberMachine);
 }
