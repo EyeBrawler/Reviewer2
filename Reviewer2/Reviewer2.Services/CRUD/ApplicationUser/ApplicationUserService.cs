@@ -240,27 +240,27 @@ public class ApplicationUserService : IApplicationUserService
     }
     
     /// <inheritdoc />
-    public async Task<RegisterUserResult> RegisterAsync(
-        string email,
-        string password)
+    public async Task<RegisterUserResult> RegisterAsync(RegisterUserRequest request)
     {
         try
         {
             var user = new ApplicationUser
             {
-                UserName = email,
-                Email = email
+                UserName = request.Username.Trim(),
+                Email = request.Email.Trim(),
+                FirstName = request.FirstName.Trim(),
+                LastName = request.LastName.Trim()
             };
 
-            var result = await _userManager.CreateAsync(user, password);
+            var createResult = await _userManager.CreateAsync(user, request.Password);
 
-            if (!result.Succeeded)
+            if (!createResult.Succeeded)
             {
                 return new RegisterUserResult(
-                    false,
-                    result.Errors,
-                    null,
-                    null);
+                    Succeeded: false,
+                    Errors: createResult.Errors,
+                    UserId: null,
+                    EmailConfirmationToken: null);
             }
 
             await _userManager.AddToRoleAsync(user, DefaultRole);
@@ -270,30 +270,45 @@ public class ApplicationUserService : IApplicationUserService
             Log.Information("Registered new user {UserId}", user.Id);
 
             return new RegisterUserResult(
-                true,
-                null,
-                user,
-                token);
+                Succeeded: true,
+                Errors: null,
+                UserId: user.Id,
+                EmailConfirmationToken: token);
         }
         catch (Exception ex)
         {
             Log.Error(ex, "Error registering user");
+
             return new RegisterUserResult(
-                false,
-                [new IdentityError { Description = "Registration failed." }],
-                null,
-                null);
+                Succeeded: false,
+                Errors:
+                [
+                    new IdentityError { Description = "Registration failed." }
+                ],
+                UserId: null,
+                EmailConfirmationToken: null);
         }
     }
+
     
     /// <inheritdoc />
     public async Task<LoginResult> PasswordLoginAsync(
-        string email,
+        string login,
         string password,
         bool rememberMe)
     {
+        // Try to find by username first
+        // If not found, try email
+        var user = await _userManager.FindByNameAsync(login) ?? await _userManager.FindByEmailAsync(login);
+
+        // If still not found, fail early
+        if (user == null)
+        {
+            return new LoginResult(LoginOutcome.Failed);
+        }
+
         var result = await _signInManager.PasswordSignInAsync(
-            email,
+            user,
             password,
             rememberMe,
             lockoutOnFailure: false);

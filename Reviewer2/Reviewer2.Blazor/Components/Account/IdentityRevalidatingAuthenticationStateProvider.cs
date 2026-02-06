@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
-using Reviewer2.Data;
 using Reviewer2.Data.Models;
 
 namespace Reviewer2.Blazor.Components.Account;

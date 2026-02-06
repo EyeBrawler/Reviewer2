@@ -7,6 +7,7 @@
 @using Microsoft.AspNetCore.WebUtilities
 @using Reviewer2.Data.Models
 @using Reviewer2.Services.CRUD.ApplicationUser
+@using Reviewer2.Services.DTOs.ApplicationUser
 @using Serilog
 
 @inject IApplicationUserService ApplicationUserService
@@ -28,7 +29,35 @@
             <hr />
             <ValidationSummary class="text-danger" role="alert" />
             <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.Email" id="Input.Email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com" />
+                <InputText @bind-Value="Input.FirstName"
+                           id="Input.FirstName"
+                           class="form-control"
+                           placeholder="First Name" />
+                <label for="Input.FirstName">First Name</label>
+                <ValidationMessage For="() => Input.FirstName" class="text-danger" />
+            </div>
+
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.LastName"
+                           id="Input.LastName"
+                           class="form-control"
+                           placeholder="Last Name" />
+                <label for="Input.LastName">Last Name</label>
+                <ValidationMessage For="() => Input.LastName" class="text-danger" />
+            </div>
+
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.UserName"
+                           id="Input.UserName"
+                           class="form-control"
+                           autocomplete="username"
+                           placeholder="Username" />
+                <label for="Input.UserName">Username</label>
+                <ValidationMessage For="() => Input.UserName" class="text-danger" />
+            </div>
+
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.Email" id="Input.Email" class="form-control" autocomplete="email" aria-required="true" placeholder="name@example.com" />
                 <label for="Input.Email">Email</label>
                 <ValidationMessage For="() => Input.Email" class="text-danger" />
             </div>
@@ -60,9 +89,16 @@
     
     public async Task RegisterUser(EditContext editContext)
     {
-        var result = await ApplicationUserService.RegisterAsync(
-            Input.Email,
-            Input.Password);
+        var request = new RegisterUserRequest
+        {
+            Username = Input.UserName,
+            Email = Input.Email,
+            Password = Input.Password,
+            FirstName = Input.FirstName,
+            LastName = Input.LastName
+        };
+
+        var result = await ApplicationUserService.RegisterAsync(request);
 
         if (!result.Succeeded)
         {
@@ -70,13 +106,13 @@
             return;
         }
 
-        var user = result.User!;
-        var userId = user.Id;
-
         Log.Information("User created a new account.");
 
+        var userId = result.UserId!;
+        var token = result.EmailConfirmationToken!;
+
         var code = WebEncoders.Base64UrlEncode(
-            Encoding.UTF8.GetBytes(result.EmailConfirmationToken!));
+            Encoding.UTF8.GetBytes(token));
 
         var callbackUrl = NavigationManager.GetUriWithQueryParameters(
             NavigationManager.ToAbsoluteUri("Account/ConfirmEmail").AbsoluteUri,
@@ -87,8 +123,16 @@
                 ["returnUrl"] = ReturnUrl
             });
 
+        // Minimal stub user object required for IEmailSender<ApplicationUser>
+        var emailUser = new ApplicationUser
+        {
+            Id = userId,
+            Email = Input.Email,
+            UserName = Input.UserName
+        };
+
         await EmailSender.SendConfirmationLinkAsync(
-            user,
+            emailUser,
             Input.Email,
             HtmlEncoder.Default.Encode(callbackUrl));
 
@@ -100,7 +144,7 @@
         }
         else
         {
-            await SignInManager.SignInAsync(user, isPersistent: false);
+            await SignInManager.SignInAsync(emailUser, isPersistent: false);
             RedirectManager.RedirectTo(ReturnUrl);
         }
     }
@@ -108,12 +152,27 @@
     private sealed class InputModel
     {
         [Required]
+        [StringLength(100)]
+        [Display(Name = "First name")]
+        public string FirstName { get; set; } = "";
+
+        [Required]
+        [StringLength(100)]
+        [Display(Name = "Last name")]
+        public string LastName { get; set; } = "";
+
+        [Required]
+        [StringLength(100)]
+        [Display(Name = "Username")]
+        public string UserName { get; set; } = "";
+
+        [Required]
         [EmailAddress]
         [Display(Name = "Email")]
         public string Email { get; set; } = "";
 
         [Required]
-        [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 6)]
+        [StringLength(100, MinimumLength = 6)]
         [DataType(DataType.Password)]
         [Display(Name = "Password")]
         public string Password { get; set; } = "";
@@ -123,4 +182,5 @@
         [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
         public string ConfirmPassword { get; set; } = "";
     }
+
 }

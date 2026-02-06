@@ -82,26 +82,24 @@ public interface IApplicationUserService
     ///</summary>
     ///<returns>Updated ApplicationUser object</returns>
     public Task<bool> UpdateApplicationUser(ApplicationUser applicationUser);
-    
+
     /// <summary>
-    /// Registers a new application user with the specified credentials.
+    /// Registers a new application user in the system.
     /// </summary>
-    /// <param name="email">
-    /// The email address to associate with the new user account. This value is used
-    /// as both the user's email and username.
-    /// </param>
-    /// <param name="password">
-    /// The password for the new user account.
+    /// <param name="request">
+    /// A <see cref="RegisterUserRequest"/> containing the information required
+    /// to create the user account.
     /// </param>
     /// <returns>
-    /// A <see cref="RegisterUserResult"/> describing the outcome of the registration
-    /// attempt, including any validation or identity errors.
+    /// A <see cref="RegisterUserResult"/> indicating whether the registration
+    /// succeeded, along with any errors, the created user, and an email
+    /// confirmation token if successful.
     /// </returns>
     /// <remarks>
-    /// Implementations are responsible for creating the user, assigning any default
-    /// roles, and generating an email confirmation token when registration succeeds.
+    /// This method creates the user, assigns the default role, and generates
+    /// an email confirmation token. It does not sign the user in.
     /// </remarks>
-    Task<RegisterUserResult> RegisterAsync(string email, string password);
+    public Task<RegisterUserResult> RegisterAsync(RegisterUserRequest request);
     
     /// <summary>
     /// Attempts to sign in a user using email and password credentials.
