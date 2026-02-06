@@ -25,12 +25,32 @@ public interface IApplicationUserService
     /// <param name="username">The username of the user.</param>
     /// <returns>True if sign-in was successful, otherwise false.</returns>
     public Task<bool> SignInAsync(string username);
+    
     /// <summary>
     /// Gets a list of users by role.
     /// </summary>
     /// <param name="roleName">The name of the role.</param>
     /// <returns>A list of users in the specified role.</returns>
     public Task<List<ApplicationUser>> GetUsersByRoleAsync(string roleName);
+    
+    /// <summary>
+    /// Retrieves the names of all roles assigned to the specified user.
+    /// </summary>
+    /// <param name="userId">
+    /// The unique identifier of the user whose roles should be retrieved.
+    /// </param>
+    /// <returns>
+    /// A collection of role names associated with the user.
+    /// Returns <c>null</c> if no user with the specified identifier exists.
+    /// </returns>
+    /// <remarks>
+    /// This method queries the underlying identity store to determine
+    /// the roles currently assigned to the user. The returned collection
+    /// reflects role membership at the time of invocation.
+    /// </remarks>
+    Task<IList<string>?> GetRolesAsync(string userId);
+
+    
     ///<summary>
     /// Retrieves a list of all ApplicationUsers currently registered
     ///</summary>

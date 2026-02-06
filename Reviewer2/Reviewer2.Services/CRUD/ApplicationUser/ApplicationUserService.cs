@@ -78,6 +78,16 @@ public class ApplicationUserService : IApplicationUserService
             return [];
         }
     }
+    
+    /// <inheritdoc />
+    public async Task<IList<string>?> GetRolesAsync(string userId)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user is null)
+            return null;
+
+        return await _userManager.GetRolesAsync(user);
+    }
 
     /// <inheritdoc />
     public async Task<List<ApplicationUser>> GetAllAsync()

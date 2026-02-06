@@ -1,13 +1,45 @@
 ﻿@page "/auth"
 
 @using Microsoft.AspNetCore.Authorization
+@using Reviewer2.Services.CRUD.ApplicationUser
 
 @attribute [Authorize]
+
+@inject IApplicationUserService UserService
 
 <PageTitle>Auth</PageTitle>
 
 <h1>You are authenticated</h1>
 
-<AuthorizeView>
-    Hello @context.User.Identity?.Name!
-</AuthorizeView>
+@if (_displayName is not null)
+{
+    <p>Hello @_displayName!</p>
+
+    @if (_roles?.Any() == true)
+    {
+        <p>Your role: @string.Join(", ", _roles)</p>
+    }
+}
+
+@code {
+    private string? _displayName;
+    private IReadOnlyList<string>? _roles;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = await UserService.GetCurrentUserAsync(
+            (await AuthenticationStateTask).User);
+
+        if (user is null)
+            return;
+
+        _displayName = string.IsNullOrWhiteSpace(user.FirstName)
+            ? user.UserName
+            : user.FirstName;
+
+        _roles = (await UserService.GetRolesAsync(user.Id))?.ToList();
+    }
+
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthenticationStateTask { get; set; } = default!;
+}
