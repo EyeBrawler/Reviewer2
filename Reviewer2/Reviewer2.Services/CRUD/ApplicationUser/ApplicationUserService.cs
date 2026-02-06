@@ -532,4 +532,48 @@ public class ApplicationUserService : IApplicationUserService
         return await _userManager.GetUserAsync(principal);
     }
     
+    /// <inheritdoc />
+    public async Task<UserProfileDTO?> GetProfileAsync(ClaimsPrincipal principal)
+    {
+        var user = await _userManager.GetUserAsync(principal);
+        if (user is null)
+            return null;
+
+        return new UserProfileDTO(
+            user.Id,
+            user.UserName!,
+            user.FirstName,
+            user.LastName,
+            user.PhoneNumber
+        );
+    }
+    
+    /// <inheritdoc />
+    public async Task<UpdateUserProfileResult> UpdateProfileAsync(
+        UpdateUserProfileRequest request)
+    {
+        var user = await _userManager.FindByIdAsync(request.UserId);
+        if (user is null)
+            return new UpdateUserProfileResult(false, "User not found.");
+
+        user.UserName = request.UserName;
+        user.FirstName = request.FirstName;
+        user.LastName = request.LastName;
+        user.PhoneNumber = request.PhoneNumber;
+
+        var result = await _userManager.UpdateAsync(user);
+
+        if (!result.Succeeded)
+        {
+            var error = string.Join("; ", result.Errors.Select(e => e.Description));
+            return new UpdateUserProfileResult(false, error);
+        }
+
+        await _signInManager.RefreshSignInAsync(user);
+
+        return new UpdateUserProfileResult(true);
+    }
+
+
+    
 }

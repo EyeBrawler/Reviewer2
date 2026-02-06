@@ -266,4 +266,27 @@ public interface IApplicationUserService
     /// and does not guarantee that the principal is authenticated.
     /// </remarks>
     Task<ApplicationUser?> GetCurrentUserAsync(ClaimsPrincipal principal);
+    
+    /// <summary>
+    /// Retrieves profile information for the currently authenticated user.
+    /// </summary>
+    /// <param name="principal">
+    /// The claims principal representing the current user.
+    /// </param>
+    /// <returns>
+    /// A <see cref="UserProfileDTO"/> if the user exists; otherwise, <c>null</c>.
+    /// </returns>
+    Task<UserProfileDTO?> GetProfileAsync(ClaimsPrincipal principal);
+
+
+    /// <summary>
+    /// Updates editable profile information for an existing user.
+    /// </summary>
+    /// <param name="request">
+    /// A request containing the updated profile values.
+    /// </param>
+    /// <returns>
+    /// A <see cref="UpdateUserProfileResult"/> describing the outcome.
+    /// </returns>
+    Task<UpdateUserProfileResult> UpdateProfileAsync(UpdateUserProfileRequest request);
 }
