@@ -1,7 +1,9 @@
 using System.Collections.Generic;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
 using Reviewer2.Services.DTOs.ApplicationUser;
+using Reviewer2.Services.DTOs.ApplicationUser.Passkey;
 
 namespace Reviewer2.Services.CRUD.ApplicationUser;
 
@@ -187,4 +189,83 @@ public interface IApplicationUserService
         string twoFactorCode,
         bool rememberMe,
         bool rememberMachine);
+    
+    /// <summary>
+    /// Retrieves all registered passkeys for the specified user.
+    /// </summary>
+    /// <param name="userId">
+    /// The unique identifier of the user whose passkeys should be retrieved.
+    /// </param>
+    /// <returns>
+    /// A read-only list of <see cref="PasskeyDTO"/> objects representing the user's
+    /// registered passkeys, or <c>null</c> if no user with the specified ID exists.
+    /// </returns>
+    /// <remarks>
+    /// The returned credential identifiers are Base64Url-encoded and safe for
+    /// transport and display in client applications.
+    /// </remarks>
+    Task<IReadOnlyList<PasskeyDTO>?> GetPasskeysAsync(string userId);
+    
+    /// <summary>
+    /// Registers a new passkey for the specified user using the provided
+    /// WebAuthn attestation payload.
+    /// </summary>
+    /// <param name="userId">
+    /// The unique identifier of the user who is registering the passkey.
+    /// </param>
+    /// <param name="credentialJson">
+    /// The JSON-encoded WebAuthn credential attestation response
+    /// returned from the client.
+    /// </param>
+    /// <returns>
+    /// An <see cref="AddPasskeyResult"/> describing whether the operation succeeded.
+    /// If successful, the result contains the Base64Url-encoded credential identifier.
+    /// If unsuccessful, the result contains an error message describing the failure.
+    /// </returns>
+    /// <remarks>
+    /// This method validates the attestation response before storing the passkey.
+    /// The credential identifier returned in the result can be used for future
+    /// passkey management operations.
+    /// </remarks>
+    Task<AddPasskeyResult> AddPasskeyAsync(
+        string userId,
+        string credentialJson);
+
+    /// <summary>
+    /// Deletes a previously registered passkey from the specified user account.
+    /// </summary>
+    /// <param name="userId">
+    /// The unique identifier of the user whose passkey should be removed.
+    /// </param>
+    /// <param name="credentialIdBase64Url">
+    /// The Base64Url-encoded credential identifier of the passkey to delete.
+    /// </param>
+    /// <returns>
+    /// A <see cref="DeletePasskeyResult"/> indicating whether the passkey
+    /// was successfully removed. If unsuccessful, an error message is provided.
+    /// </returns>
+    /// <remarks>
+    /// The credential identifier must be Base64Url-encoded. If decoding fails,
+    /// the operation will return a failure result.
+    /// </remarks>
+    Task<DeletePasskeyResult> DeletePasskeyAsync(
+        string userId,
+        string credentialIdBase64Url);
+
+    /// <summary>
+    /// Retrieves the <see cref="ApplicationUser"/> associated with the specified
+    /// <see cref="ClaimsPrincipal"/>.
+    /// </summary>
+    /// <param name="principal">
+    /// The claims principal representing the currently authenticated user.
+    /// </param>
+    /// <returns>
+    /// The corresponding <see cref="ApplicationUser"/> if one exists;
+    /// otherwise, <c>null</c>.
+    /// </returns>
+    /// <remarks>
+    /// This method resolves the user through the underlying identity system
+    /// and does not guarantee that the principal is authenticated.
+    /// </remarks>
+    Task<ApplicationUser?> GetCurrentUserAsync(ClaimsPrincipal principal);
 }

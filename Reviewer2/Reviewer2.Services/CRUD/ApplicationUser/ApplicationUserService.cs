@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
 using System.Transactions;
@@ -9,6 +10,7 @@ using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Reviewer2.Data.Context;
 using Reviewer2.Services.DTOs.ApplicationUser;
+using Reviewer2.Services.DTOs.ApplicationUser.Passkey;
 using Serilog;
 
 namespace Reviewer2.Services.CRUD.ApplicationUser;
@@ -434,4 +436,85 @@ public class ApplicationUserService : IApplicationUserService
             TwoFactorSignInOutcome.InvalidCode,
             "Error: Invalid authenticator code.");
     }
+    
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<PasskeyDTO>?> GetPasskeysAsync(string userId)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user is null)
+            return null;
+
+        var passkeys = await _userManager.GetPasskeysAsync(user);
+
+        return passkeys
+            .Select(p => new PasskeyDTO(
+                WebEncoders.Base64UrlEncode(p.CredentialId),
+                p.Name,
+                p.CreatedAt))
+            .ToList();
+    }
+    
+    /// <inheritdoc />
+    public async Task<AddPasskeyResult> AddPasskeyAsync(
+        string userId,
+        string credentialJson)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user is null)
+            return new AddPasskeyResult(false, "Invalid user.", null);
+
+        var attestationResult =
+            await _signInManager.PerformPasskeyAttestationAsync(credentialJson);
+
+        if (!attestationResult.Succeeded)
+            return new AddPasskeyResult(false, attestationResult.Failure.Message, null);
+
+        var addResult =
+            await _userManager.AddOrUpdatePasskeyAsync(user, attestationResult.Passkey);
+
+        if (!addResult.Succeeded)
+            return new AddPasskeyResult(false, "Could not store passkey.", null);
+
+        var credentialId =
+            WebEncoders.Base64UrlEncode(attestationResult.Passkey.CredentialId);
+
+        return new AddPasskeyResult(true, null, credentialId);
+    }
+
+    
+    /// <inheritdoc />
+    public async Task<DeletePasskeyResult> DeletePasskeyAsync(
+        string userId,
+        string credentialIdBase64Url)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user is null)
+            return new(false, "Invalid user.");
+
+        byte[] credentialId;
+
+        try
+        {
+            credentialId = WebEncoders.Base64UrlDecode(credentialIdBase64Url);
+        }
+        catch
+        {
+            return new(false, "Invalid credential ID format.");
+        }
+
+        var result =
+            await _userManager.RemovePasskeyAsync(user, credentialId);
+
+        return result.Succeeded
+            ? new DeletePasskeyResult(true, null)
+            : new DeletePasskeyResult(false, "Failed to delete passkey.");
+    }
+
+
+    /// <inheritdoc />
+    public async Task<ApplicationUser?> GetCurrentUserAsync(ClaimsPrincipal principal)
+    {
+        return await _userManager.GetUserAsync(principal);
+    }
+    
 }
