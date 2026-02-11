@@ -6,6 +6,7 @@
     <LangVersion>14</LangVersion>
     <Nullable>enable</Nullable>
     <UserSecretsId>bff48c65-f477-4a96-b4ab-0223c04f3b7a</UserSecretsId>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
   <ItemGroup>
     <Folder Include="Migrations\" />

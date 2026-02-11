@@ -12,7 +12,7 @@
 <h1>Two-factor authentication</h1>
 <hr />
 
-<StatusMessage Message="@message" />
+<StatusMessage Message="@_message" />
 
 <p>
     Your login is protected with an authenticator app.
@@ -60,10 +60,10 @@
 </p>
 
 @code {
-    private string? message;
+    private string? _message;
 
     [SupplyParameterFromForm]
-    private InputModel Input { get; set; } = new();
+    private InputModel Input { get; set; } = default!;
 
     [SupplyParameterFromQuery]
     private string? ReturnUrl { get; set; }
@@ -73,7 +73,8 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Ensures the user completed the username/password step
+        Input ??= new InputModel();
+
         var user = await ApplicationUserService.GetPendingTwoFactorUserAsync();
 
         if (user is null)
@@ -83,10 +84,11 @@
         }
     }
 
+
     private async Task OnValidSubmitAsync()
     {
         var result = await ApplicationUserService.SignInWithAuthenticatorAsync(
-            Input.TwoFactorCode!,
+            Input.TwoFactorCode,
             RememberMe,
             Input.RememberMachine);
 
@@ -102,7 +104,7 @@
 
             case TwoFactorSignInOutcome.InvalidCode:
             default:
-                message = result.ErrorMessage ?? "Invalid authenticator code.";
+                _message = result.ErrorMessage ?? "Invalid authenticator code.";
                 break;
         }
     }
@@ -112,7 +114,7 @@
         [Required]
         [StringLength(7, MinimumLength = 6)]
         [Display(Name = "Authenticator code")]
-        public string? TwoFactorCode { get; set; }
+        public string TwoFactorCode { get; set; } = "";
 
         [Display(Name = "Remember this machine")]
         public bool RememberMachine { get; set; }

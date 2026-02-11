@@ -5,6 +5,7 @@
         <RootNamespace>Reviewer2.Services</RootNamespace>
         <LangVersion>14</LangVersion>
         <Nullable>enable</Nullable>
+        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     </PropertyGroup>
 
     <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
@@ -20,7 +21,6 @@
     </ItemGroup>
     
     <ItemGroup>
-      <PackageReference Include="Microsoft.AspNetCore.Identity" Version="2.3.9" />
       <PackageReference Include="Serilog" Version="4.3.0" />
     </ItemGroup>
 

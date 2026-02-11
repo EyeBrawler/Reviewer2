@@ -80,15 +80,21 @@
     private IEnumerable<IdentityError>? _identityErrors;
 
     [SupplyParameterFromForm]
-    private InputModel Input { get; set; } = new();
+    private InputModel Input { get; set; } = default!;
 
     [SupplyParameterFromQuery]
     private string? ReturnUrl { get; set; }
 
     private string? Message => _identityErrors is null ? null : $"Error: {string.Join(", ", _identityErrors.Select(error => error.Description))}";
     
+    protected override void OnInitialized()
+    {
+        Input ??= new InputModel();
+    }
+    
     public async Task RegisterUser(EditContext editContext)
     {
+        
         var request = new RegisterUserRequest
         {
             Username = Input.UserName,
@@ -108,8 +114,19 @@
 
         Log.Information("User created a new account.");
 
-        var userId = result.UserId!;
-        var token = result.EmailConfirmationToken!;
+        if (string.IsNullOrEmpty(result.UserId))
+        {
+            throw new InvalidOperationException("User ID was not returned from registration.");
+        }
+
+        var userId = result.UserId;
+        
+        if (string.IsNullOrEmpty(result.EmailConfirmationToken))
+        {
+            throw new InvalidOperationException("Email confirmation token was not generated.");
+        }
+
+        var token = result.EmailConfirmationToken;
 
         var code = WebEncoders.Base64UrlEncode(
             Encoding.UTF8.GetBytes(token));
@@ -147,6 +164,7 @@
             await SignInManager.SignInAsync(emailUser, isPersistent: false);
             RedirectManager.RedirectTo(ReturnUrl);
         }
+        
     }
 
     private sealed class InputModel
