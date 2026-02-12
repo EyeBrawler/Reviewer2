@@ -584,6 +584,42 @@ public class ApplicationUserService : IApplicationUserService
         return new UpdateUserProfileResult(true);
     }
 
+    /// <inheritdoc />
+    public async Task<TwoFactorSignInResult> SignInWithRecoveryCodeAsync(string recoveryCode)
+    {
+        var user = await _signInManager.GetTwoFactorAuthenticationUserAsync();
 
-    
+        if (user is null)
+        {
+            return new TwoFactorSignInResult(
+                TwoFactorSignInOutcome.InvalidCode,
+                "Two-factor authentication session has expired. Please log in again.");
+        }
+
+        recoveryCode = recoveryCode.Replace(" ", string.Empty);
+
+        var result = await _signInManager.TwoFactorRecoveryCodeSignInAsync(recoveryCode);
+
+        var userId = await _userManager.GetUserIdAsync(user);
+
+        if (result.Succeeded)
+        {
+            Log.Information("User with ID '{UserId}' logged in with a recovery code.", userId);
+
+            return new TwoFactorSignInResult(TwoFactorSignInOutcome.Success);
+        }
+
+        if (result.IsLockedOut)
+        {
+            Log.Warning("User account locked out.");
+
+            return new TwoFactorSignInResult(TwoFactorSignInOutcome.LockedOut);
+        }
+
+        Log.Warning("Invalid recovery code entered for user with ID '{UserId}'", userId);
+
+        return new TwoFactorSignInResult(
+            TwoFactorSignInOutcome.InvalidCode,
+            "Invalid recovery code entered.");
+    }
 }
