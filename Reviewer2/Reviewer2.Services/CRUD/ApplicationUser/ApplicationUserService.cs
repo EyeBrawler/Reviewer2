@@ -622,4 +622,46 @@ public class ApplicationUserService : IApplicationUserService
             TwoFactorSignInOutcome.InvalidCode,
             "Invalid recovery code entered.");
     }
+    
+    /// <inheritdoc />
+    public async Task<ChangePasswordResult> ChangePasswordAsync(
+        ClaimsPrincipal principal,
+        string currentPassword,
+        string newPassword)
+    {
+        var user = await _userManager.GetUserAsync(principal);
+    
+        if (user is null)
+        {
+            return new ChangePasswordResult(ChangePasswordOutcome.UserNotFound);
+        }
+    
+        var hasPassword = await _userManager.HasPasswordAsync(user);
+    
+        if (!hasPassword)
+        {
+            return new ChangePasswordResult(ChangePasswordOutcome.NoPasswordSet);
+        }
+    
+        var result = await _userManager.ChangePasswordAsync(
+            user,
+            currentPassword,
+            newPassword);
+    
+        if (!result.Succeeded)
+        {
+            var error = string.Join(", ", result.Errors.Select(e => e.Description));
+    
+            return new ChangePasswordResult(
+                ChangePasswordOutcome.InvalidPassword,
+                error);
+        }
+    
+        await _signInManager.RefreshSignInAsync(user);
+    
+        Log.Information("User changed their password successfully.");
+    
+        return new ChangePasswordResult(ChangePasswordOutcome.Success);
+    }
+
 }

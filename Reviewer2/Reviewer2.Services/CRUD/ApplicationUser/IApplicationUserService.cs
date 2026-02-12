@@ -318,4 +318,30 @@ public interface IApplicationUserService
     /// A <see cref="TwoFactorSignInResult"/> describing the outcome.
     /// </returns>
     Task<TwoFactorSignInResult> SignInWithRecoveryCodeAsync(string recoveryCode);
+    
+    /// <summary>
+    /// Attempts to change the password for the currently authenticated user.
+    /// </summary>
+    /// <param name="principal">
+    /// The <see cref="ClaimsPrincipal"/> representing the currently authenticated user.
+    /// </param>
+    /// <param name="currentPassword">
+    /// The user's current password.
+    /// </param>
+    /// <param name="newPassword">
+    /// The new password the user wishes to set.
+    /// </param>
+    /// <returns>
+    /// A <see cref="ChangePasswordResult"/> describing the outcome of the operation,
+    /// including whether the password was successfully changed or if an error occurred.
+    /// </returns>
+    /// <remarks>
+    /// This method validates that the user exists and has an existing password
+    /// before attempting to change it. If the operation succeeds, the user's
+    /// sign-in session is refreshed to ensure security consistency.
+    /// </remarks>
+    Task<ChangePasswordResult> ChangePasswordAsync(
+        ClaimsPrincipal principal,
+        string currentPassword,
+        string newPassword);
 }
