@@ -309,4 +309,13 @@ public interface IApplicationUserService
     /// A <see cref="UpdateUserProfileResult"/> describing the outcome.
     /// </returns>
     Task<UpdateUserProfileResult> UpdateProfileAsync(UpdateUserProfileRequest request);
+    
+    /// <summary>
+    /// Attempts to complete a two-factor authentication sign-in using a recovery code.
+    /// </summary>
+    /// <param name="recoveryCode">The recovery code entered by the user.</param>
+    /// <returns>
+    /// A <see cref="TwoFactorSignInResult"/> describing the outcome.
+    /// </returns>
+    Task<TwoFactorSignInResult> SignInWithRecoveryCodeAsync(string recoveryCode);
 }
