@@ -1,0 +1,72 @@
+﻿@page "/submit"
+@using Microsoft.AspNetCore.Components.Forms
+
+<h1>Paper Submission</h1>
+
+<EditForm Model="@Submission" OnValidSubmit="HandleSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <section class="card">
+        <h3>Paper Information</h3>
+
+        <label>Title *</label>
+        <InputText @bind-Value="Submission.Title" />
+        <ValidationMessage For="@(() => Submission.Title)" />
+
+        <label>Abstract *</label>
+        <InputTextArea Rows="6"
+                       @bind-Value="Submission.Abstract" />
+        <ValidationMessage For="@(() => Submission.Abstract)" />
+
+        <label>Track *</label>
+        <InputSelect @bind-Value="Submission.Track">
+            <option value="">-- Select --</option>
+            <option value="Full">Full Paper</option>
+            <option value="Short">Short Paper</option>
+            <option value="Poster">Poster</option>
+        </InputSelect>
+    </section>
+
+    <section class="card">
+        <h3>Authors</h3>
+
+        @foreach (var author in Submission.Authors)
+        {
+            <div>
+                <InputText placeholder="Full name"
+                           @bind-Value="author.Name" />
+
+                <InputText placeholder="Email"
+                           @bind-Value="author.Email" />
+
+                <button type="button"
+                        @onclick="() => RemoveAuthor(author)">
+                    Remove
+                </button>
+            </div>
+        }
+
+        <button type="button" @onclick="AddAuthor">
+            + Add Author
+        </button>
+    </section>
+
+    <section class="card">
+        <h3>Upload PDF *</h3>
+
+        <InputFile OnChange="HandleFileUpload"
+                   accept=".pdf,application/pdf" />
+
+        @if (!string.IsNullOrEmpty(FileError))
+        {
+            <p style="color:red">@FileError</p>
+        }
+    </section>
+
+    <section>
+        <button type="submit" disabled="@(!CanSubmit)">
+            Submit Paper
+        </button>
+    </section>
+</EditForm>
