@@ -3,7 +3,11 @@
 
 <h1>Paper Submission</h1>
 
-<EditForm Model="@Submission" OnValidSubmit="HandleSubmit">
+<EditForm Model="@Submission" 
+          FormName="SubmitPaperForm"
+          OnValidSubmit="HandleSubmit"
+          OnInvalidSubmit="HandleInvalid">
+    
     <DataAnnotationsValidator />
     <ValidationSummary />
 
@@ -26,6 +30,7 @@
             <option value="Short">Short Paper</option>
             <option value="Poster">Poster</option>
         </InputSelect>
+        <ValidationMessage For="@(() => Submission.Track)" />
     </section>
 
     <section class="card">
@@ -33,12 +38,14 @@
 
         @foreach (var author in Submission.Authors)
         {
-            <div>
+            <div @key="author">
                 <InputText placeholder="Full name"
                            @bind-Value="author.Name" />
+                <ValidationMessage For="@(() => author.Name)"/>
 
                 <InputText placeholder="Email"
                            @bind-Value="author.Email" />
+                <ValidationMessage For="@(() => author.Email)"/>
 
                 <button type="button"
                         @onclick="() => RemoveAuthor(author)">
@@ -65,7 +72,7 @@
     </section>
 
     <section>
-        <button type="submit" disabled="@(!CanSubmit)">
+        <button type="submit">
             Submit Paper
         </button>
     </section>

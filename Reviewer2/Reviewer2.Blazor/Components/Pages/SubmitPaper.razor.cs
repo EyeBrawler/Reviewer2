@@ -22,11 +22,16 @@ namespace Reviewer2.Blazor.Components.Pages
 
         protected bool CanSubmit =>
             UploadedFile != null &&
-            Submission.Authors.Count > 0;
+            !string.IsNullOrWhiteSpace(Submission.Title) &&
+            !string.IsNullOrWhiteSpace(Submission.Abstract) &&
+            !string.IsNullOrWhiteSpace(Submission.Track);
 
         protected void AddAuthor()
         {
             Submission.Authors.Add(new AuthorModel());
+            editContext?.NotifyFieldChanged(
+                new FieldIdentifier(Submission, nameof(Submission.Authors)));
+            StateHasChanged();
         }
 
         protected void RemoveAuthor(AuthorModel author)
@@ -34,6 +39,10 @@ namespace Reviewer2.Blazor.Components.Pages
             if (Submission.Authors.Count > 1)
             {
                 Submission.Authors.Remove(author);
+                editContext?.NotifyFieldChanged(
+                    new FieldIdentifier(Submission, nameof(Submission.Authors)));
+
+                StateHasChanged();
             }
         }
 
@@ -69,6 +78,7 @@ namespace Reviewer2.Blazor.Components.Pages
 
             using var stream = file.OpenReadStream(MaxFileSize);
             await Task.CompletedTask;
+            StateHasChanged();
         }
 
         protected async Task HandleSubmit()
@@ -76,6 +86,7 @@ namespace Reviewer2.Blazor.Components.Pages
             if (UploadedFile == null)
             {
                 FileError = "A PDF must be uploaded before submission.";
+                StateHasChanged();
                 return;
             }
 
@@ -85,6 +96,11 @@ namespace Reviewer2.Blazor.Components.Pages
             // Send confirmation email
 
             await Task.CompletedTask;
+        }
+
+        protected void HandleInvalid()
+        {
+            Console.WriteLine("FORM INVALID");
         }
 
         // =============================
@@ -109,9 +125,15 @@ namespace Reviewer2.Blazor.Components.Pages
         {
             [Required]
             public string Name { get; set; } = string.Empty;
-
-            [EmailAddress]
+            
             public string Email { get; set; } = string.Empty;
+        }
+        
+        private EditContext? editContext;
+
+        protected override void OnInitialized()
+        {
+            editContext = new EditContext(Submission);
         }
     }
 }
