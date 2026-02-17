@@ -1,90 +1,136 @@
 ﻿@page "/Account/Manage"
+@rendermode InteractiveServer
 
 @using System.ComponentModel.DataAnnotations
 @using Reviewer2.Services.CRUD.ApplicationUser
 @using Reviewer2.Services.DTOs.ApplicationUser
 
 @inject IApplicationUserService UserService
-@inject IdentityRedirectManager RedirectManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 <PageTitle>Profile</PageTitle>
 
 <h3>Profile</h3>
-<StatusMessage />
 
-<div class="row">
-    <div class="col-xl-6">
-        <EditForm Model="Input" FormName="profile" OnValidSubmit="OnValidSubmitAsync" method="post">
-            <DataAnnotationsValidator />
-            <ValidationSummary class="text-danger" role="alert" />
-            <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.UserName"
-                           id="Input.UserName"
-                           class="form-control"
-                           disabled />
-                <label for="username" class="form-label">Username</label>
-            </div>
-            <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.FirstName"
-                           id="Input.FirstName"
-                           class="form-control"
-                           placeholder="Enter your first name" />
-                <label for="Input.FirstName">First name</label>
-            </div>
-            <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.LastName"
-                           id="Input.LastName"
-                           class="form-control"
-                           placeholder="Enter your last name" />
-                <label for="Input.LastName">Last name</label>
-            </div>
-            <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.PhoneNumber" id="Input.PhoneNumber" class="form-control" placeholder="Enter your phone number" />
-                <label for="Input.PhoneNumber" class="form-label">Phone number</label>
-                <ValidationMessage For="() => Input.PhoneNumber" class="text-danger" />
-            </div>
-            <button type="submit" class="w-100 btn btn-lg btn-primary">Save</button>
-        </EditForm>
+@if (!string.IsNullOrWhiteSpace(StatusMessage))
+{
+    <div class="alert @(IsError ? "alert-danger" : "alert-success")" role="alert">
+        @StatusMessage
     </div>
-</div>
+}
+
+@if (!IsLoaded)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <div class="row">
+        <div class="col-xl-6">
+            <EditForm Model="Input"
+                      OnValidSubmit="OnValidSubmitAsync"
+                      FormName="ProfileForm"
+                      Method="post">
+                <DataAnnotationsValidator />
+                <ValidationSummary class="text-danger" />
+
+                <div class="form-floating mb-3">
+                    <InputText @bind-Value="Input.UserName"
+                               class="form-control"
+                               disabled />
+                    <label>Username</label>
+                </div>
+
+                <div class="form-floating mb-3">
+                    <InputText @bind-Value="Input.FirstName"
+                               class="form-control"
+                               placeholder="Enter your first name" />
+                    <label>First name</label>
+                </div>
+
+                <div class="form-floating mb-3">
+                    <InputText @bind-Value="Input.LastName"
+                               class="form-control"
+                               placeholder="Enter your last name" />
+                    <label>Last name</label>
+                </div>
+
+                <div class="form-floating mb-3">
+                    <InputText @bind-Value="Input.PhoneNumber"
+                               class="form-control"
+                               placeholder="Enter your phone number" />
+                    <label>Phone number</label>
+                    <ValidationMessage For="() => Input.PhoneNumber" />
+                </div>
+
+                <button type="submit" class="w-100 btn btn-lg btn-primary">
+                    Save
+                </button>
+            </EditForm>
+        </div>
+    </div>
+}
 
 @code {
-    private string? _userId;
-    
-    [CascadingParameter]
-    private HttpContext HttpContext { get; set; } = default!;
-
-    [SupplyParameterFromForm]
-    private InputModel Input { get; set; } = default!;
+    private InputModel Input { get; set; } = new();
+    private string? StatusMessage;
+    private bool IsError;
+    private bool IsLoaded;
 
     protected override async Task OnInitializedAsync()
     {
-        Input ??= new();
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var userPrincipal = authState.User;
 
-        var profile = await UserService.GetProfileAsync(HttpContext.User);
+        if (!userPrincipal.Identity?.IsAuthenticated ?? true)
+        {
+            StatusMessage = "User is not authenticated.";
+            IsError = true;
+            IsLoaded = true;
+            return;
+        }
+
+        var profile = await UserService.GetProfileAsync(userPrincipal);
 
         if (profile is null)
         {
-            RedirectManager.RedirectToInvalidUser(null!, HttpContext);
+            StatusMessage = "Unable to load profile.";
+            IsError = true;
+            IsLoaded = true;
             return;
         }
-        
-        _userId = profile.UserId;
 
-        Input.UserName = profile.UserName;
-        Input.FirstName = profile.FirstName;
-        Input.LastName = profile.LastName;
-        Input.PhoneNumber = profile.PhoneNumber;
+        Input = new InputModel
+        {
+            UserName = profile.UserName,
+            FirstName = profile.FirstName,
+            LastName = profile.LastName,
+            PhoneNumber = profile.PhoneNumber
+        };
+
+        IsLoaded = true;
     }
 
     private async Task OnValidSubmitAsync()
     {
-        if (_userId is null)
+        StatusMessage = null;
+        IsError = false;
+
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var userPrincipal = authState.User;
+
+        var profile = await UserService.GetProfileAsync(userPrincipal);
+
+        if (profile is null)
+        {
+            StatusMessage = "User not found.";
+            IsError = true;
             return;
+        }
 
         var result = await UserService.UpdateProfileAsync(
             new UpdateUserProfileRequest(
-                _userId,
+                profile.UserId,
                 Input.UserName,
                 Input.FirstName,
                 Input.LastName,
@@ -93,21 +139,19 @@
 
         if (!result.Succeeded)
         {
-            RedirectManager.RedirectToCurrentPageWithStatus(
-                $"Error: {result.ErrorMessage}",
-                HttpContext);
+            StatusMessage = result.ErrorMessage ?? "Update failed.";
+            IsError = true;
             return;
         }
 
-        RedirectManager.RedirectToCurrentPageWithStatus(
-            "Your profile has been updated",
-            HttpContext);
+        StatusMessage = "Your profile has been updated successfully.";
+        IsError = false;
     }
-    
+
     private sealed class InputModel
     {
         [Required]
-        public string UserName { get; set; } = null!;
+        public string UserName { get; set; } = string.Empty;
 
         public string? FirstName { get; set; }
 
