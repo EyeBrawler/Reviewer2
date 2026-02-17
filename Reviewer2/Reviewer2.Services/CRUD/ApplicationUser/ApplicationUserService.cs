@@ -565,8 +565,7 @@ public class ApplicationUserService : IApplicationUserService
         var user = await _userManager.FindByIdAsync(request.UserId);
         if (user is null)
             return new UpdateUserProfileResult(false, "User not found.");
-
-        user.UserName = request.UserName;
+        
         user.FirstName = request.FirstName;
         user.LastName = request.LastName;
         user.PhoneNumber = request.PhoneNumber;
@@ -578,8 +577,6 @@ public class ApplicationUserService : IApplicationUserService
             var error = string.Join("; ", result.Errors.Select(e => e.Description));
             return new UpdateUserProfileResult(false, error);
         }
-
-        await _signInManager.RefreshSignInAsync(user);
 
         return new UpdateUserProfileResult(true);
     }
