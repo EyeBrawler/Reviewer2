@@ -5,7 +5,7 @@ using Reviewer2.Data.Models;
 
 namespace Reviewer2.Data.Context;
 
-// <inheritdoc />
+/// <inheritdoc />
 public class UserContext : IdentityDbContext<ApplicationUser, IdentityRole, string>
 {
     /// <inheritdoc />
