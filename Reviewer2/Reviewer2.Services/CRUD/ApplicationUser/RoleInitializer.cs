@@ -22,7 +22,39 @@ public class RoleInitializer
     }
 
     /// <summary>
-    /// Initializes roles in the database if they do not already exist.
+    /// Defines the system-level roles used by the conference management application.
+    ///
+    /// Roles represent elevated permissions within the system. Regular authenticated
+    /// users do NOT require a role to submit papers or register for the conference.
+    /// Roles should only be assigned to users who perform administrative or review duties.
+    ///
+    /// Role descriptions:
+    ///
+    /// Admin
+    ///     System-level administrator.
+    ///     Has full access to all features, including user management and role assignment.
+    ///     Intended for platform maintenance and oversight.
+    ///
+    /// ConferenceChair
+    ///     Highest authority for the conference.
+    ///     Can make final acceptance/rejection decisions, manage deadlines,
+    ///     configure review templates, and oversee scheduling.
+    ///
+    /// PaperChair
+    ///     Assists in managing the review process.
+    ///     Can assign reviewers, monitor review progress, and view submitted reviews.
+    ///     Can accept and reject papers?
+    ///
+    /// Reviewer
+    ///     Member of the program committee.
+    ///     Can access assigned papers and submit reviews.
+    ///     Must also have an active ReviewAssignment to review a specific paper.
+    ///
+    /// Notes:
+    /// - Authenticated users without a role can still submit papers and act as authors.
+    /// - Authorship and attendance are modeled through domain entities (Author, Registration),
+    ///   not through Identity roles.
+    /// - Roles represent system permissions, not workflow states.
     /// </summary>
     /// <remarks>
     /// This method iterates through a predefined list of roles and checks if each role exists in the database.
@@ -30,7 +62,13 @@ public class RoleInitializer
     /// </remarks>
     public async Task InitializeAsync()
     {
-        string[] roles = ["Attendee", "Paper Chair", "Conference Chair"];
+        string[] roles =
+        [
+            "Admin",
+            "ConferenceChair",
+            "PaperChair",
+            "Reviewer"
+        ];
 
         foreach (var role in roles)
         {

@@ -195,7 +195,6 @@ public class ApplicationUserService : IApplicationUserService
             
             if (result.Succeeded)
             {
-                await _userManager.AddToRoleAsync(applicationUser, DefaultRole);
                 Log.Information("Added ApplicationUser with ID {id}", applicationUser.Id);
                 return IdentityResult.Success;
             }
