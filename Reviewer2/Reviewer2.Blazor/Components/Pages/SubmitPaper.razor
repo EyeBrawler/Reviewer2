@@ -1,79 +1,84 @@
 ﻿@page "/submit"
+@rendermode InteractiveServer
 @using Microsoft.AspNetCore.Components.Forms
 
-<h1>Paper Submission</h1>
+<h1 class="mb-4">Paper Submission</h1>
 
-<EditForm Model="@Submission" 
-          FormName="SubmitPaperForm"
-          OnValidSubmit="HandleSubmit"
-          OnInvalidSubmit="HandleInvalid">
+<div class="content container">
+    <div class="mx-auto" style="max-width: 850px;">
+    <EditForm EditContext="@editContext" 
+              FormName="SubmitPaperForm"
+              OnValidSubmit="HandleSubmit"
+              OnInvalidSubmit="HandleInvalid">
     
-    <DataAnnotationsValidator />
-    <ValidationSummary />
+        <DataAnnotationsValidator />
+        <ValidationSummary />
 
-    <section class="card">
-        <h3>Paper Information</h3>
+        <section class="card shadow-sm p-4 mb-4">
+            <h3>Paper Information</h3>
 
-        <label>Title *</label>
-        <InputText @bind-Value="Submission.Title" />
-        <ValidationMessage For="@(() => Submission.Title)" />
+            <label class="form-label mt-3">Title*</label>
+            <InputText class="form-control"
+                       @bind-Value="Submission.Title" />
+            <ValidationMessage For="@(() => Submission.Title)" />
 
-        <label>Abstract *</label>
-        <InputTextArea Rows="6"
-                       @bind-Value="Submission.Abstract" />
-        <ValidationMessage For="@(() => Submission.Abstract)" />
+            <label class="form-label mt-3">Abstract*</label>
+            <InputTextArea class="form-control"
+                           Rows="6"
+                           @bind-Value="Submission.Abstract" />
+            <ValidationMessage For="@(() => Submission.Abstract)" />
+        </section>
 
-        <label>Track *</label>
-        <InputSelect @bind-Value="Submission.Track">
-            <option value="">-- Select --</option>
-            <option value="Full">Full Paper</option>
-            <option value="Short">Short Paper</option>
-            <option value="Poster">Poster</option>
-        </InputSelect>
-        <ValidationMessage For="@(() => Submission.Track)" />
-    </section>
+        <section class="card shadow-sm p-4 mb-4">
+            <h3>Authors*</h3>
 
-    <section class="card">
-        <h3>Authors</h3>
+            @foreach (var author in Submission.Authors)
+            {
+                <div class="card shadow-sm p-3 mb-3" @key="author">
+                    <InputText class="form-control"
+                               placeholder="Full name"
+                               @bind-Value="author.Name" />
+                    <ValidationMessage For="@(() => author.Name)"/>
 
-        @foreach (var author in Submission.Authors)
-        {
-            <div @key="author">
-                <InputText placeholder="Full name"
-                           @bind-Value="author.Name" />
-                <ValidationMessage For="@(() => author.Name)"/>
+                    <InputText class="form-control"
+                               placeholder="Email"
+                               @bind-Value="author.Email" />
+                    <ValidationMessage For="@(() => author.Email)"/>
 
-                <InputText placeholder="Email"
-                           @bind-Value="author.Email" />
-                <ValidationMessage For="@(() => author.Email)"/>
+                    <button type="button"
+                            class="btn btn-sm btn-outline-danger mt-2"
+                            @onclick="() => RemoveAuthor(author)">
+                        Remove
+                    </button>
+                </div>
+            }
 
-                <button type="button"
-                        @onclick="() => RemoveAuthor(author)">
-                    Remove
-                </button>
-            </div>
-        }
+            <button type="button" 
+                    class="btn btn-primary mt-2"
+                    @onclick="AddAuthor">
+                + Add Author
+            </button>
+        </section>
 
-        <button type="button" @onclick="AddAuthor">
-            + Add Author
-        </button>
-    </section>
+        <section class="card shadow-sm p-4 mb-4">
+            <h3>Upload PDF*</h3>
 
-    <section class="card">
-        <h3>Upload PDF *</h3>
+            <InputFile OnChange="HandleFileUpload"
+                       accept=".pdf,application/pdf" />
 
-        <InputFile OnChange="HandleFileUpload"
-                   accept=".pdf,application/pdf" />
+            @if (!string.IsNullOrEmpty(FileError))
+            {
+                <p style="color:red">@FileError</p>
+            }
+        </section>
 
-        @if (!string.IsNullOrEmpty(FileError))
-        {
-            <p style="color:red">@FileError</p>
-        }
-    </section>
-
-    <section>
-        <button type="submit">
-            Submit Paper
-        </button>
-    </section>
-</EditForm>
+        <section class="text-center mt-4">
+            <button type="submit"
+                    class="btn btn-primary"
+                    disabled="@(!CanSubmit || !(editContext?.Validate() ?? false))">
+                Submit Paper
+            </button>
+        </section>
+    </EditForm>
+    </div>
+</div>

@@ -18,9 +18,7 @@ namespace Reviewer2.Blazor.Components.Pages
 
         protected bool CanSubmit =>
             UploadedFile != null &&
-            !string.IsNullOrWhiteSpace(Submission.Title) &&
-            !string.IsNullOrWhiteSpace(Submission.Abstract) &&
-            !string.IsNullOrWhiteSpace(Submission.Track);
+            editContext?.Validate() == true;
 
         protected void AddAuthor()
         {
@@ -74,6 +72,8 @@ namespace Reviewer2.Blazor.Components.Pages
 
             using var stream = file.OpenReadStream(MaxFileSize);
             await Task.CompletedTask;
+            
+            editContext?.NotifyValidationStateChanged();
             StateHasChanged();
         }
 
@@ -130,6 +130,11 @@ namespace Reviewer2.Blazor.Components.Pages
         protected override void OnInitialized()
         {
             editContext = new EditContext(Submission);
+
+            editContext.OnFieldChanged += (_, __) =>
+            {
+                StateHasChanged();
+            };
         }
     }
 }
