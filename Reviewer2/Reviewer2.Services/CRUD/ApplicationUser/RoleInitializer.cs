@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
 
@@ -8,15 +9,18 @@ namespace Reviewer2.Services.CRUD.ApplicationUser;
 /// </summary>
 public class RoleInitializer
 {
-    private readonly RoleManager<IdentityRole> _roleManager;
+    private readonly RoleManager<IdentityRole<Guid>> _roleManager;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="RoleInitializer"/> class.
     /// </summary>
     /// <param name="roleManager">
-    /// The <see cref="RoleManager{IdentityRole}"/> used to manage roles in the database.
+    /// The <see cref="RoleManager{T}"/> responsible for managing 
+    /// <see cref="IdentityRole{Guid}"/> entities in the identity store.
+    /// This service is used to create and verify the existence of 
+    /// application roles during system initialization.
     /// </param>
-    public RoleInitializer(RoleManager<IdentityRole> roleManager)
+    public RoleInitializer(RoleManager<IdentityRole<Guid>> roleManager)
     {
         _roleManager = roleManager;
     }
@@ -74,7 +78,12 @@ public class RoleInitializer
         {
             if (!await _roleManager.RoleExistsAsync(role))
             {
-                await _roleManager.CreateAsync(new IdentityRole(role));
+                await _roleManager.CreateAsync(
+                    new IdentityRole<Guid>
+                    {
+                        Id = Guid.NewGuid(),
+                        Name = role
+                    });
             }
         }
     }
