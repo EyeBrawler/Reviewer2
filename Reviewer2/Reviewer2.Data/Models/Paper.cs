@@ -20,14 +20,6 @@ public class Paper
     public Guid Id { get; set; }
 
     /// <summary>
-    /// Identifier of the conference to which this paper was submitted.
-    /// 
-    /// Although the current system supports a single conference,
-    /// this property ensures future extensibility.
-    /// </summary>
-    public Guid ConferenceId { get; set; }
-
-    /// <summary>
     /// The official title of the paper as provided by the submitter.
     /// </summary>
     public string Title { get; set; } = string.Empty;
@@ -62,12 +54,12 @@ public class Paper
     /// The submitter is responsible for managing the submission,
     /// uploading revisions, and receiving system notifications.
     /// </summary>
-    public string SubmitterUserId { get; set; } = string.Empty;
+    public Guid SubmitterUserId { get; set; }
 
     /// <summary>
     /// Navigation property to the submitting user.
     /// </summary>
-    public ApplicationUser Submitter { get; set; } = default!;
+    public ApplicationUser Submitter { get; set; } = null!;
     
     /// <summary>
     /// The date and time (UTC) when an acceptance or rejection decision
@@ -81,10 +73,10 @@ public class Paper
     /// The identifier of the user (typically a ConferenceChair)
     /// who made the final decision on the paper.
     /// </summary>
-    public string? DecisionMadeByUserId { get; set; }
+    public Guid? DecisionMadeByUserId { get; set; }
 
     /// <summary>
-    /// Optional comments associated with the final decision.
+    /// Comments associated with the final decision.
     /// 
     /// This may contain summary remarks, justification, or
     /// additional instructions for the authors.
@@ -96,7 +88,7 @@ public class Paper
     /// 
     /// Author order is significant and preserved via Author.AuthorOrder.
     /// </summary>
-    public List<Author> Authors { get; set; } = new();
+    public List<Author> Authors { get; set; } = [];
 
     /// <summary>
     /// Collection of reviewer assignments for this paper.
@@ -104,13 +96,13 @@ public class Paper
     /// Each assignment represents a reviewer-paper relationship
     /// and may contain an associated review.
     /// </summary>
-    public List<ReviewAssignment> ReviewAssignments { get; set; } = new();
+    public List<ReviewAssignment> ReviewAssignments { get; set; } = [];
 
     /// <summary>
     /// Collection of uploaded files related to the paper submission,
     /// such as initial submission, camera-ready version, or copyright form.
     /// </summary>
-    public List<PaperFile> Files { get; set; } = new();
+    public List<PaperFile> Files { get; set; } = [];
 }
 
 /// <summary>

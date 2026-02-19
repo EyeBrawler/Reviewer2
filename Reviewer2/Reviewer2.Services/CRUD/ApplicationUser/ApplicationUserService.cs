@@ -20,13 +20,13 @@ using Data.Models;
 /// <inheritdoc cref="IApplicationUserService"/>
 public class ApplicationUserService : IApplicationUserService
 {
-    private readonly UserContext _context;
+    private readonly ApplicationContext _context;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly SignInManager<ApplicationUser> _signInManager;
     private const string DefaultRole = "Attendee";
 
     /// <inheritdoc cref="IApplicationUserService"/>
-    public ApplicationUserService(UserContext context, UserManager<ApplicationUser> userManager,
+    public ApplicationUserService(ApplicationContext context, UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager)
     {
         _context = context;
@@ -104,7 +104,7 @@ public class ApplicationUserService : IApplicationUserService
     }
 
     /// <inheritdoc />
-    public async Task<ApplicationUser?> GetByIdAsync(string id)
+    public async Task<ApplicationUser?> GetByIdAsync(Guid id)
     {
         var applicationUser = await _context.Users.FindAsync(id);
         if (applicationUser != null)
@@ -251,54 +251,46 @@ public class ApplicationUserService : IApplicationUserService
     /// <inheritdoc />
     public async Task<RegisterUserResult> RegisterAsync(RegisterUserRequest request)
     {
-        try
+        var user = new ApplicationUser
         {
-            var user = new ApplicationUser
-            {
-                UserName = request.Username.Trim(),
-                Email = request.Email.Trim(),
-                FirstName = request.FirstName.Trim(),
-                LastName = request.LastName.Trim()
-            };
+            UserName = request.Username.Trim(),
+            Email = request.Email.Trim(),
+            FirstName = request.FirstName.Trim(),
+            LastName = request.LastName.Trim()
+        };
 
-            var createResult = await _userManager.CreateAsync(user, request.Password);
+        var createResult = await _userManager.CreateAsync(user, request.Password);
 
-            if (!createResult.Succeeded)
-            {
-                return new RegisterUserResult(
-                    Succeeded: false,
-                    Errors: createResult.Errors,
-                    UserId: null,
-                    EmailConfirmationToken: null);
-            }
-
-            await _userManager.AddToRoleAsync(user, DefaultRole);
-
-            var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-
-            Log.Information("Registered new user {UserId}", user.Id);
-
-            return new RegisterUserResult(
-                Succeeded: true,
-                Errors: null,
-                UserId: user.Id,
-                EmailConfirmationToken: token);
-        }
-        catch (Exception ex)
+        if (!createResult.Succeeded)
         {
-            Log.Error(ex, "Error registering user");
-
             return new RegisterUserResult(
-                Succeeded: false,
-                Errors:
-                [
-                    new IdentityError { Description = "Registration failed." }
-                ],
-                UserId: null,
-                EmailConfirmationToken: null);
+                false,
+                createResult.Errors,
+                null,
+                null);
         }
+
+        var roleResult = await _userManager.AddToRoleAsync(user, DefaultRole);
+
+        if (!roleResult.Succeeded)
+        {
+            return new RegisterUserResult(
+                false,
+                roleResult.Errors,
+                null,
+                null);
+        }
+
+        var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+
+        Log.Information("Registered new user {UserId}", user.Id);
+
+        return new RegisterUserResult(
+            true,
+            null,
+            user.Id,
+            token);
     }
-
     
     /// <inheritdoc />
     public async Task<LoginResult> PasswordLoginAsync(
@@ -357,11 +349,11 @@ public class ApplicationUserService : IApplicationUserService
 
     /// <inheritdoc />
     public async Task<EmailChangeConfirmationResult> ConfirmEmailChangeAsync(
-        string userId,
+        Guid userId,
         string newEmail,
         string encodedToken)
     {
-        var user = await _userManager.FindByIdAsync(userId);
+        var user = await _userManager.FindByIdAsync(userId.ToString());
         if (user is null)
             return new(false, "Invalid email change request.");
 
@@ -390,10 +382,10 @@ public class ApplicationUserService : IApplicationUserService
     
     /// <inheritdoc />
     public async Task<EmailConfirmationResult> ConfirmEmailAsync(
-        string userId,
+        Guid userId,
         string encodedToken)
     {
-        var user = await _userManager.FindByIdAsync(userId);
+        var user = await _userManager.FindByIdAsync(userId.ToString());
         if (user is null)
         {
             return new EmailConfirmationResult(false, "User not found.");
@@ -462,9 +454,9 @@ public class ApplicationUserService : IApplicationUserService
     }
     
     /// <inheritdoc />
-    public async Task<IReadOnlyList<PasskeyDTO>?> GetPasskeysAsync(string userId)
+    public async Task<IReadOnlyList<PasskeyDTO>?> GetPasskeysAsync(Guid userId)
     {
-        var user = await _userManager.FindByIdAsync(userId);
+        var user = await _userManager.FindByIdAsync(userId.ToString());
         if (user is null)
             return null;
 
@@ -480,10 +472,10 @@ public class ApplicationUserService : IApplicationUserService
     
     /// <inheritdoc />
     public async Task<AddPasskeyResult> AddPasskeyAsync(
-        string userId,
+        Guid userId,
         string credentialJson)
     {
-        var user = await _userManager.FindByIdAsync(userId);
+        var user = await _userManager.FindByIdAsync(userId.ToString());
         if (user is null)
             return new AddPasskeyResult(false, "Invalid user.", null);
 
@@ -508,10 +500,10 @@ public class ApplicationUserService : IApplicationUserService
     
     /// <inheritdoc />
     public async Task<DeletePasskeyResult> DeletePasskeyAsync(
-        string userId,
+        Guid userId,
         string credentialIdBase64Url)
     {
-        var user = await _userManager.FindByIdAsync(userId);
+        var user = await _userManager.FindByIdAsync(userId.ToString());
         if (user is null)
             return new(false, "Invalid user.");
 

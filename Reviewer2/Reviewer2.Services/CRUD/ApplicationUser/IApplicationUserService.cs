@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -58,10 +59,10 @@ public interface IApplicationUserService
     public Task<List<ApplicationUser>> GetAllAsync();
     
     ///<summary>
-    /// Retrieves a ApplicationUser by id number
+    /// Retrieves a ApplicationUser by id guid
     ///</summary>
     ///<returns>ApplicationUser object</returns>
-    public Task<ApplicationUser?> GetByIdAsync(string id);
+    public Task<ApplicationUser?> GetByIdAsync(Guid id);
 
     /// <summary>
     /// Determines if the given user is currently persisted within the database.
@@ -162,7 +163,7 @@ public interface IApplicationUserService
     /// along with an optional error message if the operation failed.
     /// </returns>
     Task<EmailChangeConfirmationResult> ConfirmEmailChangeAsync(
-        string userId,
+        Guid userId,
         string newEmail,
         string encodedToken);
     
@@ -180,7 +181,7 @@ public interface IApplicationUserService
     /// including an optional error message if the operation failed.
     /// </returns>
     Task<EmailConfirmationResult> ConfirmEmailAsync(
-        string userId,
+        Guid userId,
         string encodedToken);
     
     /// <summary>
@@ -222,7 +223,7 @@ public interface IApplicationUserService
     /// The returned credential identifiers are Base64Url-encoded and safe for
     /// transport and display in client applications.
     /// </remarks>
-    Task<IReadOnlyList<PasskeyDTO>?> GetPasskeysAsync(string userId);
+    Task<IReadOnlyList<PasskeyDTO>?> GetPasskeysAsync(Guid userId);
     
     /// <summary>
     /// Registers a new passkey for the specified user using the provided
@@ -246,7 +247,7 @@ public interface IApplicationUserService
     /// passkey management operations.
     /// </remarks>
     Task<AddPasskeyResult> AddPasskeyAsync(
-        string userId,
+        Guid userId,
         string credentialJson);
 
     /// <summary>
@@ -267,7 +268,7 @@ public interface IApplicationUserService
     /// the operation will return a failure result.
     /// </remarks>
     Task<DeletePasskeyResult> DeletePasskeyAsync(
-        string userId,
+        Guid userId,
         string credentialIdBase64Url);
 
     /// <summary>

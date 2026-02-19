@@ -30,7 +30,7 @@ public class Author
     /// This will be populated when the author is a registered system user.
     /// Co-authors without accounts will have this value set to null.
     /// </summary>
-    public string? UserId { get; set; }
+    public Guid? UserId { get; set; }
     
     /// <summary>
     /// Navigation property to the associated user account, if one exists.

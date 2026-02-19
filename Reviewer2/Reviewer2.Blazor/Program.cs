@@ -27,20 +27,6 @@ builder.Services.AddDbContextFactory<ApplicationContext>(options =>
     });
 });
 
-// Adding Separate DbContext for Identity
-builder.Services.AddDbContext<UserContext>(options =>
-{
-    var connectionString = builder.Configuration.GetConnectionString("Reviewer2Connection");
-
-    options.UseNpgsql(connectionString, npgsqlOptions =>
-    {
-        npgsqlOptions.EnableRetryOnFailure(
-            maxRetryCount: 3,
-            maxRetryDelay: TimeSpan.FromSeconds(30),
-            errorCodesToAdd: null);
-    });
-});
-
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
@@ -67,13 +53,13 @@ Log.Logger = new LoggerConfiguration()
     .CreateLogger();
 
 
-builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
+builder.Services.AddIdentity<ApplicationUser, IdentityRole<Guid>>(options =>
     {
         options.SignIn.RequireConfirmedAccount = true;
         options.Stores.SchemaVersion = IdentitySchemaVersions.Version3;
         options.User.RequireUniqueEmail = true;
     })
-    .AddEntityFrameworkStores<UserContext>()
+    .AddEntityFrameworkStores<ApplicationContext>()
     .AddSignInManager()
     .AddDefaultTokenProviders();
 

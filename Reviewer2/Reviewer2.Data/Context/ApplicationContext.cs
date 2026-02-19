@@ -1,11 +1,22 @@
+using System;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Reviewer2.Data.Models;
 
 namespace Reviewer2.Data.Context;
 
 /// <inheritdoc/>
-public class ApplicationContext(DbContextOptions<ApplicationContext> options) : DbContext(options)
+public class ApplicationContext
+    : IdentityDbContext<ApplicationUser, IdentityRole<Guid>, Guid>
 {
+    /// <inheritdoc/>>
+    public ApplicationContext(
+        DbContextOptions<ApplicationContext> options)
+        : base(options)
+    {
+    }
+
     /// <summary>
     /// Represents all submitted papers within the system.
     /// 
