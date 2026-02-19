@@ -14,20 +14,21 @@
     private string? _statusMessage;
 
     [SupplyParameterFromQuery]
-    private string? UserId { get; set; }
+    private Guid? UserId { get; set; }
 
     [SupplyParameterFromQuery]
     private string? Code { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
-        if (string.IsNullOrWhiteSpace(UserId) || string.IsNullOrWhiteSpace(Code))
+        if (UserId is null || string.IsNullOrWhiteSpace(Code))
         {
             RedirectManager.RedirectTo("Account/Login");
             return;
         }
 
-        var result = await ApplicationUserService.ConfirmEmailAsync(UserId, Code);
+        var result = await ApplicationUserService
+            .ConfirmEmailAsync(UserId.Value, Code);
 
         _statusMessage = result.Succeeded
             ? "Thank you for confirming your email."

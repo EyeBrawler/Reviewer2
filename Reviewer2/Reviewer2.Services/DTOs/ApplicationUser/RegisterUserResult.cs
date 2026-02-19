@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Identity;
 
@@ -24,6 +25,6 @@ namespace Reviewer2.Services.DTOs.ApplicationUser;
 public sealed record RegisterUserResult(
     bool Succeeded,
     IEnumerable<IdentityError>? Errors,
-    string? UserId,
+    Guid? UserId,
     string? EmailConfirmationToken
 );

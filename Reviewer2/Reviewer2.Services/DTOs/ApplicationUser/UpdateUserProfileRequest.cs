@@ -1,3 +1,5 @@
+using System;
+
 namespace Reviewer2.Services.DTOs.ApplicationUser;
 
 /// <summary>
@@ -5,7 +7,7 @@ namespace Reviewer2.Services.DTOs.ApplicationUser;
 /// for an existing user.
 /// </summary>
 public sealed record UpdateUserProfileRequest(
-    string UserId,
+    Guid UserId,
     string UserName,
     string? FirstName,
     string? LastName,

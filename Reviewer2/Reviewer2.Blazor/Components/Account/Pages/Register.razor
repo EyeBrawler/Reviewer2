@@ -114,12 +114,12 @@
 
         Log.Information("User created a new account.");
 
-        if (string.IsNullOrEmpty(result.UserId))
+        if (!result.UserId.HasValue)
         {
             throw new InvalidOperationException("User ID was not returned from registration.");
         }
 
-        var userId = result.UserId;
+        var userId = result.UserId.Value;
         
         if (string.IsNullOrEmpty(result.EmailConfirmationToken))
         {

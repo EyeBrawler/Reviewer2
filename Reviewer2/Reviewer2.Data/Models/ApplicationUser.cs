@@ -1,3 +1,4 @@
+using System;
 using Microsoft.AspNetCore.Identity;
 
 namespace Reviewer2.Data.Models;
@@ -6,7 +7,7 @@ namespace Reviewer2.Data.Models;
 /// Represents an application user with additional properties.
 /// Inherits from IdentityUser.
 /// </summary>
-public class ApplicationUser : IdentityUser
+public class ApplicationUser : IdentityUser<Guid>
 {
     /// <summary>
     /// Gets or sets the first name of the user.

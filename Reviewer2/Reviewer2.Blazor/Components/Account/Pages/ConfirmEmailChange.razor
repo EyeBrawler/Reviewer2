@@ -17,13 +17,15 @@
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
 
-    [SupplyParameterFromQuery] private string? UserId { get; set; }
+    [SupplyParameterFromQuery] private Guid? UserId { get; set; }
     [SupplyParameterFromQuery] private string? Email { get; set; }
     [SupplyParameterFromQuery] private string? Code { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
-        if (UserId is null || Email is null || Code is null)
+        if (UserId is null 
+            || string.IsNullOrWhiteSpace(Email) 
+            || string.IsNullOrWhiteSpace(Code))
         {
             RedirectManager.RedirectToWithStatus(
                 "Account/Login",
@@ -33,7 +35,7 @@
         }
 
         var result = await ApplicationUserService
-            .ConfirmEmailChangeAsync(UserId, Email, Code);
+            .ConfirmEmailChangeAsync(UserId.Value, Email, Code);
 
         message = result.Succeeded
             ? "Thank you for confirming your email change."

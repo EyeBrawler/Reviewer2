@@ -8,6 +8,15 @@
     <UserSecretsId>bff48c65-f477-4a96-b4ab-0223c04f3b7a</UserSecretsId>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <DocumentationFile>bin\Debug\Reviewer2.Data.xml</DocumentationFile>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <DocumentationFile>bin\Release\Reviewer2.Data.xml</DocumentationFile>
+  </PropertyGroup>
+  
   <ItemGroup>
     <Folder Include="Migrations\" />
   </ItemGroup>
