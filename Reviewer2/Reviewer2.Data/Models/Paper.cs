@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Reviewer2.Data.Models;
 
@@ -38,7 +39,7 @@ public class Paper
     /// The status determines what actions are permitted, such as editing,
     /// reviewing, decision-making, or scheduling.
     /// </summary>
-    public PaperStatus Status { get; set; }
+    public PaperStatus Status { get; private set; } = PaperStatus.Draft;
 
     /// <summary>
     /// The date and time (UTC) when the paper was officially submitted.
@@ -46,7 +47,7 @@ public class Paper
     /// This value is typically set when transitioning from Draft
     /// to Submitted.
     /// </summary>
-    public DateTime SubmittedAtUtc { get; set; }
+    public DateTime? SubmittedAtUtc { get; private set; }
     
     /// <summary>
     /// The identifier of the user who originally submitted the paper.
@@ -67,13 +68,13 @@ public class Paper
     /// 
     /// This value is null until a final decision is recorded.
     /// </summary>
-    public DateTime? DecisionMadeAtUtc { get; set; }
+    public DateTime? DecisionMadeAtUtc { get; private set; }
 
     /// <summary>
     /// The identifier of the user (typically a ConferenceChair)
     /// who made the final decision on the paper.
     /// </summary>
-    public Guid? DecisionMadeByUserId { get; set; }
+    public Guid? DecisionMadeByUserId { get; private set; }
 
     /// <summary>
     /// Comments associated with the final decision.
@@ -81,14 +82,14 @@ public class Paper
     /// This may contain summary remarks, justification, or
     /// additional instructions for the authors.
     /// </summary>
-    public string? DecisionComment { get; set; }
+    public string? DecisionComment { get; private set; }
 
     /// <summary>
     /// Collection of authors associated with the paper.
     /// 
     /// Author order is significant and preserved via Author.AuthorOrder.
     /// </summary>
-    public List<Author> Authors { get; set; } = [];
+    public List<Author> Authors { get; private set; } = [];
 
     /// <summary>
     /// Collection of reviewer assignments for this paper.
@@ -96,13 +97,302 @@ public class Paper
     /// Each assignment represents a reviewer-paper relationship
     /// and may contain an associated review.
     /// </summary>
-    public List<ReviewAssignment> ReviewAssignments { get; set; } = [];
+    public List<ReviewAssignment> ReviewAssignments { get; private set; } = [];
 
     /// <summary>
     /// Collection of uploaded files related to the paper submission,
     /// such as initial submission, camera-ready version, or copyright form.
     /// </summary>
-    public List<PaperFile> Files { get; set; } = [];
+    public List<PaperFile> Files { get; private set; } = [];
+    
+    /// <summary>
+    /// Transitions the paper from <see cref="PaperStatus.Draft"/> 
+    /// to <see cref="PaperStatus.Submitted"/>.
+    /// 
+    /// This operation validates that all required submission criteria are met,
+    /// including metadata, author invariants, and the presence of an initial
+    /// submission file.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown if the paper is not in Draft state or if required submission
+    /// invariants are not satisfied.
+    /// </exception>
+    public void Submit()
+    {
+        if (Status != PaperStatus.Draft)
+            throw new InvalidOperationException("Only drafts can be submitted.");
+
+        if (string.IsNullOrWhiteSpace(Title))
+            throw new InvalidOperationException("Title is required.");
+
+        if (string.IsNullOrWhiteSpace(Abstract))
+            throw new InvalidOperationException("Abstract is required.");
+
+        ValidateAuthorRules();
+
+        if (Files.All(f => f.Type != FileType.InitialSubmission))
+            throw new InvalidOperationException("Initial submission file is required.");
+
+        Status = PaperStatus.Submitted;
+        SubmittedAtUtc = DateTime.UtcNow;
+    }
+
+
+    /// <summary>
+    /// Transitions the paper from <see cref="PaperStatus.Submitted"/> 
+    /// to <see cref="PaperStatus.UnderReview"/>.
+    /// 
+    /// This indicates that reviewer assignments may now actively evaluate
+    /// the submission.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown if the paper is not currently in Submitted state.
+    /// </exception>
+    public void MoveToUnderReview()
+    {
+        if (Status != PaperStatus.Submitted)
+            throw new InvalidOperationException("Paper must be submitted before review.");
+
+        Status = PaperStatus.UnderReview;
+    }
+    
+    /// <summary>
+    /// Transitions the paper from <see cref="PaperStatus.UnderReview"/> 
+    /// to <see cref="PaperStatus.ReviewsCompleted"/>.
+    /// 
+    /// This indicates that the required number of reviews has been received
+    /// and the paper is ready for final decision.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown if the paper is not currently under review.
+    /// </exception>
+    public void MarkReviewsCompleted()
+    {
+        if (Status != PaperStatus.UnderReview)
+            throw new InvalidOperationException("Paper must be under review.");
+
+        Status = PaperStatus.ReviewsCompleted;
+    }
+    
+    /// <summary>
+    /// Records an acceptance decision for the paper and transitions it to 
+    /// <see cref="PaperStatus.Accepted"/>.
+    /// 
+    /// This sets the decision metadata, including timestamp, decision maker,
+    /// and optional comment.
+    /// </summary>
+    /// <param name="chairUserId">
+    /// The identifier of the conference chair (or authorized decision-maker)
+    /// recording the acceptance.
+    /// </param>
+    /// <param name="comment">
+    /// Optional decision remarks or instructions for the authors.
+    /// </param>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown if the paper is not in ReviewsCompleted state.
+    /// </exception>
+    public void Accept(Guid chairUserId, string? comment)
+    {
+        if (Status != PaperStatus.ReviewsCompleted)
+            throw new InvalidOperationException("Paper must have completed reviews.");
+
+        Status = PaperStatus.Accepted;
+        DecisionMadeAtUtc = DateTime.UtcNow;
+        DecisionMadeByUserId = chairUserId;
+        DecisionComment = comment;
+    }
+    
+    /// <summary>
+    /// Records a rejection decision for the paper and transitions it to 
+    /// <see cref="PaperStatus.Rejected"/>.
+    /// 
+    /// This sets the decision metadata, including timestamp, decision maker,
+    /// and optional comment.
+    /// </summary>
+    /// <param name="chairUserId">
+    /// The identifier of the conference chair (or authorized decision-maker)
+    /// recording the rejection.
+    /// </param>
+    /// <param name="comment">
+    /// Optional decision remarks explaining the rejection.
+    /// </param>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown if the paper is not in ReviewsCompleted state.
+    /// </exception>
+    public void Reject(Guid chairUserId, string? comment)
+    {
+        if (Status != PaperStatus.ReviewsCompleted)
+            throw new InvalidOperationException("Paper must have completed reviews.");
+
+        Status = PaperStatus.Rejected;
+        DecisionMadeAtUtc = DateTime.UtcNow;
+        DecisionMadeByUserId = chairUserId;
+        DecisionComment = comment;
+    }
+
+    /// <summary>
+    /// Transitions the paper from <see cref="PaperStatus.Accepted"/> 
+    /// to <see cref="PaperStatus.CameraReadySubmitted"/>.
+    /// 
+    /// This requires that a camera-ready file has been uploaded.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown if the paper is not accepted or if no camera-ready file exists.
+    /// </exception>
+    public void SubmitCameraReady()
+    {
+        if (Status != PaperStatus.Accepted)
+            throw new InvalidOperationException("Only accepted papers can submit camera-ready versions.");
+
+        if (Files.All(f => f.Type != FileType.CameraReady))
+            throw new InvalidOperationException("Camera-ready file is required.");
+
+        Status = PaperStatus.CameraReadySubmitted;
+    }
+
+    /// <summary>
+    /// Transitions the paper from <see cref="PaperStatus.CameraReadySubmitted"/> 
+    /// to <see cref="PaperStatus.Scheduled"/>.
+    /// 
+    /// Indicates that the paper has been assigned to a conference session.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown if the camera-ready version has not yet been submitted.
+    /// </exception>
+    public void Schedule()
+    {
+        if (Status != PaperStatus.CameraReadySubmitted)
+            throw new InvalidOperationException("Camera-ready version must be submitted first.");
+
+        Status = PaperStatus.Scheduled;
+    }
+
+    /// <summary>
+    /// Transitions the paper from <see cref="PaperStatus.Scheduled"/> 
+    /// to <see cref="PaperStatus.Presented"/>.
+    /// 
+    /// Indicates that the paper has been formally presented at the conference.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown if the paper has not been scheduled.
+    /// </exception>
+    public void MarkPresented()
+    {
+        if (Status != PaperStatus.Scheduled)
+            throw new InvalidOperationException("Paper must be scheduled first.");
+
+        Status = PaperStatus.Presented;
+    }
+    
+    /// <summary>
+    /// Withdraws the paper from the submission process and transitions it to 
+    /// <see cref="PaperStatus.Withdrawn"/>.
+    /// 
+    /// Withdrawal is permitted only before a final decision has been recorded.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown if the paper has already received a final decision
+    /// or progressed beyond that point in the workflow.
+    /// </exception>
+    public void Withdraw()
+    {
+        // Any state at or beyond Accepted is considered final/post-decision.
+        if (Status >= PaperStatus.Accepted)
+            throw new InvalidOperationException("Cannot withdraw after a final decision has been recorded.");
+
+        Status = PaperStatus.Withdrawn;
+    }
+    
+    /// <summary>
+    /// Replaces the entire author collection for a draft paper.
+    /// 
+    /// Author order is preserved according to the order provided.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown if the paper is not in Draft state.
+    /// </exception>
+    public void ReplaceAuthors(IEnumerable<Author> authors)
+    {
+        if (Status != PaperStatus.Draft)
+            throw new InvalidOperationException("Authors can only be modified while in Draft state.");
+
+        Authors.Clear();
+
+        int order = 0;
+        foreach (var author in authors)
+        {
+            author.AuthorOrder = order++;
+            Authors.Add(author);
+        }
+
+        ValidateAuthorRules();
+    }
+    
+    private void ValidateAuthorRules()
+    {
+        if (!Authors.Any())
+            throw new InvalidOperationException("At least one author is required.");
+
+        if (Authors.Count(a => a.IsCorrespondingAuthor) != 1)
+            throw new InvalidOperationException("Exactly one corresponding author is required.");
+
+        if (Authors.Count(a => a.IsPresenter) > 1)
+            throw new InvalidOperationException("Only one presenter is allowed.");
+    }
+    
+    /// <summary>
+    /// Updates the paper's title and abstract while in 
+    /// <see cref="PaperStatus.Draft"/> state.
+    /// 
+    /// Metadata modifications are restricted to drafts to ensure
+    /// submission integrity once the paper has entered the review workflow.
+    /// </summary>
+    /// <param name="title">
+    /// The updated title of the paper.
+    /// </param>
+    /// <param name="abstract">
+    /// The updated abstract describing the paper.
+    /// </param>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown if the paper is not currently in Draft state.
+    /// </exception>
+    public void UpdateMetadata(string title, string @abstract)
+    {
+        if (Status != PaperStatus.Draft)
+            throw new InvalidOperationException("Metadata can only be modified while in Draft state.");
+
+        Title = title;
+        Abstract = @abstract;
+    }
+    
+    /// <summary>
+    /// Replaces an existing file of the same <see cref="PaperFile.Type"/>
+    /// with the provided file.
+    /// 
+    /// If a file of the same type already exists, it is removed before
+    /// the new file is added. This ensures that only one file per type
+    /// is associated with the paper at any time.
+    /// </summary>
+    /// <param name="file">
+    /// The new <see cref="PaperFile"/> instance to associate with the paper.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown if <paramref name="file"/> is null.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown if file modifications are not permitted in the current state.
+    /// </exception>
+    public void ReplaceFile(PaperFile file)
+    {
+        ArgumentNullException.ThrowIfNull(file);
+
+        // No modifications allowed once the paper has been presented.
+        if (Status >= PaperStatus.Presented)
+            throw new InvalidOperationException("Files cannot be modified after presentation.");
+
+        Files.RemoveAll(f => f.Type == file.Type);
+        Files.Add(file);
+    }
 }
 
 /// <summary>
