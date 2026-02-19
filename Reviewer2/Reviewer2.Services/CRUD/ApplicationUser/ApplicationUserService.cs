@@ -553,7 +553,7 @@ public class ApplicationUserService : IApplicationUserService
     public async Task<UpdateUserProfileResult> UpdateProfileAsync(
         UpdateUserProfileRequest request)
     {
-        var user = await _userManager.FindByIdAsync(request.UserId);
+        var user = await _userManager.FindByIdAsync(request.UserId.ToString());
         if (user is null)
             return new UpdateUserProfileResult(false, "User not found.");
         
