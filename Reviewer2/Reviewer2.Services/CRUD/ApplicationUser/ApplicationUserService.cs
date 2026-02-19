@@ -23,7 +23,6 @@ public class ApplicationUserService : IApplicationUserService
     private readonly ApplicationContext _context;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly SignInManager<ApplicationUser> _signInManager;
-    private const string DefaultRole = "Attendee";
 
     /// <inheritdoc cref="IApplicationUserService"/>
     public ApplicationUserService(ApplicationContext context, UserManager<ApplicationUser> userManager,
@@ -266,17 +265,6 @@ public class ApplicationUserService : IApplicationUserService
             return new RegisterUserResult(
                 false,
                 createResult.Errors,
-                null,
-                null);
-        }
-
-        var roleResult = await _userManager.AddToRoleAsync(user, DefaultRole);
-
-        if (!roleResult.Succeeded)
-        {
-            return new RegisterUserResult(
-                false,
-                roleResult.Errors,
                 null,
                 null);
         }
