@@ -35,7 +35,7 @@ public class ReviewAssignment
     /// <summary>
     /// Navigation property to the assigned reviewer.
     /// </summary>
-    public ApplicationUser Reviewer { get; set; } = default!;
+    public ApplicationUser Reviewer { get; set; } = null!;
     
     /// <summary>
     /// Represents the current state of the review assignment.

@@ -32,7 +32,7 @@ public class Review
     /// Navigation property to the review template that defines
     /// the structure of this review.
     /// </summary>
-    public ReviewTemplate ReviewTemplate { get; set; } = default!;
+    public ReviewTemplate ReviewTemplate { get; set; } = null!;
 
     /// <summary>
     /// Identifier of the review assignment linking a reviewer
@@ -45,7 +45,7 @@ public class Review
     /// <summary>
     /// Navigation property to the associated review assignment.
     /// </summary>
-    public ReviewAssignment ReviewAssignment { get; set; } = default!;
+    public ReviewAssignment ReviewAssignment { get; set; } = null!;
     
     /// <summary>
     /// The date and time (UTC) when the review was formally submitted.
