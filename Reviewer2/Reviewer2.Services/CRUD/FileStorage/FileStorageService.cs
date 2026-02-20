@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Options;
 using Reviewer2.Services.DTOs.FileStorage;
 
 namespace Reviewer2.Services.CRUD.FileStorage;
@@ -20,19 +21,18 @@ public sealed class LocalFileStorageService : IFileStorageService
     /// <summary>
     /// Initializes a new instance of the <see cref="LocalFileStorageService"/> class.
     /// </summary>
-    /// <param name="rootPath">
-    /// The absolute root directory where files will be stored.
+    /// <param name="options">
+    /// The <see cref="FileStorageOptions"/> instance providing the root path configuration.
     /// </param>
     /// <exception cref="ArgumentException">
     /// Thrown if the root path is invalid.
     /// </exception>
-    public LocalFileStorageService(string rootPath)
+    public LocalFileStorageService(IOptions<FileStorageOptions> options)
     {
-        if (string.IsNullOrWhiteSpace(rootPath))
-            throw new ArgumentException("Root path is required.", nameof(rootPath));
+        if (options?.Value == null || string.IsNullOrWhiteSpace(options.Value.BasePath))
+            throw new ArgumentException("Root path is required in FileStorageOptions.", nameof(options));
 
-        _rootPath = Path.GetFullPath(rootPath);
-
+        _rootPath = Path.GetFullPath(options.Value.BasePath);
         Directory.CreateDirectory(_rootPath);
     }
 

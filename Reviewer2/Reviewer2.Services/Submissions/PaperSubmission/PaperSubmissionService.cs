@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
@@ -166,7 +167,14 @@ public class PaperSubmissionService : IPaperSubmissionService
 
             try
             {
-                // Construct domain entity
+                // Explicitly remove any existing file of the same type
+                var existingFile = paper.Files.FirstOrDefault(f => f.Type == fileType);
+                if (existingFile != null)
+                {
+                    context.PaperFiles.Remove(existingFile); // EF now tracks this deletion
+                }
+
+                // Add new file
                 var paperFile = new PaperFile(
                     paper.Id,
                     fileType,
@@ -174,8 +182,7 @@ public class PaperSubmissionService : IPaperSubmissionService
                     originalFileName,
                     sizeInBytes);
 
-                // Replace existing file of same type
-                paper.ReplaceFile(paperFile);
+                await context.PaperFiles.AddAsync(paperFile, cancellationToken);
 
                 await context.SaveChangesAsync(cancellationToken);
 
@@ -189,8 +196,7 @@ public class PaperSubmissionService : IPaperSubmissionService
 
                 Log.Error(ex, "Failed to persist file metadata for paper {PaperId} by user {UserId}. File deleted.", paperId, userId);
 
-                return StoredFileResult.Error(
-                    "The file was stored but could not be associated with the paper.");
+                return StoredFileResult.Error("The file was stored but could not be associated with the paper.");
             }
         }
         catch (Exception ex)
