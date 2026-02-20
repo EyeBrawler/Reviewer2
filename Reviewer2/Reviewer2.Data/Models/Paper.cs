@@ -393,6 +393,68 @@ public class Paper
         Files.RemoveAll(f => f.Type == file.Type);
         Files.Add(file);
     }
+    
+    /// <summary>
+    /// Creates a new <see cref="Paper"/> in the <see cref="PaperStatus.Draft"/> state
+    /// using the provided metadata and a collection of <see cref="Author"/> entities.
+    /// </summary>
+    /// <param name="submitterUserId">
+    /// The unique identifier of the user submitting the draft. Must not be <see cref="Guid.Empty"/>.
+    /// </param>
+    /// <param name="title">
+    /// The title of the paper. Cannot be null, empty, or whitespace.
+    /// </param>
+    /// <param name="abstractText">
+    /// The abstract text summarizing the paper's content. Cannot be null, empty, or whitespace.
+    /// </param>
+    /// <param name="authors">
+    /// A collection of <see cref="Author"/> entities representing the paper's authors.
+    /// Must contain at least one author, with exactly one corresponding author and at most one presenter.
+    /// </param>
+    /// <returns>
+    /// A new <see cref="Paper"/> instance initialized in Draft state, including the provided authors.
+    /// </returns>
+    /// <exception cref="ArgumentException">
+    /// Thrown if <paramref name="submitterUserId"/> is <see cref="Guid.Empty"/>,
+    /// if <paramref name="title"/> or <paramref name="abstractText"/> are null or whitespace,
+    /// or if <paramref name="authors"/> is null or empty.
+    /// </exception>
+    /// <remarks>
+    /// This method enforces author-related business rules via <see cref="Paper.ValidateAuthorRules"/>.
+    /// The returned paper is ready to be added to the persistence context for saving.
+    /// </remarks>
+    public static Paper CreateDraft(
+        Guid submitterUserId,
+        string title,
+        string abstractText,
+        IEnumerable<Author> authors)
+    {
+        if (submitterUserId == Guid.Empty)
+            throw new ArgumentException("SubmitterUserId cannot be empty.", nameof(submitterUserId));
+
+        if (string.IsNullOrWhiteSpace(title))
+            throw new ArgumentException("Title is required.", nameof(title));
+
+        if (string.IsNullOrWhiteSpace(abstractText))
+            throw new ArgumentException("Abstract is required.", nameof(abstractText));
+
+        if (authors == null || !authors.Any())
+            throw new ArgumentException("At least one author is required.", nameof(authors));
+
+        var draftPaper = new Paper
+        {
+            Id = Guid.NewGuid(),
+            SubmitterUserId = submitterUserId,
+            Title = title,
+            Abstract = abstractText,
+            Status = PaperStatus.Draft,
+            Authors = authors.ToList()
+        };
+
+        draftPaper.ValidateAuthorRules();
+
+        return draftPaper;
+    }
 }
 
 /// <summary>

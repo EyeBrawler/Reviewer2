@@ -1,11 +1,14 @@
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Reviewer2.Blazor.Components;
 using Reviewer2.Blazor.Components.Account;
 using Reviewer2.Data.Context;
 using Reviewer2.Data.Models;
 using Reviewer2.Services.CRUD.ApplicationUser;
+using Reviewer2.Services.CRUD.FileStorage;
+using Reviewer2.Services.Submissions.PaperSubmission;
 using Serilog;
 using Serilog.Events;
 
@@ -34,8 +37,16 @@ builder.Services.AddRazorComponents()
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<IdentityRedirectManager>();
 builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
-builder.Services.AddScoped<IApplicationUserService, ApplicationUserService>();
 builder.Services.AddScoped<RoleInitializer>();
+builder.Services.AddScoped<IApplicationUserService, ApplicationUserService>();
+
+// Configure FileStorage options from appsettings.json
+builder.Services.Configure<FileStorageOptions>(
+    builder.Configuration.GetSection("FileStorage"));
+
+builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
+builder.Services.AddScoped<IPaperSubmissionService, PaperSubmissionService>();
+
 builder.Services.AddRazorPages();
 
 
