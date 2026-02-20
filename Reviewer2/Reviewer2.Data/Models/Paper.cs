@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Reviewer2.Services.DTOs.PaperSubmission;
 
 namespace Reviewer2.Data.Models;
 
@@ -392,6 +393,83 @@ public class Paper
 
         Files.RemoveAll(f => f.Type == file.Type);
         Files.Add(file);
+    }
+    
+    /// <summary>
+    /// Creates a new <see cref="Paper"/> in the <see cref="PaperStatus.Draft"/> state
+    /// using the provided metadata and authors.
+    /// </summary>
+    /// <param name="submitterUserId">
+    /// The unique identifier of the user submitting the draft. Must not be <see cref="Guid.Empty"/>.
+    /// </param>
+    /// <param name="title">
+    /// The title of the paper. Cannot be null, empty, or whitespace.
+    /// </param>
+    /// <param name="abstractText">
+    /// The abstract text summarizing the paper's content. Cannot be null, empty, or whitespace.
+    /// </param>
+    /// <param name="authorsInput">
+    /// A collection of <see cref="AuthorInputDTO"/> objects representing the paper's authors.
+    /// Must contain at least one author, with exactly one corresponding author and at most one presenter.
+    /// </param>
+    /// <returns>
+    /// A new <see cref="Paper"/> instance initialized in Draft state, including mapped <see cref="Author"/> entities.
+    /// </returns>
+    /// <exception cref="ArgumentException">
+    /// Thrown if <paramref name="submitterUserId"/> is <see cref="Guid.Empty"/>,
+    /// if <paramref name="title"/> or <paramref name="abstractText"/> are null or whitespace,
+    /// or if <paramref name="authorsInput"/> is null or empty.
+    /// </exception>
+    /// <remarks>
+    /// This method enforces author-related business rules via <see cref="Paper.ValidateAuthorRules"/>.
+    /// The returned paper is ready to be added to the persistence context for saving.
+    /// </remarks>
+    public static Paper CreateDraft(
+        Guid submitterUserId,
+        string title,
+        string abstractText,
+        IEnumerable<AuthorInputDTO> authorsInput)
+    {
+        if (submitterUserId == Guid.Empty)
+            throw new ArgumentException("SubmitterUserId cannot be empty.", nameof(submitterUserId));
+
+        if (string.IsNullOrWhiteSpace(title))
+            throw new ArgumentException("Title is required.", nameof(title));
+
+        if (string.IsNullOrWhiteSpace(abstractText))
+            throw new ArgumentException("Abstract is required.", nameof(abstractText));
+
+        if (authorsInput == null || !authorsInput.Any())
+            throw new ArgumentException("At least one author is required.", nameof(authorsInput));
+
+        // Map DTOs to domain Author entities
+        var authors = authorsInput.Select((dto, index) => new Author
+        {
+            Id = Guid.NewGuid(),
+            UserId = dto.UserId,
+            FirstName = dto.FirstName,
+            LastName = dto.LastName,
+            Email = dto.Email,
+            Institution = dto.Institution,
+            IsCorrespondingAuthor = dto.IsCorrespondingAuthor,
+            IsPresenter = dto.IsPresenter,
+            AuthorOrder = index
+        }).ToList();
+
+        // Validate business rules (delegates to existing method)
+        var draftPaper = new Paper
+        {
+            Id = Guid.NewGuid(),
+            SubmitterUserId = submitterUserId,
+            Title = title,
+            Abstract = abstractText,
+            Status = PaperStatus.Draft,
+            Authors = authors
+        };
+
+        draftPaper.ValidateAuthorRules();
+
+        return draftPaper;
     }
 }
 

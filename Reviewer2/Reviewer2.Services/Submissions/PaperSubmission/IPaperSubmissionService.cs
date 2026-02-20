@@ -1,7 +1,9 @@
 using System;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using Reviewer2.Data.Models;
+using Reviewer2.Services.DTOs.FileStorage;
 using Reviewer2.Services.DTOs.PaperSubmission;
 
 namespace Reviewer2.Services.Submissions.PaperSubmission;
@@ -57,35 +59,46 @@ public interface IPaperSubmissionService
     /// Uploads or replaces a file associated with a paper submission.
     /// </summary>
     /// <param name="paperId">
-    /// The identifier of the paper the file belongs to.
+    /// The unique identifier of the paper the file belongs to.
     /// </param>
     /// <param name="fileType">
-    /// The type and purpose of the uploaded file.
+    /// The logical type and purpose of the uploaded file.
     /// </param>
     /// <param name="stream">
-    /// A readable stream containing the file contents.
-    /// The caller is responsible for disposing the stream.
+    /// A readable stream containing the file contents. The caller is responsible
+    /// for disposing the stream.
     /// </param>
     /// <param name="originalFileName">
     /// The original file name provided by the user.
     /// </param>
     /// <param name="userId">
-    /// The identifier of the user performing the upload.
+    /// The identifier of the user attempting to perform the upload.
     /// </param>
-    /// <returns>A task representing the asynchronous operation.</returns>
+    /// <param name="cancellationToken">
+    /// A token that can be used to cancel the operation.
+    /// </param>
+    /// <returns>
+    /// A <see cref="StoredFileResult"/> indicating whether the file was
+    /// successfully stored and associated with the paper, or describing
+    /// why the operation failed.
+    /// </returns>
     /// <remarks>
     /// If a file of the same <see cref="FileType"/> already exists for the paper,
-    /// it may be replaced according to the domain workflow rules.
-    /// 
-    /// The implementation must ensure consistency between the database
-    /// and the external file storage system.
+    /// it will be replaced according to the paper's workflow rules.
+    ///
+    /// Implementations must ensure consistency between file storage and
+    /// persistence so that partial state is not left behind if the operation fails.
     /// </remarks>
-    Task UploadFileAsync(
+    /// <exception cref="ArgumentNullException">
+    /// Thrown if required arguments are <c>null</c>.
+    /// </exception>
+    public Task<StoredFileResult> UploadFileAsync(
         Guid paperId,
         FileType fileType,
         Stream stream,
         string originalFileName,
-        Guid userId);
+        Guid userId,
+        CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Submits a draft paper for review.
