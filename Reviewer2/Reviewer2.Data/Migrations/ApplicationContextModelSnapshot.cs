@@ -292,7 +292,7 @@ namespace Reviewer2.Data.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
-                    b.Property<DateTime>("SubmittedAtUtc")
+                    b.Property<DateTime?>("SubmittedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid>("SubmitterUserId")
@@ -325,7 +325,7 @@ namespace Reviewer2.Data.Migrations
                     b.Property<long>("SizeInBytes")
                         .HasColumnType("bigint");
 
-                    b.Property<string>("StoredFileName")
+                    b.Property<string>("StoragePath")
                         .IsRequired()
                         .HasColumnType("text");
 
