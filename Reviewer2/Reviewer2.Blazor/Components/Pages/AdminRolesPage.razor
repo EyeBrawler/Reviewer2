@@ -1,0 +1,60 @@
+@page "/admin"
+@namespace Reviewer2.Blazor.Components.Pages.AdminRoles
+
+<div class="container mt-5">
+    <div class="card p-4">
+        <h4 class="mb-4 text-center">Admin — Role Assignment</h4>
+
+        <table class="table table-hover table-bordered table-striped">
+            <thead>
+                <tr>
+                    <th class="text-left">Name</th>
+                    <th class="text-left">Email</th>
+                    <th class="text-center">Current Roles</th>
+                    <th class="text-right" style="width:240px;">Change Role</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (users.Count > 0)
+                {
+                    @foreach (var user in users)
+                    {
+                        <tr>
+                            <td class="text-left">@user.FullName</td>
+                            <td class="text-left">@user.Email</td>
+                            <td class="text-center">
+                                @if (roles.TryGetValue(user.Id, out var userRoles) && userRoles.Count > 0)
+                                {
+                                    @foreach (var role in userRoles)
+                                    {
+                                        <span class="badge bg-info me-1" title="@role">@role</span>
+                                    }
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">None</span>
+                                }
+                            </td>
+                            <td class="text-right">
+                                <select class="form-select form-select-sm"
+                                        @onchange="async e => await ChangeRoleSafe(user, e?.Value?.ToString())"
+                                        value="@selectedRoles.GetValueOrDefault(user.Id) ?? string.Empty">
+                                    <option value="">Select role</option>
+                                    <option value="Author">Author</option>
+                                    <option value="Reviewer">Reviewer</option>
+                                    <option value="Admin">Admin</option>
+                                </select>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="4" class="text-center">No users found.</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
