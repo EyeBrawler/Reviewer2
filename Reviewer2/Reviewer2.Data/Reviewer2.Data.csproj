@@ -16,10 +16,6 @@
   <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
     <DocumentationFile>bin\Release\Reviewer2.Data.xml</DocumentationFile>
   </PropertyGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\Reviewer2.Services\Reviewer2.Services.csproj" />
-  </ItemGroup>
   
   <ItemGroup>
     <Folder Include="Migrations\" />
