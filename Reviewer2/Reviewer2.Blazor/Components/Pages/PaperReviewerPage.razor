@@ -1,0 +1,68 @@
+@page "/review"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Components.Forms
+
+<h1 class="mb-4">Reviewer Dashboard</h1>
+
+<div class="content container">
+    <div class="mx-auto" style="max-width: 900px;">
+        @foreach (var paper in AssignedPapers)
+        {
+            <section class="card shadow-sm p-4 mb-4" @key="paper.Id">
+                
+                <h3>@paper.Title</h3>
+                
+                <p class="text-muted mb-2">
+                    <strong>Authors:</strong>
+                    @string.Join(", ", paper.Authors.Select(a => (string)a.Name))
+                </p>
+                
+                <p class="mb-4">@paper.Abstract</p>
+                
+                <EditForm Model="@paper.Review"
+                          FormName="@($"ReviewForm_{paper.Id}")"
+                          OnValidSubmit="() => SubmitReview(paper)">
+                    
+                    <DataAnnotationsValidator/>
+                    
+                    <h5>Evaluation</h5>
+                    
+                    <label class="form-label mt-3">Overall Score (1-5)</label>
+                    <InputSelect class="form-select"
+                                 @bind-Value="paper.Review.Score">
+                        <option value="">Select score</option>
+                        @for (int i = 1; i <= 5; i++)
+                        {
+                            <option value="@i">@i</option>
+                        }
+                    </InputSelect>
+                    
+                    <label class="form-label mt-3">Confidence (1-5)</label>
+                    <InputSelect class="form-select"
+                                 @bind-Value="paper.Review.Confidence">
+                        <option value="">Select confidence</option>
+                        @for (int i = 1; i <= 5; i++)
+                        {
+                            <option value="@i">@i</option>
+                        }
+                    </InputSelect>
+                    
+                    <h5 class="mt-4">Review Comments</h5>
+                    
+                    <label class="form-label mt-2">Comments for Authors</label>
+                    <InputTextArea class="form-control"
+                                   Rows="4"
+                                   @bind-Value="paper.Review.AuthorComments" />
+                    
+                    <div class="text-end mt-4">
+                        <button type="submit" class="btn btn-primary">
+                            Submit Review
+                        </button>
+                    </div>
+                    
+                </EditForm>
+            </section>
+        }
+        
+    </div>
+</div>
