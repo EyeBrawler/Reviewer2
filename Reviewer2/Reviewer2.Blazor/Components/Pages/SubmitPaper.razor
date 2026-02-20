@@ -1,84 +1,231 @@
 ﻿@page "/submit"
 @rendermode InteractiveServer
-@using Microsoft.AspNetCore.Components.Forms
+@inject PaperSubmissionService PaperService
+@inject NavigationManager NavManager
+@inject AuthenticationStateProvider AuthStateProvider
+@using Reviewer2.Data.Models
+@using Reviewer2.Services.DTOs.FileStorage
+@using Reviewer2.Services.DTOs.PaperSubmission
+@using Reviewer2.Services.Submissions.PaperSubmission
 
 <h1 class="mb-4">Paper Submission</h1>
 
-<div class="content container">
-    <div class="mx-auto" style="max-width: 850px;">
-    <EditForm EditContext="@editContext" 
-              FormName="SubmitPaperForm"
-              OnValidSubmit="HandleSubmit"
-              OnInvalidSubmit="HandleInvalid">
-    
-        <DataAnnotationsValidator />
-        <ValidationSummary />
+<EditForm EditContext="@_editContext" OnValidSubmit="HandleSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
 
-        <section class="card shadow-sm p-4 mb-4">
-            <h3>Paper Information</h3>
+    <!-- Paper Information -->
+    <section class="card shadow-sm p-4 mb-4">
+        <h3>Paper Information</h3>
 
-            <label class="form-label mt-3">Title*</label>
-            <InputText class="form-control"
-                       @bind-Value="Submission.Title" />
-            <ValidationMessage For="@(() => Submission.Title)" />
+        <label class="form-label mt-3">Title*</label>
+        <InputText class="form-control" @bind-Value="Title" />
+        <ValidationMessage For="@(() => Title)" />
 
-            <label class="form-label mt-3">Abstract*</label>
-            <InputTextArea class="form-control"
-                           Rows="6"
-                           @bind-Value="Submission.Abstract" />
-            <ValidationMessage For="@(() => Submission.Abstract)" />
-        </section>
+        <label class="form-label mt-3">Abstract*</label>
+        <InputTextArea class="form-control" Rows="6" @bind-Value="Abstract" />
+        <ValidationMessage For="@(() => Abstract)" />
+    </section>
 
-        <section class="card shadow-sm p-4 mb-4">
-            <h3>Authors*</h3>
+    <!-- Authors Section -->
+    <section class="card shadow-sm p-4 mb-4">
+        <h3>Authors*</h3>
 
-            @foreach (var author in Submission.Authors)
+        @foreach (var author in Authors)
+        {
+            <div class="card shadow-sm p-3 mb-3" @key="author">
+                <InputText class="form-control" placeholder="First name" @bind-Value="author.FirstName" />
+                <ValidationMessage For="@(() => author.FirstName)" />
+
+                <InputText class="form-control mt-2" placeholder="Last name" @bind-Value="author.LastName" />
+                <ValidationMessage For="@(() => author.LastName)" />
+
+                <InputText class="form-control mt-2" type="email" placeholder="Email" @bind-Value="author.Email" />
+                <ValidationMessage For="@(() => author.Email)" />
+
+                <button type="button" class="btn btn-sm btn-outline-danger mt-2" @onclick="() => RemoveAuthor(author)">
+                    Remove
+                </button>
+            </div>
+        }
+
+        <button type="button" class="btn btn-primary mt-2" @onclick="AddAuthor">+ Add Author</button>
+    </section>
+
+    <!-- File Upload Section -->
+    <section class="card shadow-sm p-4 mb-4">
+        <h3>Upload PDF*</h3>
+        <InputFile OnChange="HandleFileUpload" accept=".pdf,application/pdf" />
+
+        @if (!string.IsNullOrEmpty(FileError))
+        {
+            <div class="alert alert-danger mt-2">@FileError</div>
+        }
+
+        @if (UploadedFile != null)
+        {
+            <div class="text-muted mt-1">Selected file: @UploadedFile.Name</div>
+        }
+    </section>
+
+    <!-- Submit Button -->
+    <section class="text-center mt-4">
+        <button type="submit" class="btn btn-primary" disabled="@(!CanSubmit || IsSubmitting)">
+            @if (IsSubmitting)
             {
-                <div class="card shadow-sm p-3 mb-3" @key="author">
-                    <InputText class="form-control"
-                               placeholder="Full name"
-                               @bind-Value="author.Name" />
-                    <ValidationMessage For="@(() => author.Name)"/>
+                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                <span>Submitting...</span>
+            }
+            else
+            {
+                <span>Submit Paper</span>
+            }
+        </button>
+    </section>
+</EditForm>
 
-                    <InputText class="form-control"
-                               placeholder="Email"
-                               @bind-Value="author.Email" />
-                    <ValidationMessage For="@(() => author.Email)"/>
+@code {
+    // Paper metadata
+    private string Title { get; set; } = string.Empty;
+    private string Abstract { get; set; } = string.Empty;
+    private List<AuthorInputDTO> Authors { get; set; } = new() { new AuthorInputDTO() };
 
-                    <button type="button"
-                            class="btn btn-sm btn-outline-danger mt-2"
-                            @onclick="() => RemoveAuthor(author)">
-                        Remove
-                    </button>
-                </div>
+    // File upload
+    private IBrowserFile? UploadedFile { get; set; }
+    private string? FileError { get; set; }
+
+    // Edit form
+    private EditContext? _editContext;
+
+    // Submission state
+    private bool IsSubmitting { get; set; }
+
+    protected override void OnInitialized()
+    {
+        _editContext = new EditContext(this);
+        _editContext.OnFieldChanged += (_, _) => StateHasChanged();
+    }
+
+    // -------------------------------
+    // User helper
+    // -------------------------------
+    private async Task<Guid> GetSubmitterUserIdAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        if (!user.Identity!.IsAuthenticated)
+            throw new InvalidOperationException("User is not authenticated.");
+
+        var claim = user.FindFirst("sub") ?? throw new InvalidOperationException("User ID claim not found.");
+        return Guid.Parse(claim.Value);
+    }
+
+    // -------------------------------
+    // Authors management
+    // -------------------------------
+    private void AddAuthor() => Authors.Add(new AuthorInputDTO());
+
+    private void RemoveAuthor(AuthorInputDTO author)
+    {
+        if (Authors.Count > 1)
+            Authors.Remove(author);
+    }
+
+    // -------------------------------
+    // File upload
+    // -------------------------------
+    private async Task HandleFileUpload(InputFileChangeEventArgs e)
+    {
+        FileError = null;
+        var file = e.File;
+
+        if (file.ContentType != "application/pdf" || !file.Name.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+        {
+            FileError = "Only PDF files are allowed.";
+            return;
+        }
+
+        if (file.Size > 10 * 1024 * 1024)
+        {
+            FileError = "PDF must be smaller than 10MB.";
+            return;
+        }
+
+        UploadedFile = file;
+        await Task.CompletedTask;
+    }
+
+    // -------------------------------
+    // Form validation
+    // -------------------------------
+    private bool CanSubmit => UploadedFile != null && _editContext?.Validate() == true && !IsSubmitting;
+
+    // -------------------------------
+    // Submit handler
+    // -------------------------------
+    private async Task HandleSubmit()
+    {
+        if (UploadedFile == null)
+        {
+            FileError = "A PDF must be uploaded.";
+            return;
+        }
+
+        IsSubmitting = true;
+        FileError = null;
+
+        try
+        {
+            // 1. Get current user
+            var submitterUserId = await GetSubmitterUserIdAsync();
+
+            // 2. Create draft via service
+            var createDraftRequest = new CreateDraftRequest
+            {
+                Title = Title,
+                Abstract = Abstract,
+                Authors = Authors
+            };
+
+            var draftId = await PaperService.CreateDraftAsync(createDraftRequest, submitterUserId);
+
+            // 3. Upload PDF
+            await using var stream = UploadedFile.OpenReadStream(10 * 1024 * 1024);
+            StoredFileResult fileResult = await PaperService.UploadFileAsync(
+                draftId,
+                FileType.InitialSubmission,
+                stream,
+                UploadedFile.Name,
+                submitterUserId
+            );
+
+            if (!fileResult.Exists)
+            {
+                FileError = fileResult.ErrorMessage ?? "File upload failed for an unknown reason.";
+                return;
             }
 
-            <button type="button" 
-                    class="btn btn-primary mt-2"
-                    @onclick="AddAuthor">
-                + Add Author
-            </button>
-        </section>
+            // 4. Optionally: submit immediately
+            // await PaperService.SubmitAsync(draftId, submitterUserId);
 
-        <section class="card shadow-sm p-4 mb-4">
-            <h3>Upload PDF*</h3>
-
-            <InputFile OnChange="HandleFileUpload"
-                       accept=".pdf,application/pdf" />
-
-            @if (!string.IsNullOrEmpty(FileError))
-            {
-                <p style="color:red">@FileError</p>
-            }
-        </section>
-
-        <section class="text-center mt-4">
-            <button type="submit"
-                    class="btn btn-primary"
-                    disabled="@(!CanSubmit || !(editContext?.Validate() ?? false))">
-                Submit Paper
-            </button>
-        </section>
-    </EditForm>
-    </div>
-</div>
+            // 5. Navigate to submissions list
+            NavManager.NavigateTo("/submissions");
+        }
+        catch (ArgumentException ex)
+        {
+            FileError = ex.Message;
+        }
+        catch (InvalidOperationException ex)
+        {
+            FileError = "Operation failed: " + ex.Message;
+        }
+        catch (Exception ex)
+        {
+            FileError = "Unexpected error: " + ex.Message;
+        }
+        finally
+        {
+            IsSubmitting = false;
+        }
+    }
+}
