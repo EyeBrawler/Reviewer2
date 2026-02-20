@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using MudBlazor.Services;
 using Reviewer2.Blazor.Components;
 using Reviewer2.Blazor.Components.Account;
 using Reviewer2.Data.Context;
@@ -46,7 +47,9 @@ builder.Services.Configure<FileStorageOptions>(
 
 builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
 builder.Services.AddScoped<IPaperSubmissionService, PaperSubmissionService>();
+builder.Services.AddScoped<IPaperQueryService, PaperQueryService>();
 
+builder.Services.AddMudServices();
 builder.Services.AddRazorPages();
 
 

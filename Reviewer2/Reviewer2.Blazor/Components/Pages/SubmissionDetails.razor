@@ -1,0 +1,80 @@
+@page "/submissions/{paperId:guid}"
+@rendermode InteractiveServer
+
+@using Reviewer2.Services.DTOs.PaperSubmission
+@inject Reviewer2.Services.Submissions.PaperSubmission.IPaperQueryService PaperQueryService
+@inject AuthenticationStateProvider AuthProvider
+
+<PageTitle>Paper Details</PageTitle>
+
+@if (IsLoading)
+{
+    <div class="text-center my-5">
+        <div class="spinner-border"></div>
+        <p>Loading...</p>
+    </div>
+}
+else if (Paper == null)
+{
+    <div class="alert alert-danger">
+        Paper not found.
+    </div>
+}
+else
+{
+    <h3>@Paper.Title</h3>
+
+    <p><strong>Status:</strong> @Paper.Status</p>
+    <p><strong>Submitted:</strong> @Paper.SubmittedAtUtc</p>
+    <p><strong>Abstract:</strong></p>
+    <p>@Paper.Abstract</p>
+    
+    @if (Paper.Files != null && Paper.Files.Any())
+    {
+        var pdfFile = Paper.Files.FirstOrDefault(f => f.FileType == "Manuscript");
+
+        if (pdfFile != null)
+        {
+            <h5 class="mt-4">Manuscript Preview</h5>
+
+            <div class="border rounded" style="height:800px;">
+                <iframe src="@pdfFile.FileUrl"
+                        width="100%"
+                        height="100%"
+                        style="border:none;">
+                </iframe>
+            </div>
+        }
+    }
+}
+
+@code {
+    [Parameter]
+    public Guid paperId { get; set; }
+
+    private PaperDetailsDTO? Paper;
+    private bool IsLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPaper();
+    }
+
+    private async Task LoadPaper()
+    {
+        IsLoading = true;
+
+        var authState = await AuthProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        var userIdClaim = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+        if (!string.IsNullOrWhiteSpace(userIdClaim))
+        {
+            var userId = Guid.Parse(userIdClaim);
+            Paper = await PaperQueryService.GetPaperDetailsAsync(paperId, userId);
+        }
+
+        IsLoading = false;
+    }
+}

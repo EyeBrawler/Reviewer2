@@ -1,6 +1,140 @@
-@page "/Submissions"
-<h3>Submissions</h3>
+@page "/submissions"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Components.Authorization
+@using Reviewer2.Services.DTOs.PaperSubmission
+@inject Reviewer2.Services.Submissions.PaperSubmission.IPaperQueryService PaperQueryService
+@inject AuthenticationStateProvider AuthProvider
+@inject NavigationManager NavManager
+
+<PageTitle>Submissions</PageTitle>
+
+<AuthorizeView>
+    <Authorizing>
+        <p>Authorizing...</p>
+    </Authorizing>
+
+    <NotAuthorized>
+        <div class="alert alert-warning">
+            You are not authorized to view this page.
+        </div>
+    </NotAuthorized>
+
+    <Authorized>
+
+        @if (IsLoading)
+        {
+            <div class="text-center my-5">
+                <div class="spinner-border" role="status"></div>
+                <p>Loading submissions...</p>
+            </div>
+        }
+        else if (!Papers.Any())
+        {
+            <div class="alert alert-info">
+                No submissions found.
+            </div>
+        }
+        else
+        {
+            <div class="d-flex justify-content-between align-items-center my-3">
+                <h3 class="mb-0">Submissions</h3>
+
+                <input type="text"
+                       class="form-control w-auto"
+                       placeholder="Search..."
+                       @bind="SearchString"
+                       @bind:event="oninput" />
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Title</th>
+                            <th>Status</th>
+                            <th>Submitted</th>
+                            <th style="width:120px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var paper in FilteredPapers)
+                        {
+                            <tr>
+                                <td>@paper.Title</td>
+                                <td>@paper.Status</td>
+                                <td>
+                                    @paper.SubmittedAtUtc?.ToString("yyyy-MM-dd HH:mm")
+                                </td>
+                                <td>
+                                    <button class="btn btn-primary btn-sm"
+                                            @onclick="() => ViewDetails(paper.PaperId)">
+                                        View
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+
+    </Authorized>
+</AuthorizeView>
 
 @code {
-    
+    private bool IsLoading = true;
+    private List<UserPaperDTO> Papers = new();
+    private string SearchString = string.Empty;
+
+    private IEnumerable<UserPaperDTO> FilteredPapers =>
+        string.IsNullOrWhiteSpace(SearchString)
+            ? Papers
+            : Papers.Where(p =>
+                (p.Title?.Contains(SearchString, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (p.Status?.Contains(SearchString, StringComparison.OrdinalIgnoreCase) ?? false));
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPapers();
+    }
+
+    private async Task LoadPapers()
+    {
+        IsLoading = true;
+
+        var authState = await AuthProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            var userIdClaim = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            var roles = user.Claims
+                .Where(c => c.Type == System.Security.Claims.ClaimTypes.Role)
+                .Select(c => c.Value)
+                .ToList();
+
+            if (!string.IsNullOrWhiteSpace(userIdClaim))
+            {
+                var userId = Guid.Parse(userIdClaim);
+
+                if (roles.Contains("Admin") ||
+                    roles.Contains("ConferenceChair") ||
+                    roles.Contains("PaperChair"))
+                {
+                    Papers = (await PaperQueryService.GetAllPapersAsync()).ToList();
+                }
+                else
+                {
+                    Papers = (await PaperQueryService.GetUserPapersAsync(userId)).ToList();
+                }
+            }
+        }
+
+        IsLoading = false;
+    }
+
+    private void ViewDetails(Guid paperId)
+    {
+        NavManager.NavigateTo($"/submissions/{paperId}");
+    }
 }

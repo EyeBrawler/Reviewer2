@@ -27,6 +27,6 @@ public class PaperFilesController(IPaperQueryService paperQueryService) : Contro
         if (!fileResult.Success || fileResult.Stream == null)
             return NotFound(fileResult.ErrorMessage);
 
-        return File(fileResult.Stream, "application/octet-stream", enableRangeProcessing: true);
+        return File(fileResult.Stream, "application/pdf", enableRangeProcessing: true);
     }
 }

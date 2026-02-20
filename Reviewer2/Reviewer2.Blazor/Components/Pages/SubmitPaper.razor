@@ -1,5 +1,4 @@
 ﻿@page "/submit"
-@rendermode InteractiveServer
 @attribute [Authorize] 
 @inject IPaperSubmissionService PaperService
 @inject NavigationManager NavManager
@@ -240,7 +239,7 @@
             await PaperService.SubmitAsync(draftId, submitterUserId);
 
             // 5. Navigate to submissions list
-            NavManager.NavigateTo("/Submissions");
+            NavManager.NavigateTo("/submissions");
         }
         catch (ArgumentException ex)
         {
