@@ -1,6 +1,6 @@
 namespace Reviewer2.Services.DTOs.PaperSubmission;
 
-// <summary>
+/// <summary>
 /// DTO for richer admin/chair views including submitter info.
 /// </summary>
 public class AdminPaperDTO : UserPaperDTO
