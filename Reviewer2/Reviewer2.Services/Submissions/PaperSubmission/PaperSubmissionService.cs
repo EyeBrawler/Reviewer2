@@ -1,7 +1,5 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
@@ -49,12 +47,11 @@ public class PaperSubmissionService : IPaperSubmissionService
 
         try
         {
-            // Use the aggregate factory directly
             var paper = Paper.CreateDraft(
                 submitterUserId: userId,
                 title: request.Title,
                 abstractText: request.Abstract,
-                authorsInput: request.Authors);
+                authors: request.Authors.ToEntities());
 
             await context.Papers.AddAsync(paper);
             await context.SaveChangesAsync();
@@ -99,8 +96,7 @@ public class PaperSubmissionService : IPaperSubmissionService
             paper.UpdateMetadata(request.Title, request.Abstract);
 
             // Map and replace authors
-            var updatedAuthors = MapAuthors(request.Authors);
-            paper.ReplaceAuthors(updatedAuthors);
+            paper.ReplaceAuthors(request.Authors.ToEntities());
 
             await context.SaveChangesAsync();
 
@@ -111,25 +107,6 @@ public class PaperSubmissionService : IPaperSubmissionService
             Log.Error(ex, "Unexpected error updating draft paper {PaperId} by user {UserId}", paperId, userId);
             throw new InvalidOperationException("An unexpected error occurred while updating the draft. See logs for details.", ex);
         }
-    }
-    
-    private static List<Author> MapAuthors(IEnumerable<AuthorInputDTO> authorsInput)
-    {
-        if (authorsInput == null || !authorsInput.Any())
-            throw new ArgumentException("At least one author is required.", nameof(authorsInput));
-
-        return authorsInput.Select((dto, index) => new Author
-        {
-            Id = Guid.NewGuid(),
-            UserId = dto.UserId,
-            FirstName = dto.FirstName,
-            LastName = dto.LastName,
-            Email = dto.Email,
-            Institution = dto.Institution,
-            IsCorrespondingAuthor = dto.IsCorrespondingAuthor,
-            IsPresenter = dto.IsPresenter,
-            AuthorOrder = index
-        }).ToList();
     }
 
     /// <inheritdoc/>
