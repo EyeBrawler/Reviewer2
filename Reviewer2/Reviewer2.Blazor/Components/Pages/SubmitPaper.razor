@@ -1,11 +1,11 @@
 ﻿@page "/submit"
 @attribute [Authorize] 
+@rendermode InteractiveServer
 @inject IPaperSubmissionService PaperService
 @inject NavigationManager NavManager
 @inject AuthenticationStateProvider AuthStateProvider
 @using Microsoft.AspNetCore.Authorization
 @using Reviewer2.Data.Models
-@using Reviewer2.Services.DTOs.FileStorage
 @using Reviewer2.Services.DTOs.PaperSubmission
 @using Reviewer2.Services.Submissions.PaperSubmission
 
