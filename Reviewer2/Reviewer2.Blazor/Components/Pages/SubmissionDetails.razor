@@ -31,7 +31,10 @@ else
     
     @if (Paper.Files != null && Paper.Files.Any())
     {
-        var pdfFile = Paper.Files.FirstOrDefault(f => f.FileType == "Manuscript");
+        var validTypes = new[] { "InitialSubmission", "CameraReady" };
+
+        var pdfFile = Paper.Files
+            .FirstOrDefault(f => validTypes.Contains(f.FileType));
 
         if (pdfFile != null)
         {
