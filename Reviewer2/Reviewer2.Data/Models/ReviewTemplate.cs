@@ -58,5 +58,5 @@ public class ReviewTemplate
     /// <summary>
     /// The date and time (UTC) when the template was created.
     /// </summary>
-    public DateTime CreatedAtUtc { get; set; }
+    public DateTimeOffset CreatedAtUtc { get; set; }
 }

@@ -112,7 +112,7 @@ public class PaperFile
     /// <summary>
     /// Gets the date and time (UTC) when the file was uploaded.
     /// </summary>
-    public DateTime UploadedAtUtc { get; private set; }
+    public DateTimeOffset UploadedAtUtc { get; private set; }
 }
 
 /// <summary>

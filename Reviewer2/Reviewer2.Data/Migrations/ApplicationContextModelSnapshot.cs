@@ -267,7 +267,7 @@ namespace Reviewer2.Data.Migrations
                     b.HasIndex("PaperId", "AuthorOrder")
                         .IsUnique();
 
-                    b.ToTable("Authors");
+                    b.ToTable("Authors", (string)null);
                 });
 
             modelBuilder.Entity("Reviewer2.Data.Models.Paper", b =>
@@ -306,7 +306,7 @@ namespace Reviewer2.Data.Migrations
 
                     b.HasIndex("SubmitterUserId");
 
-                    b.ToTable("Papers");
+                    b.ToTable("Papers", (string)null);
                 });
 
             modelBuilder.Entity("Reviewer2.Data.Models.PaperFile", b =>
@@ -339,7 +339,7 @@ namespace Reviewer2.Data.Migrations
 
                     b.HasIndex("PaperId");
 
-                    b.ToTable("PaperFiles");
+                    b.ToTable("PaperFiles", (string)null);
                 });
 
             modelBuilder.Entity("Reviewer2.Data.Models.Review", b =>
@@ -377,7 +377,7 @@ namespace Reviewer2.Data.Migrations
 
                     b.HasIndex("ReviewTemplateId");
 
-                    b.ToTable("Reviews");
+                    b.ToTable("Reviews", (string)null);
                 });
 
             modelBuilder.Entity("Reviewer2.Data.Models.ReviewAssignment", b =>
@@ -402,7 +402,7 @@ namespace Reviewer2.Data.Migrations
                     b.HasIndex("PaperId", "ReviewerId")
                         .IsUnique();
 
-                    b.ToTable("ReviewAssignments");
+                    b.ToTable("ReviewAssignments", (string)null);
                 });
 
             modelBuilder.Entity("Reviewer2.Data.Models.ReviewTemplate", b =>
@@ -430,7 +430,7 @@ namespace Reviewer2.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("ReviewTemplates");
+                    b.ToTable("ReviewTemplates", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>

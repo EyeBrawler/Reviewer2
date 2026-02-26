@@ -52,7 +52,7 @@ public class Review
     /// 
     /// This value remains null while the review is in progress.
     /// </summary>
-    public DateTime? SubmittedAtUtc { get; set; }
+    public DateTimeOffset? SubmittedAtUtc { get; set; }
 
     /// <summary>
     /// The overall evaluation score assigned by the reviewer.

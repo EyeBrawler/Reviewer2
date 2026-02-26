@@ -68,7 +68,7 @@ public class Paper
     /// 
     /// This value is null until a final decision is recorded.
     /// </summary>
-    public DateTime? DecisionMadeAtUtc { get; private set; }
+    public DateTimeOffset? DecisionMadeAtUtc { get; private set; }
 
     /// <summary>
     /// The identifier of the user (typically a ConferenceChair)

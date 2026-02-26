@@ -34,13 +34,13 @@ namespace Reviewer2.Services.DTOs.PaperSubmission
         /// Gets or sets the UTC date and time when the paper was submitted.
         /// Null if the paper has not yet been submitted.
         /// </summary>
-        public DateTime? SubmittedAtUtc { get; set; }
+        public DateTimeOffset? SubmittedAtUtc { get; set; }
 
         /// <summary>
         /// Gets or sets the UTC date and time when a final decision was made for the paper.
         /// Null if no decision has been recorded.
         /// </summary>
-        public DateTime? DecisionMadeAtUtc { get; set; }
+        public DateTimeOffset? DecisionMadeAtUtc { get; set; }
 
         /// <summary>
         /// Gets or sets the name of the user who submitted the paper.
