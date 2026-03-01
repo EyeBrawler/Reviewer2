@@ -5,6 +5,32 @@ changes from the main branch of the repository each time you run it.
 
 A folder titled `publish` will be created at the root of your repository where all the build output will live.
 
+## Database Deployment
+Before running Reviewer2, you need a Postgres database. The simplest way to create on is with docker.
+
+First, install docker. On Debian based Linux distributions.
+```bash
+sudo apt install docker.io
+```
+Then, check if the docker group exists.
+```bash
+grep docker /etc/group
+```
+If not, create it.
+```bash
+sudo groupadd docker
+```
+Then, add your user to the group.
+```bash
+sudo usermod -aG docker $USER
+```
+For these changes to apply, you will have to log out.
+
+After this, the simplest way to get a database going is to run this command.
+```bash
+docker run --name Reviewer2_Data -e POSTGRES_PASSWORD=mystrongpassword123 -p 5432:5432 -d postgres
+```
+
 ## How to create a systemd daemon for Reviewer2
 After verifying the `publish.sh` script runs, you need to create a reviewer2.service file.
 ```bash
