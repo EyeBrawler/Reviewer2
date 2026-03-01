@@ -99,6 +99,73 @@ a:hover,
             inset 0 2px 4px rgba(0,0,0,0.35);
 }
 
+/* Remove Bootstrap's solid blue variable */
+.nav-pills {
+    --bs-nav-pills-link-active-bg: transparent;
+}
+
+/* Base pill appearance */
+.nav-pills .nav-link {
+    color: #1f4f85;
+    font-weight: 500;
+    border-radius: 10px;
+    padding: 0.55rem 1rem;
+
+    background: transparent;
+    border: 1px solid transparent;
+
+    transition:
+            background 0.18s ease,
+            box-shadow 0.18s ease,
+            transform 0.08s ease,
+            color 0.18s ease;
+}
+
+/* Hover — soft glass highlight */
+.nav-pills .nav-link:hover {
+    background:
+            linear-gradient(
+                    to bottom,
+                    rgba(120, 190, 255, 0.25),
+                    rgba(60, 130, 220, 0.15)
+            );
+
+    border: 1px solid rgba(255,255,255,0.4);
+
+    box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.7),
+            0 2px 5px rgba(0,0,0,0.15);
+
+    color: #0f3f75;
+}
+
+/* Active — glossy blue like your primary buttons, but softer */
+.nav-pills .nav-link.active,
+.nav-pills .show > .nav-link {
+    color: #fff;
+
+    background:
+            linear-gradient(
+                    to bottom,
+                    rgba(100, 170, 240, 0.95),
+                    rgba(50, 120, 210, 0.95)
+            );
+
+    border: 1px solid rgba(255,255,255,0.5);
+
+    box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.65),
+            inset 0 -1px 0 rgba(0,0,0,0.2),
+            0 3px 8px rgba(0,0,0,0.25);
+}
+
+/* Press effect */
+.nav-pills .nav-link:active {
+    transform: translateY(1px);
+    box-shadow:
+            inset 0 2px 4px rgba(0,0,0,0.3);
+}
+
 /* ===== Focus rings (glass glow) ===== */
 .btn:focus,
 .btn:active:focus,
