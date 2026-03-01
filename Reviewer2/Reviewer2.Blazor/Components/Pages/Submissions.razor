@@ -63,7 +63,7 @@
                                 <td>@paper.Title</td>
                                 <td>@paper.Status</td>
                                 <td>
-                                    @paper.SubmittedAtUtc?.ToString("yyyy-MM-dd HH:mm")
+                                    @paper.SubmittedAtUtc?.LocalDateTime.ToString("M/d/yy h:mm tt")
                                 </td>
                                 <td>
                                     <button class="btn btn-primary btn-sm"
