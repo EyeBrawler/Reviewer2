@@ -269,3 +269,78 @@ h1:focus {
 .form-floating > .form-control:focus::placeholder {
     text-align: start;
 }
+
+/* =========================================
+   GLOBAL BADGE RESTYLE
+   ========================================= */
+
+.badge {
+    font-weight: 600;
+    border-radius: 999px;
+    padding: 0.4em 0.75em;
+    letter-spacing: 0.02em;
+
+    border: 1px solid rgba(255,255,255,0.4);
+
+    box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.65),
+            0 2px 5px rgba(0,0,0,0.2);
+
+    text-shadow: 0 1px 2px rgba(0,0,0,0.25);
+}
+
+.badge.bg-primary {
+    background:
+            linear-gradient(
+                    to bottom,
+                    rgba(110, 180, 255, 0.95),
+                    rgba(60, 130, 220, 0.95)
+            );
+}
+
+.badge.bg-success {
+    background:
+            linear-gradient(
+                    to bottom,
+                    rgba(120, 230, 170, 0.95),
+                    rgba(40, 160, 110, 0.95)
+            );
+}
+
+.badge.bg-warning {
+    background:
+            linear-gradient(
+                    to bottom,
+                    rgba(255, 220, 120, 0.95),
+                    rgba(230, 170, 40, 0.95)
+            );
+    color: #3b2a00;
+    text-shadow: none;
+}
+
+.badge.bg-danger {
+    background:
+            linear-gradient(
+                    to bottom,
+                    rgba(255, 120, 120, 0.95),
+                    rgba(190, 40, 40, 0.95)
+            );
+}
+
+.badge.bg-secondary {
+    background:
+            linear-gradient(
+                    to bottom,
+                    rgba(160, 170, 185, 0.95),
+                    rgba(100, 110, 125, 0.95)
+            );
+}
+
+.badge.bg-info {
+    background:
+            linear-gradient(
+                    to bottom,
+                    rgba(140, 210, 255, 0.95),
+                    rgba(70, 160, 230, 0.95)
+            );
+}
