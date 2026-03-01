@@ -344,3 +344,76 @@ h1:focus {
                     rgba(70, 160, 230, 0.95)
             );
 }
+
+/* =========================================
+   GLOBAL TABLE RESTYLE
+   ========================================= */
+
+.table {
+    background:
+            linear-gradient(
+                    to bottom,
+                    rgba(255,255,255,0.9),
+                    rgba(246,249,253,0.9)
+            );
+    
+    overflow: hidden;
+
+    box-shadow:
+            0 1px 3px rgba(0,0,0,0.04),
+            0 6px 20px rgba(0,0,0,0.05),
+            0 12px 40px rgba(0,0,0,0.03);
+
+    border: 1px solid rgba(200,210,220,0.45);
+}
+
+.table thead,
+.table thead.table-light {
+    background:
+            linear-gradient(
+                    to bottom,
+                    rgba(120, 190, 255, 0.9),
+                    rgba(60, 130, 220, 0.9)
+            );
+
+    color: white;
+}
+
+.table thead th {
+    border: none;
+    font-weight: 600;
+
+    box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.6);
+}
+
+.table td,
+.table th {
+    border-color: rgba(200,210,220,0.6);
+    vertical-align: middle;
+    padding: 0.75rem 1rem;
+}
+
+.table-striped > tbody > tr:nth-of-type(odd) {
+    background-color: rgba(230,240,250,0.4);
+}
+
+.table-hover > tbody > tr:hover {
+    background:
+            linear-gradient(
+                    to bottom,
+                    rgba(120,190,255,0.25),
+                    rgba(60,130,220,0.15)
+            );
+
+    box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.6);
+}
+
+.table-bordered > :not(caption) > * > * {
+    border-width: 1px;
+}
+
+.table-responsive {
+    border-radius: 14px;
+}
