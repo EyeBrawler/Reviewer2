@@ -33,20 +33,6 @@ if [ ! -f "$PROJECT" ]; then
   exit 1
 fi
 
-# ---------------------------------------
-# Git safety checks (pull-only)
-# ---------------------------------------
-echo "Verifying git working tree is clean..."
-
-if ! git diff-index --quiet HEAD --; then
-  echo
-  echo "❌ Working tree is dirty."
-  echo "    This machine should not have local changes."
-  echo "    Reset or fix before publishing."
-  echo
-  exit 1
-fi
-
 echo "Fetching latest changes from origin..."
 git fetch origin "$BRANCH"
 
