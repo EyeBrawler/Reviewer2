@@ -3,6 +3,8 @@
 This directory contains a `publish.sh` file you can run to publish Reviewer2. It will automatically fetch the latest 
 changes from the main branch of the repository each time you run it.
 
+**Note**: The publish script requires installation of the Dotnet SDK.
+
 A folder titled `publish` will be created at the root of your repository where all the build output will live.
 
 ## Database Deployment
