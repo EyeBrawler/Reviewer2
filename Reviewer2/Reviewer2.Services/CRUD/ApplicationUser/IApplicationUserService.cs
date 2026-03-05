@@ -345,4 +345,18 @@ public interface IApplicationUserService
         ClaimsPrincipal principal,
         string currentPassword,
         string newPassword);
+    
+    /// <summary>
+    /// Updates the role assignments for the specified user.
+    /// </summary>
+    /// <param name="userId">
+    /// The unique identifier of the user whose roles should be updated.
+    /// </param>
+    /// <param name="updatedRoles">
+    /// The complete set of roles the user should have after the update.
+    /// </param>
+    /// <returns>
+    /// True if the update succeeded; otherwise false.
+    /// </returns>
+    Task<bool> UpdateUserRolesAsync(Guid userId, IList<string> updatedRoles);
 }

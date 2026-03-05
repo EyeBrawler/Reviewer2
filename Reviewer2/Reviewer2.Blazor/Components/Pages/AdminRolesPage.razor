@@ -1,33 +1,41 @@
 @page "/admin"
-@namespace Reviewer2.Blazor.Components.Pages.AdminRoles
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@using Reviewer2.Data.Models
+@using Reviewer2.Services.CRUD.ApplicationUser
+@namespace Reviewer2.Blazor.Components.Pages
 
 <div class="container mt-5">
     <div class="card p-4">
         <h4 class="mb-4 text-center">Admin — Role Assignment</h4>
 
-        <table class="table table-hover table-bordered table-striped">
-            <thead>
-                <tr>
-                    <th class="text-left">Name</th>
-                    <th class="text-left">Email</th>
-                    <th class="text-center">Current Roles</th>
-                    <th class="text-right" style="width:240px;">Change Role</th>
-                </tr>
-            </thead>
-            <tbody>
-                @if (users.Count > 0)
-                {
+        @if (!isAuthorized)
+        {
+            <div class="alert alert-danger">Access Denied</div>
+        }
+        else
+        {
+            <table class="table table-bordered table-striped">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Current Roles</th>
+                        <th>Manage Roles</th>
+                    </tr>
+                </thead>
+                <tbody>
                     @foreach (var user in users)
                     {
                         <tr>
-                            <td class="text-left">@user.FullName</td>
-                            <td class="text-left">@user.Email</td>
-                            <td class="text-center">
-                                @if (roles.TryGetValue(user.Id, out var userRoles) && userRoles.Count > 0)
+                            <td>@user.FullName</td>
+                            <td>@user.Email</td>
+                            <td>
+                                @if (roles.ContainsKey(user.Id) && roles[user.Id].Any())
                                 {
-                                    @foreach (var role in userRoles)
+                                    @foreach (var role in roles[user.Id])
                                     {
-                                        <span class="badge bg-info me-1" title="@role">@role</span>
+                                        <span class="badge bg-info me-1">@role</span>
                                     }
                                 }
                                 else
@@ -35,26 +43,101 @@
                                     <span class="badge bg-secondary">None</span>
                                 }
                             </td>
-                            <td class="text-right">
-                                <select class="form-select form-select-sm"
-                                        @onchange="async e => await ChangeRoleSafe(user, e?.Value?.ToString())"
-                                        value="@selectedRoles.GetValueOrDefault(user.Id) ?? string.Empty">
-                                    <option value="">Select role</option>
-                                    <option value="Author">Author</option>
-                                    <option value="Reviewer">Reviewer</option>
-                                    <option value="Admin">Admin</option>
-                                </select>
+                            <td>
+                                @foreach (var role in availableRoles)
+                                {
+                                    <div class="form-check">
+                                        <input class="form-check-input"
+                                               type="checkbox"
+                                               checked="@IsRoleChecked(user.Id, role)"
+                                               @onchange="e => OnRoleChanged(user.Id, role, e.Value as bool? ?? false)" />
+                                        <label class="form-check-label">@role</label>
+                                    </div>
+                                }
+                                <button class="btn btn-sm btn-primary mt-2"
+                                        @onclick="() => SaveRolesAsync(user.Id)">
+                                    Save
+                                </button>
                             </td>
                         </tr>
                     }
-                }
-                else
-                {
-                    <tr>
-                        <td colspan="4" class="text-center">No users found.</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
+                </tbody>
+            </table>
+        }
     </div>
 </div>
+
+@code {
+    [Inject] private IApplicationUserService UserService { get; set; } = default!;
+    [Inject] private RoleManager<IdentityRole<Guid>> RoleManager { get; set; } = default!;
+    [Inject] private AuthenticationStateProvider AuthProvider { get; set; } = default!;
+
+    private List<ApplicationUser> users = new();
+    private Dictionary<Guid, HashSet<string>> roles = new();
+    private List<string> availableRoles = new();
+    private bool isAuthorized = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthProvider.GetAuthenticationStateAsync();
+        var currentUser = authState.User;
+
+        bool isAuthenticated = currentUser.Identity?.IsAuthenticated ?? false;
+        bool isAdmin = currentUser.IsInRole("Admin");
+
+        var adminUsers = await UserService.GetUsersByRoleAsync("Admin");
+
+        if (adminUsers.Any() && (!isAuthenticated || !isAdmin))
+        {
+            isAuthorized = false;
+            return;
+        }
+
+        isAuthorized = true;
+
+        users = await UserService.GetAllAsync();
+        availableRoles = await RoleManager.Roles.Select(r => r.Name!).ToListAsync();
+
+        // Initialize roles dictionary
+        foreach (var user in users)
+        {
+            var userRoles = await UserService.GetRolesAsync(user.Id.ToString());
+            roles[user.Id] = new HashSet<string>(userRoles ?? new List<string>(), StringComparer.OrdinalIgnoreCase);
+        }
+    }
+
+    private bool IsRoleChecked(Guid userId, string role)
+        => roles.ContainsKey(userId) && roles[userId].Contains(role);
+
+    private void OnRoleChanged(Guid userId, string role, bool isChecked)
+    {
+        if (!roles.ContainsKey(userId))
+            roles[userId] = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        if (isChecked)
+            roles[userId].Add(role);
+        else
+            roles[userId].Remove(role);
+    }
+
+    private async Task SaveRolesAsync(Guid userId)
+    {
+        if (!roles.ContainsKey(userId)) return;
+
+        var roleList = roles[userId].Select(r => r.Trim()).ToList(); // Trim whitespace
+        var success = await UserService.UpdateUserRolesAsync(userId, roleList);
+
+        if (success)
+        {
+            var refreshed = await UserService.GetRolesAsync(userId.ToString());
+            roles[userId] = new HashSet<string>(refreshed ?? new List<string>(), StringComparer.OrdinalIgnoreCase);
+
+            StateHasChanged();
+            Console.WriteLine($"Roles saved for user {userId}: {string.Join(", ", roles[userId])}");
+        }
+        else
+        {
+            Console.WriteLine($"Failed to save roles for user {userId}");
+        }
+    }
+}
