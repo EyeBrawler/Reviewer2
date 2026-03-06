@@ -1,33 +1,44 @@
 @page "/admin"
-@namespace Reviewer2.Blazor.Components.Pages.AdminRoles
+@attribute [Authorize(Roles = "Admin, ConferenceChair")]
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@using Reviewer2.Data.Models
+@using Reviewer2.Services.CRUD.ApplicationUser
+@using Serilog
+
+@inject IApplicationUserService UserService
+@inject RoleManager<IdentityRole<Guid>> RoleManager
+
+@namespace Reviewer2.Blazor.Components.Pages
+
+<PageTitle>Manage User Roles</PageTitle>
 
 <div class="container mt-5">
     <div class="card p-4">
         <h4 class="mb-4 text-center">Admin — Role Assignment</h4>
-
-        <table class="table table-hover table-bordered table-striped">
-            <thead>
-                <tr>
-                    <th class="text-left">Name</th>
-                    <th class="text-left">Email</th>
-                    <th class="text-center">Current Roles</th>
-                    <th class="text-right" style="width:240px;">Change Role</th>
-                </tr>
-            </thead>
-            <tbody>
-                @if (users.Count > 0)
-                {
-                    @foreach (var user in users)
+            <table class="table table-bordered table-striped">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Current Roles</th>
+                        <th>Manage Roles</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var user in _users)
                     {
                         <tr>
-                            <td class="text-left">@user.FullName</td>
-                            <td class="text-left">@user.Email</td>
-                            <td class="text-center">
-                                @if (roles.TryGetValue(user.Id, out var userRoles) && userRoles.Count > 0)
+                            <td>@user.FullName</td>
+                            <td>@user.Email</td>
+                            <td>
+                                @if (GetRoles(user.Id).Any())
                                 {
-                                    @foreach (var role in userRoles)
+                                    @foreach (var role in GetRoles(user.Id))
                                     {
-                                        <span class="badge bg-info me-1" title="@role">@role</span>
+                                        <span class="badge bg-info me-1">@role</span>
                                     }
                                 }
                                 else
@@ -35,26 +46,95 @@
                                     <span class="badge bg-secondary">None</span>
                                 }
                             </td>
-                            <td class="text-right">
-                                <select class="form-select form-select-sm"
-                                        @onchange="async e => await ChangeRoleSafe(user, e?.Value?.ToString())"
-                                        value="@selectedRoles.GetValueOrDefault(user.Id) ?? string.Empty">
-                                    <option value="">Select role</option>
-                                    <option value="Author">Author</option>
-                                    <option value="Reviewer">Reviewer</option>
-                                    <option value="Admin">Admin</option>
-                                </select>
+                            <td>
+                                @foreach (var role in _availableRoles)
+                                {
+                                    <div class="form-check">
+                                        <input class="form-check-input"
+                                               type="checkbox"
+                                               checked="@IsRoleChecked(user.Id, role)"
+                                               @onchange="e => OnRoleChanged(user.Id, role, (bool?)e.Value ?? false)" />
+                                        <label class="form-check-label">@role</label>
+                                    </div>
+                                }
+                                <button class="btn btn-sm btn-primary mt-2"
+                                        @onclick="() => SaveRolesAsync(user.Id)">
+                                    Save
+                                </button>
                             </td>
                         </tr>
                     }
-                }
-                else
-                {
-                    <tr>
-                        <td colspan="4" class="text-center">No users found.</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
+                </tbody>
+            </table>
     </div>
 </div>
+
+@code {
+    private List<ApplicationUser> _users = [];
+    private readonly Dictionary<Guid, HashSet<string>> _roles = new();
+    private List<string> _availableRoles = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        _users = await UserService.GetAllAsync();
+
+        _availableRoles = await RoleManager.Roles
+            .Select(r => r.Name!)
+            .ToListAsync();
+
+        await LoadUserRolesAsync();
+    }
+
+    private bool IsRoleChecked(Guid userId, string role)
+        => _roles.TryGetValue(userId, out var roles) && roles.Contains(role);
+    
+    private async Task LoadUserRolesAsync()
+    {
+        foreach (var user in _users)
+        {
+            var userRoles = await UserService.GetRolesAsync(user.Id.ToString());
+
+            _roles[user.Id] = new HashSet<string>(
+                userRoles ?? [],
+                StringComparer.OrdinalIgnoreCase
+            );
+        }
+    }
+
+    private void OnRoleChanged(Guid userId, string role, bool isChecked)
+    {
+        if (!_roles.TryGetValue(userId, out var roles))
+        {
+            roles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            _roles[userId] = roles;
+        }
+
+        if (isChecked)
+            roles.Add(role);
+        else
+            roles.Remove(role);
+    }
+
+    private async Task SaveRolesAsync(Guid userId)
+    {
+        if (!_roles.TryGetValue(userId, out var roles)) return;
+
+        var roleList = roles.Select(r => r.Trim()).ToList(); // Trim whitespace
+        var success = await UserService.UpdateUserRolesAsync(userId, roleList);
+
+        if (success)
+        {
+            var refreshed = await UserService.GetRolesAsync(userId.ToString());
+            _roles[userId] = new HashSet<string>(refreshed ?? new List<string>(), StringComparer.OrdinalIgnoreCase);
+            
+            Log.Information("Roles saved for user {UserId}: {Join}", userId, string.Join(", ", _roles[userId]));
+        }
+    }
+    
+    private IEnumerable<string> GetRoles(Guid userId)
+    {
+        return _roles.TryGetValue(userId, out var roles)
+            ? roles
+            : Enumerable.Empty<string>();
+    }
+}

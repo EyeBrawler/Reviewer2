@@ -23,14 +23,16 @@ public class ApplicationUserService : IApplicationUserService
     private readonly ApplicationContext _context;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly SignInManager<ApplicationUser> _signInManager;
+    private readonly RoleManager<IdentityRole<Guid>> _roleManager;
 
     /// <inheritdoc cref="IApplicationUserService"/>
     public ApplicationUserService(ApplicationContext context, UserManager<ApplicationUser> userManager,
-        SignInManager<ApplicationUser> signInManager)
+        SignInManager<ApplicationUser> signInManager, RoleManager<IdentityRole<Guid>> roleManager)
     {
         _context = context;
         _userManager = userManager;
         _signInManager = signInManager;
+        _roleManager = roleManager;
     }
 
     /// <inheritdoc />
@@ -84,7 +86,6 @@ public class ApplicationUserService : IApplicationUserService
         var user = await _userManager.FindByIdAsync(userId);
         if (user is null)
             return null;
-
         return await _userManager.GetRolesAsync(user);
     }
 
@@ -640,4 +641,73 @@ public class ApplicationUserService : IApplicationUserService
         return new ChangePasswordResult(ChangePasswordOutcome.Success);
     }
 
+    /// <summary>
+    /// Updates user roles with normalization and returns success/failure message.
+    /// </summary>
+    public async Task<bool> UpdateUserRolesAsync(Guid userId, IList<string>? updatedRoles)
+    {
+        try
+        {
+            var user = await _userManager.FindByIdAsync(userId.ToString());
+            if (user == null)
+                return false;
+
+            var currentRoles = await _userManager.GetRolesAsync(user);
+
+            // If updatedRoles is null or empty, do nothing
+            if (updatedRoles == null || !updatedRoles.Any())
+            {
+                Log.Information("No role changes provided for user {UserId}. Existing roles remain unchanged.", userId);
+                return true;
+            }
+
+            // Get all roles from RoleManager
+            var allRoles = await _roleManager.Roles
+                .Select((IdentityRole<Guid> r) => r.Name!)
+                .ToListAsync();
+
+            // Normalize updated roles to match existing ones (ignore case)
+            var normalizedRoles = updatedRoles
+                .Select(r => allRoles.FirstOrDefault(ar => string.Equals(ar, r, StringComparison.OrdinalIgnoreCase)))
+                .Where(r => r != null)
+                .Cast<string>()
+                .ToList();
+
+            // Determine roles to remove and add
+            var rolesToRemove = currentRoles.Except(normalizedRoles, StringComparer.OrdinalIgnoreCase).ToList();
+            var rolesToAdd = normalizedRoles.Except(currentRoles, StringComparer.OrdinalIgnoreCase).ToList();
+
+            // Remove roles
+            if (rolesToRemove.Any())
+            {
+                var removeResult = await _userManager.RemoveFromRolesAsync(user, rolesToRemove);
+                if (!removeResult.Succeeded)
+                {
+                    foreach (var err in removeResult.Errors)
+                        Log.Error("RemoveFromRoles failed for user {UserId}: {Description}", userId, err.Description);
+                    return false;
+                }
+            }
+
+            // Add roles
+            if (rolesToAdd.Any())
+            {
+                var addResult = await _userManager.AddToRolesAsync(user, rolesToAdd);
+                if (!addResult.Succeeded)
+                {
+                    foreach (var err in addResult.Errors)
+                        Log.Error("AddToRoles failed for user {UserId}: {Description}", userId, err.Description);
+                    return false;
+                }
+            }
+
+            Log.Information("Roles updated successfully for user {UserId}", userId);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Log.Warning("Failed to update roles for user {UserId}: {Error}", userId, ex.ToString());
+            return false;
+        }
+    }
 }

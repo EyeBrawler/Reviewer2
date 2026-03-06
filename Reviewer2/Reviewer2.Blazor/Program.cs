@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using MudBlazor.Services;
 using Reviewer2.Blazor.Components;
 using Reviewer2.Blazor.Components.Account;
@@ -88,6 +87,9 @@ using (var scope = app.Services.CreateScope())
     // Initializes the roles if they are not already created in the database
     var roleInit = scope.ServiceProvider.GetRequiredService<RoleInitializer>();
     await roleInit.InitializeAsync();
+    
+    // Seed default admin user
+    await InitialUserSeed.SeedDefaultUserAsync(scope.ServiceProvider);
 }
 
 
