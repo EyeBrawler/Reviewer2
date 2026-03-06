@@ -1,7 +1,5 @@
 @page "/submissions"
 @rendermode InteractiveServer
-@using Microsoft.AspNetCore.Components.Authorization
-@using MudBlazor
 @using Reviewer2.Services.DTOs.PaperSubmission
 @inject Reviewer2.Services.Submissions.PaperSubmission.IPaperQueryService PaperQueryService
 @inject AuthenticationStateProvider AuthProvider
@@ -10,88 +8,175 @@
 <PageTitle>Submissions</PageTitle>
 
 <AuthorizeView>
-    <Authorizing>
-        <p>Authorizing...</p>
-    </Authorizing>
+<Authorizing>
+    <p>Authorizing...</p>
+</Authorizing>
 
-    <NotAuthorized>
-        <div class="alert alert-warning">
-            You are not authorized to view this page.
-        </div>
-    </NotAuthorized>
+<NotAuthorized>
+    <div class="alert alert-warning">
+        You are not authorized to view this page.
+    </div>
+</NotAuthorized>
 
-    <Authorized>
+<Authorized>
 
-        @if (IsLoading)
-        {
-            <div class="text-center my-5">
-                <div class="spinner-border" role="status"></div>
-                <p>Loading submissions...</p>
-            </div>
-        }
-        else if (!Papers.Any())
-        {
-            <div class="alert alert-info">
-                No submissions found.
-            </div>
-        }
-        else
-        {
-            <div class="d-flex justify-content-between align-items-center my-3">
-                <h3 class="mb-0">Submissions</h3>
+@if (IsLoading)
+{
+    <div class="text-center my-5">
+        <div class="spinner-border" role="status"></div>
+        <p>Loading submissions...</p>
+    </div>
+}
+else if (!Papers.Any())
+{
+    <div class="alert alert-info">
+        No submissions found.
+    </div>
+}
+else
+{
+<div class="d-flex justify-content-between align-items-center my-3">
+    <h3 class="mb-0">Submissions</h3>
 
-                <input type="text"
-                       class="form-control w-auto"
-                       placeholder="Search..."
-                       @bind="SearchString"
-                       @bind:event="oninput" />
-            </div>
-            
-            <MudTable @ref="_table"
-                      Items="@Papers">
-                <HeaderContent>
-                    <MudTh><MudTableSortLabel SortBy="new Func<UserPaperDTO, object>(x => x.Title)"><b>Title</b></MudTableSortLabel></MudTh>
-                    <MudTh><MudTableSortLabel SortBy="new Func<UserPaperDTO, object>(x => x.Status)"><b>Status</b></MudTableSortLabel></MudTh>
-                    <MudTh><MudTableSortLabel SortBy="new Func<UserPaperDTO, object>(x => x.SubmittedAtUtc?.LocalDateTime ?? DateTime.Now)" InitialDirection="SortDirection.Descending"><b>Submitted</b></MudTableSortLabel></MudTh>
-                    <MudTh><b>Actions</b></MudTh>
-                </HeaderContent>
-                <RowTemplate Context="paper">
-                    <MudTd DataLabel="Title">@paper.Title</MudTd>
-                    <MudTd DataLabel="Status">@paper.Status</MudTd>
-                    <MudTd DataLabel="Submitted">@paper.SubmittedAtUtc?.LocalDateTime.ToString("M/d/yy h:mm tt")</MudTd>
-                    <MudTd DataLabel="Actions">
-                        <button class="btn btn-primary btn-sm"
-                                @onclick="() => ViewDetails(paper.PaperId)">
-                            View
-                        </button>
-                    </MudTd>
-                </RowTemplate>
-                <PagerContent>
-                    <MudTablePager InfoFormat="@InfoFormat()" 
-                                   HorizontalAlignment="HorizontalAlignment.Center" 
-                                   RowsPerPageString="Papers per Page"/>
-                </PagerContent>
-            </MudTable>
-        }
+    <input type="text"
+           class="form-control w-auto"
+           placeholder="Search..."
+           @bind="SearchString"
+           @bind:event="oninput" />
+</div>
 
-    </Authorized>
+<div class="table-responsive">
+<table class="table table-bordered table-striped table-hover">
+
+<thead class="table-light">
+<tr>
+    <th role="button" @onclick="() => SortBy(nameof(UserPaperDTO.Title))">
+        Title @SortIcon(nameof(UserPaperDTO.Title))
+    </th>
+
+    <th role="button" @onclick="() => SortBy(nameof(UserPaperDTO.Status))">
+        Status @SortIcon(nameof(UserPaperDTO.Status))
+    </th>
+
+    <th role="button" @onclick="() => SortBy(nameof(UserPaperDTO.SubmittedAtUtc))">
+        Submitted @SortIcon(nameof(UserPaperDTO.SubmittedAtUtc))
+    </th>
+
+    <th style="width:120px;">Actions</th>
+</tr>
+</thead>
+
+<tbody>
+@foreach (var paper in PagedPapers)
+{
+<tr>
+    <td>@paper.Title</td>
+
+    <td>@paper.Status</td>
+
+    <td>
+        @paper.SubmittedAtUtc?.LocalDateTime.ToString("M/d/yy h:mm tt")
+    </td>
+
+    <td>
+        <button class="btn btn-primary btn-sm"
+                @onclick="() => ViewDetails(paper.PaperId)">
+            View
+        </button>
+    </td>
+</tr>
+}
+</tbody>
+
+</table>
+</div>
+
+<!-- Pagination Controls -->
+
+<div class="d-flex justify-content-between align-items-center mt-3">
+
+<div>
+    <label class="me-2">Rows:</label>
+    <select class="form-select d-inline w-auto"
+            @bind="PageSize">
+        <option>5</option>
+        <option>10</option>
+        <option>25</option>
+        <option>50</option>
+    </select>
+</div>
+
+<div>
+
+<button class="btn btn-sm btn-secondary me-2"
+        disabled="@(CurrentPage == 1)"
+        @onclick="PreviousPage">
+    Previous
+</button>
+
+<span class="me-2">
+    Page @CurrentPage of @TotalPages
+</span>
+
+<button class="btn btn-sm btn-secondary"
+        disabled="@(CurrentPage == TotalPages)"
+        @onclick="NextPage">
+    Next
+</button>
+
+</div>
+
+</div>
+
+}
+
+</Authorized>
 </AuthorizeView>
 
 @code {
     private bool IsLoading = true;
     private List<UserPaperDTO> Papers = new();
     private string SearchString = string.Empty;
-    
-    private MudTable<UserPaperDTO> _table = new MudTable<UserPaperDTO>();
-    private string InfoFormat() => $"Page {_table.CurrentPage + 1} of {(_table.GetFilteredItemsCount() / _table.RowsPerPage)+1}";
-    private static string DateFormat() => "M/d/yy h:mm tt";
+
+    private string SortColumn = nameof(UserPaperDTO.SubmittedAtUtc);
+    private bool SortAscending = false;
+
+    private int PageSize = 10;
+    private int CurrentPage = 1;
 
     private IEnumerable<UserPaperDTO> FilteredPapers =>
-        string.IsNullOrWhiteSpace(SearchString)
-            ? Papers
-            : Papers.Where(p =>
-                (p.Title?.Contains(SearchString, StringComparison.OrdinalIgnoreCase) ?? false) ||
-                (p.Status?.Contains(SearchString, StringComparison.OrdinalIgnoreCase) ?? false));
+    string.IsNullOrWhiteSpace(SearchString)
+    ? Papers
+    : Papers.Where(p =>
+    (p.Title?.Contains(SearchString, StringComparison.OrdinalIgnoreCase) ?? false) ||
+    (p.Status?.Contains(SearchString, StringComparison.OrdinalIgnoreCase) ?? false));
+
+    private IEnumerable<UserPaperDTO> SortedFilteredPapers =>
+    SortColumn switch
+    {
+        nameof(UserPaperDTO.Title) =>
+            SortAscending
+                ? FilteredPapers.OrderBy(p => p.Title)
+                : FilteredPapers.OrderByDescending(p => p.Title),
+
+        nameof(UserPaperDTO.Status) =>
+            SortAscending
+                ? FilteredPapers.OrderBy(p => p.Status)
+                : FilteredPapers.OrderByDescending(p => p.Status),
+
+        _ =>
+            SortAscending
+                ? FilteredPapers.OrderBy(p => p.SubmittedAtUtc)
+                : FilteredPapers.OrderByDescending(p => p.SubmittedAtUtc)
+    };
+
+    private IEnumerable<UserPaperDTO> PagedPapers =>
+    SortedFilteredPapers
+    .Skip((CurrentPage - 1) * PageSize)
+    .Take(PageSize);
+
+    private int TotalPages =>
+    (int)Math.Ceiling(SortedFilteredPapers.Count() / (double)PageSize);
 
     protected override async Task OnInitializedAsync()
     {
@@ -108,6 +193,7 @@
         if (user.Identity?.IsAuthenticated == true)
         {
             var userIdClaim = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
             var roles = user.Claims
                 .Where(c => c.Type == System.Security.Claims.ClaimTypes.Role)
                 .Select(c => c.Value)
@@ -131,6 +217,36 @@
         }
 
         IsLoading = false;
+    }
+
+    private void SortBy(string column)
+    {
+        if (SortColumn == column)
+            SortAscending = !SortAscending;
+        else
+        {
+            SortColumn = column;
+            SortAscending = true;
+        }
+    }
+
+    private string SortIcon(string column)
+    {
+        if (SortColumn != column) return "";
+
+        return SortAscending ? "▲" : "▼";
+    }
+
+    private void PreviousPage()
+    {
+        if (CurrentPage > 1)
+            CurrentPage--;
+    }
+
+    private void NextPage()
+    {
+        if (CurrentPage < TotalPages)
+            CurrentPage++;
     }
 
     private void ViewDetails(Guid paperId)
