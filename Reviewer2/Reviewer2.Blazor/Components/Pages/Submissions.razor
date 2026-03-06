@@ -1,6 +1,7 @@
 @page "/submissions"
 @rendermode InteractiveServer
 @using Microsoft.AspNetCore.Components.Authorization
+@using MudBlazor
 @using Reviewer2.Services.DTOs.PaperSubmission
 @inject Reviewer2.Services.Submissions.PaperSubmission.IPaperQueryService PaperQueryService
 @inject AuthenticationStateProvider AuthProvider
@@ -45,37 +46,32 @@
                        @bind="SearchString"
                        @bind:event="oninput" />
             </div>
-
-            <div class="table-responsive">
-                <table class="table table-bordered table-striped table-hover">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Title</th>
-                            <th>Status</th>
-                            <th>Submitted</th>
-                            <th style="width:120px;">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var paper in FilteredPapers)
-                        {
-                            <tr>
-                                <td>@paper.Title</td>
-                                <td>@paper.Status</td>
-                                <td>
-                                    @paper.SubmittedAtUtc?.LocalDateTime.ToString("M/d/yy h:mm tt")
-                                </td>
-                                <td>
-                                    <button class="btn btn-primary btn-sm"
-                                            @onclick="() => ViewDetails(paper.PaperId)">
-                                        View
-                                    </button>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
+            
+            <MudTable @ref="_table"
+                      Items="@Papers">
+                <HeaderContent>
+                    <MudTh><MudTableSortLabel SortBy="new Func<UserPaperDTO, object>(x => x.Title)"><b>Title</b></MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel SortBy="new Func<UserPaperDTO, object>(x => x.Status)"><b>Status</b></MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel SortBy="new Func<UserPaperDTO, object>(x => x.SubmittedAtUtc?.LocalDateTime ?? DateTime.Now)" InitialDirection="SortDirection.Descending"><b>Submitted</b></MudTableSortLabel></MudTh>
+                    <MudTh><b>Actions</b></MudTh>
+                </HeaderContent>
+                <RowTemplate Context="paper">
+                    <MudTd DataLabel="Title">@paper.Title</MudTd>
+                    <MudTd DataLabel="Status">@paper.Status</MudTd>
+                    <MudTd DataLabel="Submitted">@paper.SubmittedAtUtc?.LocalDateTime.ToString("M/d/yy h:mm tt")</MudTd>
+                    <MudTd DataLabel="Actions">
+                        <button class="btn btn-primary btn-sm"
+                                @onclick="() => ViewDetails(paper.PaperId)">
+                            View
+                        </button>
+                    </MudTd>
+                </RowTemplate>
+                <PagerContent>
+                    <MudTablePager InfoFormat="@InfoFormat()" 
+                                   HorizontalAlignment="HorizontalAlignment.Center" 
+                                   RowsPerPageString="Papers per Page"/>
+                </PagerContent>
+            </MudTable>
         }
 
     </Authorized>
@@ -85,6 +81,10 @@
     private bool IsLoading = true;
     private List<UserPaperDTO> Papers = new();
     private string SearchString = string.Empty;
+    
+    private MudTable<UserPaperDTO> _table = new MudTable<UserPaperDTO>();
+    private string InfoFormat() => $"Page {_table.CurrentPage + 1} of {(_table.GetFilteredItemsCount() / _table.RowsPerPage)+1}";
+    private static string DateFormat() => "M/d/yy h:mm tt";
 
     private IEnumerable<UserPaperDTO> FilteredPapers =>
         string.IsNullOrWhiteSpace(SearchString)
