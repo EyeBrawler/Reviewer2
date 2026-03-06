@@ -8,129 +8,129 @@
 <PageTitle>Submissions</PageTitle>
 
 <AuthorizeView>
-<Authorizing>
-    <p>Authorizing...</p>
-</Authorizing>
+    <Authorizing>
+        <p>Authorizing...</p>
+    </Authorizing>
 
-<NotAuthorized>
-    <div class="alert alert-warning">
-        You are not authorized to view this page.
+    <NotAuthorized>
+        <div class="alert alert-warning">
+            You are not authorized to view this page.
+        </div>
+    </NotAuthorized>
+
+    <Authorized>
+
+    @if (IsLoading)
+    {
+        <div class="text-center my-5">
+            <div class="spinner-border" role="status"></div>
+            <p>Loading submissions...</p>
+        </div>
+    }
+    else if (!Papers.Any())
+    {
+        <div class="alert alert-info">
+            No submissions found.
+        </div>
+    }
+    else
+    {
+    <div class="d-flex justify-content-between align-items-center my-3">
+        <h3 class="mb-0">Submissions</h3>
+
+        <input type="text"
+               class="form-control w-auto"
+               placeholder="Search..."
+               @bind="SearchString"
+               @bind:event="oninput" />
     </div>
-</NotAuthorized>
 
-<Authorized>
+    <div class="table-responsive">
+    <table class="table table-bordered table-striped table-hover">
 
-@if (IsLoading)
-{
-    <div class="text-center my-5">
-        <div class="spinner-border" role="status"></div>
-        <p>Loading submissions...</p>
+    <thead class="table-light">
+    <tr>
+        <th role="button" @onclick="() => SortBy(nameof(UserPaperDTO.Title))">
+            Title @SortIcon(nameof(UserPaperDTO.Title))
+        </th>
+
+        <th role="button" @onclick="() => SortBy(nameof(UserPaperDTO.Status))">
+            Status @SortIcon(nameof(UserPaperDTO.Status))
+        </th>
+
+        <th role="button" @onclick="() => SortBy(nameof(UserPaperDTO.SubmittedAtUtc))">
+            Submitted @SortIcon(nameof(UserPaperDTO.SubmittedAtUtc))
+        </th>
+
+        <th style="width:120px;">Actions</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    @foreach (var paper in PagedPapers)
+    {
+    <tr>
+        <td>@paper.Title</td>
+
+        <td>@paper.Status</td>
+
+        <td>
+            @paper.SubmittedAtUtc?.LocalDateTime.ToString("M/d/yy h:mm tt")
+        </td>
+
+        <td>
+            <button class="btn btn-primary btn-sm"
+                    @onclick="() => ViewDetails(paper.PaperId)">
+                View
+            </button>
+        </td>
+    </tr>
+    }
+    </tbody>
+
+    </table>
     </div>
-}
-else if (!Papers.Any())
-{
-    <div class="alert alert-info">
-        No submissions found.
+
+    <!-- Pagination Controls -->
+
+    <div class="d-flex justify-content-between align-items-center mt-3">
+
+    <div>
+        <label class="me-2">Rows:</label>
+        <select class="form-select d-inline w-auto"
+                @bind="PageSize">
+            <option>5</option>
+            <option>10</option>
+            <option>25</option>
+            <option>50</option>
+        </select>
     </div>
-}
-else
-{
-<div class="d-flex justify-content-between align-items-center my-3">
-    <h3 class="mb-0">Submissions</h3>
 
-    <input type="text"
-           class="form-control w-auto"
-           placeholder="Search..."
-           @bind="SearchString"
-           @bind:event="oninput" />
-</div>
+    <div>
 
-<div class="table-responsive">
-<table class="table table-bordered table-striped table-hover">
+    <button class="btn btn-sm btn-secondary me-2"
+            disabled="@(CurrentPage == 1)"
+            @onclick="PreviousPage">
+        Previous
+    </button>
 
-<thead class="table-light">
-<tr>
-    <th role="button" @onclick="() => SortBy(nameof(UserPaperDTO.Title))">
-        Title @SortIcon(nameof(UserPaperDTO.Title))
-    </th>
+    <span class="me-2">
+        Page @CurrentPage of @TotalPages
+    </span>
 
-    <th role="button" @onclick="() => SortBy(nameof(UserPaperDTO.Status))">
-        Status @SortIcon(nameof(UserPaperDTO.Status))
-    </th>
+    <button class="btn btn-sm btn-secondary"
+            disabled="@(CurrentPage == TotalPages)"
+            @onclick="NextPage">
+        Next
+    </button>
 
-    <th role="button" @onclick="() => SortBy(nameof(UserPaperDTO.SubmittedAtUtc))">
-        Submitted @SortIcon(nameof(UserPaperDTO.SubmittedAtUtc))
-    </th>
+    </div>
 
-    <th style="width:120px;">Actions</th>
-</tr>
-</thead>
+    </div>
 
-<tbody>
-@foreach (var paper in PagedPapers)
-{
-<tr>
-    <td>@paper.Title</td>
+    }
 
-    <td>@paper.Status</td>
-
-    <td>
-        @paper.SubmittedAtUtc?.LocalDateTime.ToString("M/d/yy h:mm tt")
-    </td>
-
-    <td>
-        <button class="btn btn-primary btn-sm"
-                @onclick="() => ViewDetails(paper.PaperId)">
-            View
-        </button>
-    </td>
-</tr>
-}
-</tbody>
-
-</table>
-</div>
-
-<!-- Pagination Controls -->
-
-<div class="d-flex justify-content-between align-items-center mt-3">
-
-<div>
-    <label class="me-2">Rows:</label>
-    <select class="form-select d-inline w-auto"
-            @bind="PageSize">
-        <option>5</option>
-        <option>10</option>
-        <option>25</option>
-        <option>50</option>
-    </select>
-</div>
-
-<div>
-
-<button class="btn btn-sm btn-secondary me-2"
-        disabled="@(CurrentPage == 1)"
-        @onclick="PreviousPage">
-    Previous
-</button>
-
-<span class="me-2">
-    Page @CurrentPage of @TotalPages
-</span>
-
-<button class="btn btn-sm btn-secondary"
-        disabled="@(CurrentPage == TotalPages)"
-        @onclick="NextPage">
-    Next
-</button>
-
-</div>
-
-</div>
-
-}
-
-</Authorized>
+    </Authorized>
 </AuthorizeView>
 
 @code {
