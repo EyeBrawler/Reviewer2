@@ -1,5 +1,7 @@
 @page "/admin"
+@attribute [Authorize(Roles = "Admin, ConferenceChair")]
 @rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.EntityFrameworkCore
 @using Reviewer2.Data.Models
@@ -8,7 +10,6 @@
 
 @inject IApplicationUserService UserService
 @inject RoleManager<IdentityRole<Guid>> RoleManager
-@inject AuthenticationStateProvider AuthProvider
 
 @namespace Reviewer2.Blazor.Components.Pages
 
@@ -17,13 +18,6 @@
 <div class="container mt-5">
     <div class="card p-4">
         <h4 class="mb-4 text-center">Admin — Role Assignment</h4>
-
-        @if (!_isAuthorized)
-        {
-            <div class="alert alert-danger">Access Denied</div>
-        }
-        else
-        {
             <table class="table table-bordered table-striped">
                 <thead>
                     <tr>
@@ -80,16 +74,11 @@
     private List<ApplicationUser> _users = [];
     private readonly Dictionary<Guid, HashSet<string>> _roles = new();
     private List<string> _availableRoles = [];
-    private bool _isAuthorized;
 
     protected override async Task OnInitializedAsync()
     {
-        _isAuthorized = await IsAuthorizedAsync();
-
-        if (!_isAuthorized)
-            return;
-
         _users = await UserService.GetAllAsync();
+
         _availableRoles = await RoleManager.Roles
             .Select(r => r.Name!)
             .ToListAsync();
@@ -148,18 +137,5 @@
         return _roles.TryGetValue(userId, out var roles)
             ? roles
             : Enumerable.Empty<string>();
-    }
-    
-    private async Task<bool> IsAuthorizedAsync()
-    {
-        var authState = await AuthProvider.GetAuthenticationStateAsync();
-        var user = authState.User;
-
-        var isAuthenticated = user.Identity?.IsAuthenticated ?? false;
-        var isAdmin = user.IsInRole("Admin");
-
-        var adminUsers = await UserService.GetUsersByRoleAsync("Admin");
-
-        return !(adminUsers.Any() && (!isAuthenticated || !isAdmin));
     }
 }
