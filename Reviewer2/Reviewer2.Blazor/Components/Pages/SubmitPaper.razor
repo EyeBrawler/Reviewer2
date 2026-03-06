@@ -48,14 +48,21 @@
                     <InputText class="form-control mt-2" type="email" placeholder="Email" @bind-Value="author.Email" />
                     <ValidationMessage For="@(() => author.Email)" />
 
-                    <div class="form-check mt-2">
-                        <InputRadio TValue="int" class="form-check-input" Value="index" />
-                        <label class="form-check-label">Corresponding Author</label>
-                    </div>
+                    <div class="d-flex align-items-center justify-content-between mt-2">
 
-                    <button type="button" class="btn btn-sm btn-outline-danger mt-2" @onclick="() => RemoveAuthor(author)">
-                        Remove
-                    </button>
+                        <div class="form-check m-0">
+                            <InputRadio TValue="int" class="form-check-input" Value="index" />
+                            <label class="form-check-label">Corresponding Author</label>
+                        </div>
+
+                        <button type="button"
+                                class="btn btn-sm btn-outline-danger"
+                                title="Remove Author"
+                                @onclick="() => RemoveAuthor(author)">
+                            <i class="bi bi-trash"></i>
+                        </button>
+
+                    </div>
                 </div>
             }
         </InputRadioGroup>
