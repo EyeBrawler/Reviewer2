@@ -1,15 +1,24 @@
 @page "/admin"
+@rendermode InteractiveServer
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.EntityFrameworkCore
 @using Reviewer2.Data.Models
 @using Reviewer2.Services.CRUD.ApplicationUser
+@using Serilog
+
+@inject IApplicationUserService UserService
+@inject RoleManager<IdentityRole<Guid>> RoleManager
+@inject AuthenticationStateProvider AuthProvider
+
 @namespace Reviewer2.Blazor.Components.Pages
+
+<PageTitle>Manage User Roles</PageTitle>
 
 <div class="container mt-5">
     <div class="card p-4">
         <h4 class="mb-4 text-center">Admin — Role Assignment</h4>
 
-        @if (!isAuthorized)
+        @if (!_isAuthorized)
         {
             <div class="alert alert-danger">Access Denied</div>
         }
@@ -25,15 +34,15 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var user in users)
+                    @foreach (var user in _users)
                     {
                         <tr>
                             <td>@user.FullName</td>
                             <td>@user.Email</td>
                             <td>
-                                @if (roles.ContainsKey(user.Id) && roles[user.Id].Any())
+                                @if (GetRoles(user.Id).Any())
                                 {
-                                    @foreach (var role in roles[user.Id])
+                                    @foreach (var role in GetRoles(user.Id))
                                     {
                                         <span class="badge bg-info me-1">@role</span>
                                     }
@@ -44,13 +53,13 @@
                                 }
                             </td>
                             <td>
-                                @foreach (var role in availableRoles)
+                                @foreach (var role in _availableRoles)
                                 {
                                     <div class="form-check">
                                         <input class="form-check-input"
                                                type="checkbox"
                                                checked="@IsRoleChecked(user.Id, role)"
-                                               @onchange="e => OnRoleChanged(user.Id, role, e.Value as bool? ?? false)" />
+                                               @onchange="e => OnRoleChanged(user.Id, role, (bool?)e.Value ?? false)" />
                                         <label class="form-check-label">@role</label>
                                     </div>
                                 }
@@ -68,76 +77,89 @@
 </div>
 
 @code {
-    [Inject] private IApplicationUserService UserService { get; set; } = default!;
-    [Inject] private RoleManager<IdentityRole<Guid>> RoleManager { get; set; } = default!;
-    [Inject] private AuthenticationStateProvider AuthProvider { get; set; } = default!;
-
-    private List<ApplicationUser> users = new();
-    private Dictionary<Guid, HashSet<string>> roles = new();
-    private List<string> availableRoles = new();
-    private bool isAuthorized = false;
+    private List<ApplicationUser> _users = [];
+    private readonly Dictionary<Guid, HashSet<string>> _roles = new();
+    private List<string> _availableRoles = [];
+    private bool _isAuthorized;
 
     protected override async Task OnInitializedAsync()
     {
-        var authState = await AuthProvider.GetAuthenticationStateAsync();
-        var currentUser = authState.User;
+        _isAuthorized = await IsAuthorizedAsync();
 
-        bool isAuthenticated = currentUser.Identity?.IsAuthenticated ?? false;
-        bool isAdmin = currentUser.IsInRole("Admin");
-
-        var adminUsers = await UserService.GetUsersByRoleAsync("Admin");
-
-        if (adminUsers.Any() && (!isAuthenticated || !isAdmin))
-        {
-            isAuthorized = false;
+        if (!_isAuthorized)
             return;
-        }
 
-        isAuthorized = true;
+        _users = await UserService.GetAllAsync();
+        _availableRoles = await RoleManager.Roles
+            .Select(r => r.Name!)
+            .ToListAsync();
 
-        users = await UserService.GetAllAsync();
-        availableRoles = await RoleManager.Roles.Select(r => r.Name!).ToListAsync();
-
-        // Initialize roles dictionary
-        foreach (var user in users)
-        {
-            var userRoles = await UserService.GetRolesAsync(user.Id.ToString());
-            roles[user.Id] = new HashSet<string>(userRoles ?? new List<string>(), StringComparer.OrdinalIgnoreCase);
-        }
+        await LoadUserRolesAsync();
     }
 
     private bool IsRoleChecked(Guid userId, string role)
-        => roles.ContainsKey(userId) && roles[userId].Contains(role);
+        => _roles.TryGetValue(userId, out var roles) && roles.Contains(role);
+    
+    private async Task LoadUserRolesAsync()
+    {
+        foreach (var user in _users)
+        {
+            var userRoles = await UserService.GetRolesAsync(user.Id.ToString());
+
+            _roles[user.Id] = new HashSet<string>(
+                userRoles ?? [],
+                StringComparer.OrdinalIgnoreCase
+            );
+        }
+    }
 
     private void OnRoleChanged(Guid userId, string role, bool isChecked)
     {
-        if (!roles.ContainsKey(userId))
-            roles[userId] = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (!_roles.TryGetValue(userId, out var roles))
+        {
+            roles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            _roles[userId] = roles;
+        }
 
         if (isChecked)
-            roles[userId].Add(role);
+            roles.Add(role);
         else
-            roles[userId].Remove(role);
+            roles.Remove(role);
     }
 
     private async Task SaveRolesAsync(Guid userId)
     {
-        if (!roles.ContainsKey(userId)) return;
+        if (!_roles.TryGetValue(userId, out var roles)) return;
 
-        var roleList = roles[userId].Select(r => r.Trim()).ToList(); // Trim whitespace
+        var roleList = roles.Select(r => r.Trim()).ToList(); // Trim whitespace
         var success = await UserService.UpdateUserRolesAsync(userId, roleList);
 
         if (success)
         {
             var refreshed = await UserService.GetRolesAsync(userId.ToString());
-            roles[userId] = new HashSet<string>(refreshed ?? new List<string>(), StringComparer.OrdinalIgnoreCase);
+            _roles[userId] = new HashSet<string>(refreshed ?? new List<string>(), StringComparer.OrdinalIgnoreCase);
+            
+            Log.Information("Roles saved for user {UserId}: {Join}", userId, string.Join(", ", _roles[userId]));
+        }
+    }
+    
+    private IEnumerable<string> GetRoles(Guid userId)
+    {
+        return _roles.TryGetValue(userId, out var roles)
+            ? roles
+            : Enumerable.Empty<string>();
+    }
+    
+    private async Task<bool> IsAuthorizedAsync()
+    {
+        var authState = await AuthProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
 
-            StateHasChanged();
-            Console.WriteLine($"Roles saved for user {userId}: {string.Join(", ", roles[userId])}");
-        }
-        else
-        {
-            Console.WriteLine($"Failed to save roles for user {userId}");
-        }
+        var isAuthenticated = user.Identity?.IsAuthenticated ?? false;
+        var isAdmin = user.IsInRole("Admin");
+
+        var adminUsers = await UserService.GetUsersByRoleAsync("Admin");
+
+        return !(adminUsers.Any() && (!isAuthenticated || !isAdmin));
     }
 }
