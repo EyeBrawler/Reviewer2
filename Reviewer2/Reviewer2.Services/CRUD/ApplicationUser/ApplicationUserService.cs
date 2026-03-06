@@ -84,8 +84,8 @@ public class ApplicationUserService : IApplicationUserService
     public async Task<IList<string>?> GetRolesAsync(string userId)
     {
         var user = await _userManager.FindByIdAsync(userId);
-        if (user == null) 
-            return null; // <-- return null instead of empty list
+        if (user is null)
+            return null;
         return await _userManager.GetRolesAsync(user);
     }
 
