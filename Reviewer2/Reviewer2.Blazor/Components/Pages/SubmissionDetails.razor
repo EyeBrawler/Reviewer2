@@ -1,6 +1,7 @@
 @page "/submissions/{paperId:guid}"
 @rendermode InteractiveServer
-
+@attribute [Authorize]
+@using Microsoft.AspNetCore.Authorization
 @using Reviewer2.Services.DTOs.PaperSubmission
 @inject Reviewer2.Services.Submissions.PaperSubmission.IPaperQueryService PaperQueryService
 @inject AuthenticationStateProvider AuthProvider
