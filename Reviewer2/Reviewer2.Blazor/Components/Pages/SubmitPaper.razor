@@ -216,7 +216,7 @@
             var draftId = await PaperService.CreateDraftAsync(createDraftRequest, submitterUserId);
 
             // 3. Upload PDF
-            await using var fileStream = UploadedFile.OpenReadStream(10 * 1024 * 1024);
+            await using var fileStream = UploadedFile.OpenReadStream(500 * 1024 * 1024);
             await using var memoryStream = new MemoryStream();
             await fileStream.CopyToAsync(memoryStream);
 
