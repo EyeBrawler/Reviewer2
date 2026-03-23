@@ -9,6 +9,8 @@
 @using Reviewer2.Services.DTOs.PaperSubmission
 @using Reviewer2.Services.Submissions.PaperSubmission
 
+<PageTitle>Submit Paper</PageTitle>
+
 <h1 class="mb-4">Paper Submission</h1>
 
 <EditForm EditContext="@_editContext" OnValidSubmit="HandleSubmit">
@@ -46,14 +48,21 @@
                     <InputText class="form-control mt-2" type="email" placeholder="Email" @bind-Value="author.Email" />
                     <ValidationMessage For="@(() => author.Email)" />
 
-                    <div class="form-check mt-2">
-                        <InputRadio TValue="int" class="form-check-input" Value="index" />
-                        <label class="form-check-label">Corresponding Author</label>
-                    </div>
+                    <div class="d-flex align-items-center justify-content-between mt-2">
 
-                    <button type="button" class="btn btn-sm btn-outline-danger mt-2" @onclick="() => RemoveAuthor(author)">
-                        Remove
-                    </button>
+                        <div class="form-check m-0">
+                            <InputRadio TValue="int" class="form-check-input" Value="index" />
+                            <label class="form-check-label">Corresponding Author</label>
+                        </div>
+
+                        <button type="button"
+                                class="btn btn-sm btn-outline-danger"
+                                title="Remove Author"
+                                @onclick="() => RemoveAuthor(author)">
+                            <i class="bi bi-trash"></i>
+                        </button>
+
+                    </div>
                 </div>
             }
         </InputRadioGroup>
@@ -167,9 +176,9 @@
             return;
         }
 
-        if (file.Size > 10 * 1024 * 1024)
+        if (file.Size > 500 * 1024 * 1024)
         {
-            FileError = "PDF must be smaller than 10MB.";
+            FileError = "PDF must be smaller than 500MB.";
             return;
         }
 
@@ -214,7 +223,7 @@
             var draftId = await PaperService.CreateDraftAsync(createDraftRequest, submitterUserId);
 
             // 3. Upload PDF
-            await using var fileStream = UploadedFile.OpenReadStream(10 * 1024 * 1024);
+            await using var fileStream = UploadedFile.OpenReadStream(500 * 1024 * 1024);
             await using var memoryStream = new MemoryStream();
             await fileStream.CopyToAsync(memoryStream);
 

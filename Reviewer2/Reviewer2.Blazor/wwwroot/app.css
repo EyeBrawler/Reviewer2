@@ -55,6 +55,74 @@ a:hover,
             );
 }
 
+/* Secondary Button */
+.btn-secondary {
+    color: #fff;
+
+    background:
+            linear-gradient(
+                    to bottom,
+                    rgba(130, 140, 155, 0.95),
+                    rgba(85, 95, 110, 0.95)
+            );
+
+    border: 1px solid rgba(255,255,255,0.35);
+
+    box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.6),
+            0 2px 6px rgba(0,0,0,0.3);
+
+    transition: all 0.15s ease-in-out;
+}
+
+/* Hover */
+.btn-secondary:hover {
+    background:
+            linear-gradient(
+                    to bottom,
+                    rgba(150, 160, 175, 0.95),
+                    rgba(95, 105, 120, 0.95)
+            );
+
+    box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.6),
+            0 3px 8px rgba(0,0,0,0.35);
+}
+
+/* Active / Pressed */
+.btn-secondary:active {
+    background:
+            linear-gradient(
+                    to bottom,
+                    rgba(85, 95, 110, 0.95),
+                    rgba(65, 75, 90, 0.95)
+            );
+
+    box-shadow:
+            inset 0 2px 4px rgba(0,0,0,0.35);
+}
+
+/* Disabled (works for .btn-sm.btn-secondary too) */
+.btn-secondary:disabled,
+.btn-secondary.disabled {
+    color: rgba(255,255,255,0.7);
+
+    background:
+            linear-gradient(
+                    to bottom,
+                    rgba(130, 140, 155, 0.45),
+                    rgba(85, 95, 110, 0.45)
+            );
+
+    border: 1px solid rgba(255,255,255,0.2);
+
+    box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.25);
+
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
 /* Outline Secondary Button */
 .btn-outline-secondary {
     color: #fff;
@@ -137,6 +205,85 @@ a:hover,
             0 2px 5px rgba(0,0,0,0.15);
 
     color: #0f3f75;
+}
+
+/* Outline Danger Button */
+.btn-outline-danger {
+    color: #fff;
+
+    background:
+            linear-gradient(
+                    to bottom,
+                    rgba(220, 95, 95, 0.95),
+                    rgba(170, 45, 45, 0.95)
+            );
+
+    border: 1px solid rgba(255,255,255,0.35);
+
+    box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.6),
+            0 2px 6px rgba(0,0,0,0.3);
+
+    transition: all 0.15s ease-in-out;
+}
+
+/* Hover */
+.btn-outline-danger:hover {
+    color: #fff;
+
+    background:
+            linear-gradient(
+                    to bottom,
+                    rgba(235, 115, 115, 0.95),
+                    rgba(185, 60, 60, 0.95)
+            );
+
+    box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.6),
+            0 3px 8px rgba(0,0,0,0.35);
+}
+
+/* Active / Pressed */
+.btn-outline-danger:active {
+    background:
+            linear-gradient(
+                    to bottom,
+                    rgba(170, 45, 45, 0.95),
+                    rgba(140, 35, 35, 0.95)
+            );
+
+    box-shadow:
+            inset 0 2px 4px rgba(0,0,0,0.35);
+}
+
+/* Focus ring */
+.btn-outline-danger:focus {
+    outline: none;
+    box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.6),
+            0 0 0 0.25rem rgba(200, 80, 80, 0.35),
+            0 2px 6px rgba(0,0,0,0.3);
+}
+
+/* Disabled state (affects btn-sm too) */
+.btn-outline-danger:disabled,
+.btn-outline-danger.disabled {
+    color: rgba(255,255,255,0.7);
+
+    background:
+            linear-gradient(
+                    to bottom,
+                    rgba(220, 95, 95, 0.45),
+                    rgba(170, 45, 45, 0.45)
+            );
+
+    border: 1px solid rgba(255,255,255,0.2);
+
+    box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.25);
+
+    opacity: 0.7;
+    cursor: not-allowed;
 }
 
 /* Active — glossy blue like your primary buttons, but softer */
