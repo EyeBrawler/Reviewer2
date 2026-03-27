@@ -37,6 +37,8 @@ namespace Reviewer2.Data.Context
                     maxRetryDelay: TimeSpan.FromSeconds(30),
                     errorCodesToAdd: null);
             });
+            
+            optionsBuilder.UseSnakeCaseNamingConvention();
 
             return new ApplicationContext(optionsBuilder.Options);
         }

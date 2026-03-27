@@ -75,6 +75,32 @@ public class ApplicationContext
         ConfigureAuthor(builder);
         ConfigureReviewAssignment(builder);
         ConfigureReview(builder);
+        SetAspNetCoreIdentityDatabaseNamesInSnakeCase(builder);
+    }
+    
+    private void SetAspNetCoreIdentityDatabaseNamesInSnakeCase(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<ApplicationUser>().ToTable("asp_net_users");
+        modelBuilder.Entity<IdentityRole<Guid>>().ToTable("asp_net_roles");
+        modelBuilder.Entity<IdentityUserRole<Guid>>().ToTable("asp_net_user_roles");
+        modelBuilder.Entity<IdentityUserClaim<Guid>>().ToTable("asp_net_user_claims");
+        modelBuilder.Entity<IdentityUserLogin<Guid>>().ToTable("asp_net_user_logins");
+        modelBuilder.Entity<IdentityRoleClaim<Guid>>().ToTable("asp_net_role_claims");
+        modelBuilder.Entity<IdentityUserToken<Guid>>().ToTable("asp_net_user_tokens");
+        
+        modelBuilder.Entity<IdentityRole<Guid>>()
+            .HasIndex(r => r.NormalizedName)
+            .HasDatabaseName("ix_asp_net_roles_normalized_name")
+            .IsUnique();
+
+        modelBuilder.Entity<ApplicationUser>()
+            .HasIndex(u => u.NormalizedUserName)
+            .HasDatabaseName("ix_asp_net_users_normalized_user_name")
+            .IsUnique();
+
+        modelBuilder.Entity<ApplicationUser>()
+            .HasIndex(u => u.NormalizedEmail)
+            .HasDatabaseName("ix_asp_net_users_normalized_email");
     }
 
     private static void ConfigureAuthor(ModelBuilder builder)
