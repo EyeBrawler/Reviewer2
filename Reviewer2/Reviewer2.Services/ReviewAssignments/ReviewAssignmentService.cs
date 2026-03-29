@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Reviewer2.Data.Context;
 using Reviewer2.Data.Models;
@@ -13,14 +14,19 @@ namespace Reviewer2.Services.ReviewAssignments;
 public class ReviewAssignmentService : IReviewAssignmentService
 {
     private readonly IDbContextFactory<ApplicationContext> _contextFactory;
+    private readonly UserManager<ApplicationUser> _userManager;
 
     /// <summary>
     /// Constructs an instance of the ReviewAssignmentService.
     /// </summary>
     /// <param name="contextFactory">The DbContextFactory used for accessing the database.</param>
-    public ReviewAssignmentService(IDbContextFactory<ApplicationContext> contextFactory)
+    /// <param name="userManager">The Core Identity service for getting user data.</param>
+    public ReviewAssignmentService(
+        IDbContextFactory<ApplicationContext> contextFactory,
+        UserManager<ApplicationUser> userManager)
     {
         _contextFactory = contextFactory;
+        _userManager = userManager;
     }
     
     ///<inheritdoc/>
@@ -60,8 +66,11 @@ public class ReviewAssignmentService : IReviewAssignmentService
             .Select(g => new { ReviewerId = g.Key, Count = g.Count() })
             .ToDictionaryAsync(x => x.ReviewerId, x => x.Count);
 
+        var reviewerIds = await GetReviewerIdsAsync();
+
         var reviewers = await context.Users
             .AsNoTracking()
+            .Where(u => reviewerIds.Contains(u.Id))
             .Select(u => new ReviewerPoolDTO
             {
                 ReviewerId = u.Id,
@@ -89,11 +98,9 @@ public class ReviewAssignmentService : IReviewAssignmentService
         if (!paperExists)
             return AssignmentResult.NotFound;
 
-        // Optional: verify reviewer exists
-        bool reviewerExists = await context.Users
-            .AnyAsync(u => u.Id == reviewerId);
+        var reviewerIds = await GetReviewerIdsAsync();
 
-        if (!reviewerExists)
+        if (!reviewerIds.Contains(reviewerId))
             return AssignmentResult.NotFound;
 
         // Conflict check (author)
@@ -179,9 +186,12 @@ public class ReviewAssignmentService : IReviewAssignmentService
             .ToDictionaryAsync(x => x.ReviewerId, x => x.Count);
 
         // Load reviewers and project into candidates
+        var reviewerIds = await GetReviewerIdsAsync();
+
         var users = await context.Users
             .AsNoTracking()
-            .Where(u => !assignedReviewerIds.Contains(u.Id))
+            .Where(u => reviewerIds.Contains(u.Id) &&
+                        !assignedReviewerIds.Contains(u.Id))
             .ToListAsync();
 
         var candidates = users
@@ -305,5 +315,11 @@ public class ReviewAssignmentService : IReviewAssignmentService
             await context.SaveChangesAsync();
 
         return (results, created);
+    }
+    
+    private async Task<HashSet<Guid>> GetReviewerIdsAsync()
+    {
+        var reviewers = await _userManager.GetUsersInRoleAsync("Reviewer");
+        return reviewers.Select(u => u.Id).ToHashSet();
     }
 }
