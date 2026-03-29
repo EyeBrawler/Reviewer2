@@ -28,6 +28,7 @@ builder.Services.AddDbContextFactory<ApplicationContext>(options =>
         
         npgsqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
     });
+    options.UseSnakeCaseNamingConvention();
 });
 
 // Add services to the container.
