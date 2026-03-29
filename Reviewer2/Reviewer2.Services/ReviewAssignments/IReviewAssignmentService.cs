@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Reviewer2.Services.DTOs.ReviewAssignments;
 
@@ -52,7 +53,7 @@ public interface IReviewAssignmentService
     /// Thrown if the assignment violates business rules, such as
     /// assigning an author to their own paper.
     /// </exception>
-    Task AssignReviewerAsync(Guid paperId, Guid reviewerId);
+    Task<AssignmentResult> AssignReviewerAsync(Guid paperId, Guid reviewerId);
 
     /// <summary>
     /// Removes an existing reviewer assignment.
@@ -64,5 +65,40 @@ public interface IReviewAssignmentService
     /// <param name="assignmentId">
     /// The unique identifier of the review assignment to remove.
     /// </param>
-    Task RemoveReviewerAsync(Guid assignmentId);
+    Task<AssignmentResult> RemoveReviewerAsync(Guid assignmentId);
+    
+    /// <summary>
+    /// Retrieves the list of reviewers who are candidates for assignment
+    /// to a specific paper, including conflict and workload information.
+    /// </summary>
+    /// <param name="paperId">
+    /// The unique identifier of the paper for which candidates are being retrieved.
+    /// </param>
+    /// <returns>
+    /// A list of <see cref="ReviewerCandidateDTO"/> representing possible reviewers.
+    /// </returns>
+    Task<List<ReviewerCandidateDTO>> GetCandidatesForPaperAsync(Guid paperId);
+    
+    /// <summary>
+    /// Simulates automatic reviewer assignment without persisting changes.
+    /// </summary>
+    /// <param name="reviewersPerPaper">
+    /// The number of reviewers to assign per paper.
+    /// </param>
+    /// <returns>
+    /// A collection of preview results for each paper.
+    /// </returns>
+    Task<List<AutoAssignmentPreviewDTO>> PreviewAutoAssignAsync(int reviewersPerPaper);
+    
+    /// <summary>
+    /// Automatically assigns reviewers to eligible papers based on
+    /// conflict rules and workload balancing.
+    /// </summary>
+    /// <param name="reviewersPerPaper">
+    /// The number of reviewers that should be assigned to each paper.
+    /// </param>
+    /// <returns>
+    /// The total number of review assignments created.
+    /// </returns>
+    Task<int> AutoAssignReviewersAsync(int reviewersPerPaper);
 }

@@ -1,22 +1,114 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using Reviewer2.Data.Context;
 using Reviewer2.Data.Models;
+using Reviewer2.Services.DTOs.ReviewAssignments;
 
 namespace Reviewer2.Services.ReviewAssignments;
 
-public class ReviewAssignmentService
+///<inheritdoc/>
+public class ReviewAssignmentService : IReviewAssignmentService
 {
-    public async Task AssignReviewerAsync(Guid paperId, Guid reviewerId)
-    {
-        if (await ReviewerIsAuthor(paperId, reviewerId))
-            throw new InvalidOperationException(
-                "Authors cannot review their own paper.");
+    private readonly IDbContextFactory<ApplicationContext> _contextFactory;
 
-        bool exists = await _context.ReviewAssignments
+    /// <summary>
+    /// Constructs an instance of the ReviewAssignmentService.
+    /// </summary>
+    /// <param name="contextFactory">The DbContextFactory used for accessing the database.</param>
+    public ReviewAssignmentService(IDbContextFactory<ApplicationContext> contextFactory)
+    {
+        _contextFactory = contextFactory;
+    }
+    
+    ///<inheritdoc/>
+    public async Task<ReviewAssignmentBoardDTO> GetAssignmentBoardAsync()
+    {
+        await using var context = await _contextFactory.CreateDbContextAsync();
+
+        var papers = await context.Papers
+            .AsNoTracking()
+            .Where(p => p.Status == PaperStatus.Submitted ||
+                        p.Status == PaperStatus.UnderReview)
+            .Select(p => new PaperAssignmentDTO
+            {
+                PaperId = p.Id,
+                Title = p.Title,
+                Authors = p.Authors
+                    .OrderBy(a => a.AuthorOrder)
+                    .Select(a => a.FirstName + " " + a.LastName)
+                    .ToList(),
+
+                AssignedReviewers = p.ReviewAssignments
+                    .Select(r => new AssignedReviewerDTO
+                    {
+                        AssignmentId = r.Id,
+                        ReviewerId = r.ReviewerId,
+                        Name = r.Reviewer.FullName,
+                        Status = r.Status
+                    })
+                    .ToList()
+            })
+            .ToListAsync();
+
+        // Precompute assignment counts in one query
+        var assignmentCounts = await context.ReviewAssignments
+            .AsNoTracking()
+            .GroupBy(a => a.ReviewerId)
+            .Select(g => new { ReviewerId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.ReviewerId, x => x.Count);
+
+        var reviewers = await context.Users
+            .AsNoTracking()
+            .Select(u => new ReviewerPoolDTO
+            {
+                ReviewerId = u.Id,
+                Name = u.FullName,
+                AssignmentCount = assignmentCounts.GetValueOrDefault(u.Id, 0)
+            })
+            .ToListAsync();
+
+        return new ReviewAssignmentBoardDTO
+        {
+            Papers = papers,
+            Reviewers = reviewers
+        };
+    }
+
+    ///<inheritdoc/>
+    public async Task<AssignmentResult> AssignReviewerAsync(Guid paperId, Guid reviewerId)
+    {
+        await using var context = await _contextFactory.CreateDbContextAsync();
+
+        // Optional but recommended: verify paper exists
+        bool paperExists = await context.Papers
+            .AnyAsync(p => p.Id == paperId);
+
+        if (!paperExists)
+            return AssignmentResult.NotFound;
+
+        // Optional: verify reviewer exists
+        bool reviewerExists = await context.Users
+            .AnyAsync(u => u.Id == reviewerId);
+
+        if (!reviewerExists)
+            return AssignmentResult.NotFound;
+
+        // Conflict check (author)
+        bool isAuthor = await context.Authors
+            .AnyAsync(a => a.PaperId == paperId && a.UserId == reviewerId);
+
+        if (isAuthor)
+            return AssignmentResult.Conflict;
+
+        // Duplicate check
+        bool exists = await context.ReviewAssignments
             .AnyAsync(a => a.PaperId == paperId && a.ReviewerId == reviewerId);
 
         if (exists)
-            return;
+            return AssignmentResult.AlreadyAssigned;
 
         var assignment = new ReviewAssignment
         {
@@ -26,27 +118,192 @@ public class ReviewAssignmentService
             Status = ReviewStatus.Pending
         };
 
-        _context.ReviewAssignments.Add(assignment);
+        context.ReviewAssignments.Add(assignment);
 
-        await _context.SaveChangesAsync();
+        await context.SaveChangesAsync();
+
+        return AssignmentResult.Success;
     }
-    
-    private async Task<bool> ReviewerIsAuthor(Guid paperId, Guid reviewerId)
+
+
+    ///<inheritdoc/>
+    public async Task<AssignmentResult> RemoveReviewerAsync(Guid assignmentId)
     {
-        return await _context.Authors
-            .AnyAsync(a => a.PaperId == paperId && a.UserId == reviewerId);
-    }
-    
-    public async Task RemoveReviewerAsync(Guid assignmentId)
-    {
-        var assignment = await _context.ReviewAssignments
+        await using var context = await _contextFactory.CreateDbContextAsync();
+
+        var assignment = await context.ReviewAssignments
             .FirstOrDefaultAsync(a => a.Id == assignmentId);
 
         if (assignment == null)
-            return;
+            return AssignmentResult.NotFound;
 
-        _context.ReviewAssignments.Remove(assignment);
+        context.ReviewAssignments.Remove(assignment);
 
-        await _context.SaveChangesAsync();
+        await context.SaveChangesAsync();
+
+        return AssignmentResult.Success;
+    }
+    
+    ///<inheritdoc/>
+    public async Task<List<ReviewerCandidateDTO>> GetCandidatesForPaperAsync(Guid paperId)
+    {
+        await using var context = await _contextFactory.CreateDbContextAsync();
+
+        // Ensure paper exists
+        bool paperExists = await context.Papers
+            .AsNoTracking()
+            .AnyAsync(p => p.Id == paperId);
+
+        if (!paperExists)
+            return new List<ReviewerCandidateDTO>();
+
+        // Get author user IDs (for conflict detection)
+        var authorUserIds = await context.Authors
+            .AsNoTracking()
+            .Where(a => a.PaperId == paperId && a.UserId != null)
+            .Select(a => a.UserId!.Value)
+            .ToHashSetAsync();
+
+        // Get already assigned reviewers (to exclude from candidates)
+        var assignedReviewerIds = await context.ReviewAssignments
+            .AsNoTracking()
+            .Where(a => a.PaperId == paperId)
+            .Select(a => a.ReviewerId)
+            .ToHashSetAsync();
+
+        // Precompute assignment counts (avoids per-user query)
+        var assignmentCounts = await context.ReviewAssignments
+            .AsNoTracking()
+            .GroupBy(a => a.ReviewerId)
+            .Select(g => new { ReviewerId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.ReviewerId, x => x.Count);
+
+        // Load reviewers and project into candidates
+        var users = await context.Users
+            .AsNoTracking()
+            .Where(u => !assignedReviewerIds.Contains(u.Id))
+            .ToListAsync();
+
+        var candidates = users
+            .Select(u =>
+            {
+                bool hasConflict = authorUserIds.Contains(u.Id);
+
+                return new ReviewerCandidateDTO
+                {
+                    ReviewerId = u.Id,
+                    Name = u.FullName,
+                    AssignmentCount = assignmentCounts.GetValueOrDefault(u.Id, 0),
+                    HasConflict = hasConflict,
+                    ConflictReason = hasConflict
+                        ? "Author of this paper"
+                        : null
+                };
+            })
+            .OrderBy(c => c.HasConflict)
+            .ThenBy(c => c.AssignmentCount)
+            .ThenBy(c => c.Name)
+            .ToList();
+
+        return candidates;
+    }
+    
+    ///<inheritdoc/>
+    public async Task<List<AutoAssignmentPreviewDTO>> PreviewAutoAssignAsync(int reviewersPerPaper)
+    {
+        var (preview, _) = await RunAutoAssignmentAsync(reviewersPerPaper, persist: false);
+        return preview;
+    }
+    
+    ///<inheritdoc/>
+    public async Task<int> AutoAssignReviewersAsync(int reviewersPerPaper)
+    {
+        var (_, created) = await RunAutoAssignmentAsync(reviewersPerPaper, persist: true);
+        return created;
+    }
+    
+    private async Task<(List<AutoAssignmentPreviewDTO> preview, int created)> RunAutoAssignmentAsync(
+        int reviewersPerPaper, bool persist)
+    {
+        await using var context = await _contextFactory.CreateDbContextAsync();
+
+        var papers = await context.Papers
+            .Where(p => p.Status == PaperStatus.Submitted ||
+                        p.Status == PaperStatus.UnderReview)
+            .Select(p => new { p.Id, p.Title })
+            .ToListAsync();
+
+        // Global assignment counts (mutable for fairness)
+        var assignmentCounts = await context.ReviewAssignments
+            .GroupBy(a => a.ReviewerId)
+            .ToDictionaryAsync(g => g.Key, g => g.Count());
+
+        var results = new List<AutoAssignmentPreviewDTO>();
+        var created = 0;
+
+        foreach (var paper in papers)
+        {
+            var existingReviewerIds = await context.ReviewAssignments
+                .Where(a => a.PaperId == paper.Id)
+                .Select(a => a.ReviewerId)
+                .ToHashSetAsync();
+
+            var needed = reviewersPerPaper - existingReviewerIds.Count;
+
+            if (needed <= 0)
+            {
+                results.Add(new AutoAssignmentPreviewDTO
+                {
+                    PaperId = paper.Id,
+                    Title = paper.Title,
+                    SuggestedReviewers = new(),
+                    IsIncomplete = false
+                });
+
+                continue;
+            }
+
+            var candidates = await GetCandidatesForPaperAsync(paper.Id);
+
+            var selected = candidates
+                .Where(c => !c.HasConflict)
+                .OrderBy(c => assignmentCounts.GetValueOrDefault(c.ReviewerId))
+                .ThenBy(c => c.AssignmentCount)
+                .Take(needed)
+                .ToList();
+
+            // Update in-memory counts (critical for fairness)
+            foreach (var reviewer in selected)
+            {
+                assignmentCounts[reviewer.ReviewerId] =
+                    assignmentCounts.GetValueOrDefault(reviewer.ReviewerId) + 1;
+
+                if (persist)
+                {
+                    context.ReviewAssignments.Add(new ReviewAssignment
+                    {
+                        Id = Guid.NewGuid(),
+                        PaperId = paper.Id,
+                        ReviewerId = reviewer.ReviewerId,
+                        Status = ReviewStatus.Pending
+                    });
+
+                    created++;
+                }
+            }
+
+            results.Add(new AutoAssignmentPreviewDTO
+            {
+                PaperId = paper.Id,
+                Title = paper.Title,
+                SuggestedReviewers = selected,
+                IsIncomplete = selected.Count < needed
+            });
+        }
+
+        if (persist)
+            await context.SaveChangesAsync();
+
+        return (results, created);
     }
 }

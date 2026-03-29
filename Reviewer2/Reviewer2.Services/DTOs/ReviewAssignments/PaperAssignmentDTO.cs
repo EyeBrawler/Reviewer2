@@ -47,4 +47,13 @@ public class PaperAssignmentDTO
     /// includes reviewer identity and review status information.
     /// </summary>
     public List<AssignedReviewerDTO> AssignedReviewers { get; set; } = new();
+    
+    /// <summary>
+    /// The collection of reviewers who are potential candidates for
+    /// assignment to this paper.
+    /// 
+    /// This list is computed dynamically and includes conflict indicators
+    /// and workload information to assist in assignment decisions.
+    /// </summary>
+    public List<ReviewerCandidateDTO> Candidates { get; set; } = new();
 }
