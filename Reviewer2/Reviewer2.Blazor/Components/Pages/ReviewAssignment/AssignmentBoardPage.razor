@@ -69,6 +69,8 @@ else
         }
 
         await LoadBoardAsync();
+        
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task HandleRemove(Guid assignmentId)
@@ -81,6 +83,8 @@ else
         }
 
         await LoadBoardAsync();
+        
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task HandlePreviewAutoAssign()

@@ -4,46 +4,61 @@
                    PaperId="@Paper.PaperId"
                    OnDrop="HandleDrop">
 
-    <div class="paper-column">
+    <div class="card h-100">
 
-        <!-- Paper Header -->
-        <div class="paper-header">
-            <h5>@Paper.Title</h5>
+        <!-- Header -->
+        <div class="card-header">
+            <h5 class="mb-0">@Paper.Title</h5>
 
             @if (Paper.Authors?.Any() == true)
             {
-                <div class="paper-authors">
+                <small class="text-muted">
                     @string.Join(", ", Paper.Authors)
-                </div>
+                </small>
             }
         </div>
 
-        <!-- Assigned Reviewers -->
-        <div class="assigned-reviewers">
+        <!-- Body -->
+        <div class="card-body p-0">
+
             @if (Paper.AssignedReviewers.Count == 0)
             {
-                <p class="empty">No reviewers assigned.</p>
+                <div class="p-3 text-muted text-center">
+                    Drop reviewers here
+                </div>
             }
             else
             {
-                @foreach (var reviewer in Paper.AssignedReviewers)
-                {
-                    <div class="assigned-reviewer"
-                         data-reviewer-id="@reviewer.ReviewerId">
+                <ul class="list-group list-group-flush">
 
-                        <div class="reviewer-info">
-                            <span class="name">@reviewer.Name</span>
-                            <span class="status">(@reviewer.Status)</span>
-                        </div>
+                    @foreach (var reviewer in Paper.AssignedReviewers)
+                    {
+                        <li class="list-group-item d-flex justify-content-between align-items-center"
+                            data-reviewer-id="@reviewer.ReviewerId">
 
-                        <button class="remove-btn"
-                                title="Remove reviewer"
-                                @onclick="() => OnRemove.Invoke(reviewer.AssignmentId)">
-                            ✖
-                        </button>
-                    </div>
-                }
+                            <!-- Left: Name + Status -->
+                            <div>
+                                <div class="fw-semibold">
+                                    @reviewer.Name
+                                </div>
+                                <small class="text-muted">
+                                    @reviewer.Status
+                                </small>
+                            </div>
+
+                            <!-- Right: Remove -->
+                            <button class="btn btn-sm btn-outline-danger"
+                                    title="Remove reviewer"
+                                    @onclick="() => OnRemove.Invoke(reviewer.AssignmentId)">
+                                ✖
+                            </button>
+
+                        </li>
+                    }
+
+                </ul>
             }
+
         </div>
 
     </div>
