@@ -1,0 +1,76 @@
+@using Reviewer2.Services.DTOs.ReviewAssignments
+
+<div class="card h-100">
+    <!-- Header -->
+    <div class="card-header">
+        <h5 class="mb-0">Reviewer Pool</h5>
+    </div>
+
+    <!-- Body -->
+    <div class="card-body p-0">
+
+        @if (Reviewers.Count == 0)
+        {
+            <div class="p-3 text-muted">
+                No reviewers available.
+            </div>
+        }
+        else
+        {
+            <SortableContainer Mode="pool"
+                               OnDragStart="HandleDragStart">
+
+                <ul class="list-group list-group-flush">
+                    @foreach (var reviewer in Reviewers
+                                  .OrderBy(r => r.AssignmentCount)
+                                  .ThenBy(r => r.Name))
+                    {
+                        <li class="list-group-item d-flex justify-content-between align-items-center"
+                            data-reviewer-id="@reviewer.ReviewerId"
+                            style="cursor: grab;">
+
+                            <!-- Name -->
+                            <span class="fw-semibold">
+                                @reviewer.Name
+                            </span>
+
+                            <!-- Assignment Count -->
+                            <span class="badge bg-secondary">
+                                @reviewer.AssignmentCount
+                            </span>
+                        </li>
+                    }
+                </ul>
+
+            </SortableContainer>
+        }
+
+    </div>
+</div>
+
+@code {
+    /// <summary>
+    /// The collection of reviewers available for assignment.
+    /// </summary>
+    [Parameter] public List<ReviewerPoolDTO> Reviewers { get; set; } = new();
+
+    /// <summary>
+    /// Optional: notify parent when drag starts
+    /// </summary>
+    [Parameter] public Action<ReviewerPoolDTO>? OnDragStart { get; set; }
+
+    /// <summary>
+    /// Called from JS via wrapper
+    /// </summary>
+    private Task HandleDragStart(Guid reviewerId)
+    {
+        var reviewer = Reviewers.FirstOrDefault(r => r.ReviewerId == reviewerId);
+
+        if (reviewer is not null)
+        {
+            OnDragStart?.Invoke(reviewer);
+        }
+
+        return Task.CompletedTask;
+    }
+}

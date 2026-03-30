@@ -1,0 +1,68 @@
+@using Reviewer2.Services.DTOs.ReviewAssignments
+
+<div class="container-fluid">
+
+    <div class="row">
+
+        <!-- Reviewer Pool (Sidebar) -->
+        <div class="col-md-4 col-lg-3 col-xl-2 mb-3">
+            <ReviewerPoolPanel Reviewers="Reviewers"/>
+        </div>
+
+        <!-- Papers Board -->
+        <div class="col-md-8 col-lg-9 col-xl-10">
+
+            @if (Papers.Count == 0)
+            {
+                <div class="alert alert-secondary">
+                    No papers available for assignment.
+                </div>
+            }
+            else
+            {
+                <div class="row g-3">
+                    @foreach (var paper in Papers)
+                    {
+                        <div class="col-12 col-md-6 col-xl-4">
+                            <PaperColumn 
+                                Paper="paper"
+                                OnAssign="OnAssign"
+                                OnRemove="OnRemove" />
+                        </div>
+                    }
+                </div>
+            }
+
+        </div>
+
+    </div>
+
+</div>
+
+@code {
+    /// <summary>
+    /// The collection of papers displayed on the assignment board.
+    /// </summary>
+    [Parameter] public List<PaperAssignmentDTO> Papers { get; set; } = new();
+
+    /// <summary>
+    /// The pool of available reviewers.
+    /// </summary>
+    [Parameter] public List<ReviewerPoolDTO> Reviewers { get; set; } = new();
+
+    /// <summary>
+    /// Invoked when a reviewer is assigned to a paper.
+    /// (Now used for BOTH drag-drop and manual assignment)
+    /// </summary>
+    [Parameter] public Func<Guid, Guid, Task> OnAssign { get; set; } = default!;
+
+    /// <summary>
+    /// Invoked when a reviewer assignment is removed.
+    /// </summary>
+    [Parameter] public Func<Guid, Task> OnRemove { get; set; } = default!;
+
+    /// <summary>
+    /// Optional: invoked when drag starts
+    /// </summary>
+    [Parameter] public Action<ReviewerPoolDTO>? OnDragStart { get; set; }
+}

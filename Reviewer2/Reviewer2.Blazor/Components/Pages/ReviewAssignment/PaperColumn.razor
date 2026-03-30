@@ -1,0 +1,91 @@
+@using Reviewer2.Services.DTOs.ReviewAssignments
+
+<SortableContainer Mode="paper"
+                   PaperId="@Paper.PaperId"
+                   OnDrop="HandleDrop">
+
+    <div class="card h-100">
+
+        <!-- Header -->
+        <div class="card-header">
+            <h5 class="mb-0">@Paper.Title</h5>
+
+            @if (Paper.Authors?.Any() == true)
+            {
+                <small class="text-muted">
+                    @string.Join(", ", Paper.Authors)
+                </small>
+            }
+        </div>
+
+        <!-- Body -->
+        <div class="card-body p-0">
+
+            @if (Paper.AssignedReviewers.Count == 0)
+            {
+                <div class="p-3 text-muted text-center">
+                    Drop reviewers here
+                </div>
+            }
+            else
+            {
+                <ul class="list-group list-group-flush">
+
+                    @foreach (var reviewer in Paper.AssignedReviewers)
+                    {
+                        <li class="list-group-item d-flex justify-content-between align-items-center"
+                            data-reviewer-id="@reviewer.ReviewerId">
+
+                            <!-- Left: Name + Status -->
+                            <div>
+                                <div class="fw-semibold">
+                                    @reviewer.Name
+                                </div>
+                                <small class="text-muted">
+                                    @reviewer.Status
+                                </small>
+                            </div>
+
+                            <!-- Right: Remove -->
+                            <button class="btn btn-sm btn-outline-danger"
+                                    title="Remove reviewer"
+                                    @onclick="() => OnRemove.Invoke(reviewer.AssignmentId)">
+                                ✖
+                            </button>
+
+                        </li>
+                    }
+
+                </ul>
+            }
+
+        </div>
+
+    </div>
+
+</SortableContainer>
+
+@code {
+    /// <summary>
+    /// The paper represented by this column.
+    /// </summary>
+    [Parameter] public PaperAssignmentDTO Paper { get; set; } = null!;
+
+    /// <summary>
+    /// Invoked when a reviewer is assigned (drag/drop)
+    /// </summary>
+    [Parameter] public Func<Guid, Guid, Task> OnAssign { get; set; } = default!;
+
+    /// <summary>
+    /// Invoked when a reviewer assignment is removed.
+    /// </summary>
+    [Parameter] public Func<Guid, Task> OnRemove { get; set; } = default!;
+
+    /// <summary>
+    /// Handles drop from SortableContainer
+    /// </summary>
+    private async Task HandleDrop((Guid paperId, Guid reviewerId) args)
+    {
+        await OnAssign.Invoke(args.paperId, args.reviewerId);
+    }
+}

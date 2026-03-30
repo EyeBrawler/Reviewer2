@@ -1,0 +1,52 @@
+@using Microsoft.AspNetCore.Components
+
+<div class="card mb-3">
+    <div class="card-body d-flex flex-wrap align-items-center justify-content-between gap-3">
+
+        <!-- Left: Input -->
+        <div class="d-flex align-items-center gap-2">
+            <label class="form-label mb-0 fw-semibold">
+                Reviewers per paper:
+            </label>
+
+            <input type="number"
+                   min="1"
+                   class="form-control form-control-sm"
+                   style="width: 80px;"
+                   @bind="ReviewersPerPaper" />
+        </div>
+
+        <!-- Right: Actions -->
+        <div class="d-flex gap-2">
+            <button class="btn btn-primary btn-sm"
+                    @onclick="OnPreviewAutoAssign">
+                <i class="bi bi-eye"></i>
+                Preview
+            </button>
+
+            <button class="btn btn-outline-secondary btn-sm"
+                    @onclick="OnRefresh">
+                <i class="bi bi-arrow-clockwise"></i>
+                Refresh
+            </button>
+        </div>
+
+    </div>
+</div>
+
+@code {
+    /// <summary>
+    /// Number of reviewers to assign per paper.
+    /// </summary>
+    [Parameter] public int ReviewersPerPaper { get; set; } = 3;
+
+    /// <summary>
+    /// Invoked when the user requests auto-assignment preview.
+    /// </summary>
+    [Parameter] public EventCallback OnPreviewAutoAssign { get; set; }
+
+    /// <summary>
+    /// Invoked when the user refreshes the board.
+    /// </summary>
+    [Parameter] public EventCallback OnRefresh { get; set; }
+}

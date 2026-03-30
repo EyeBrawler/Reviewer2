@@ -16,6 +16,16 @@ public class ApplicationContext
         : base(options)
     {
     }
+    
+    /// <summary>
+    /// DbSet for Conferences
+    /// </summary>
+    public DbSet<Conference> Conferences => Set<Conference>();
+    
+    /// <summary>
+    /// DbSet for Deadlines
+    /// </summary>
+    public DbSet<Deadline> Deadlines => Set<Deadline>();
 
     /// <summary>
     /// Represents all submitted papers within the system.
