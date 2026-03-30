@@ -1,0 +1,134 @@
+@using Reviewer2.Services.CRUD.ApplicationUser
+@inject IApplicationUserService UserService
+@inject AuthenticationStateProvider AuthStateProvider
+
+@if (_isLoading)
+{
+    <p>Loading...</p>
+}
+else if (!_isAuthenticated)
+{
+    @if (ShowLoginMessage)
+    {
+        <p>You must be logged in to volunteer.</p>
+    }
+}
+else
+{
+    @if (ShowTitle)
+    {
+        <h3>Volunteer as a Reviewer</h3>
+    }
+
+    @if (ShowDescription)
+    {
+        <p>Click below to volunteer as a reviewer.</p>
+    }
+
+    <div class="mt-3">
+        <button class="btn btn-primary @ButtonSizeClass"
+                @onclick="VolunteerAsync"
+                disabled="@(_isSubmitting || _currentRoles.Contains(RoleName))">
+            
+            @if (_currentRoles.Contains(RoleName))
+            {
+                @AlreadyReviewerText
+            }
+            else if (_isSubmitting)
+            {
+                @SubmittingText
+            }
+            else
+            {
+                @ButtonText
+            }
+        </button>
+    </div>
+
+    @if (ShowMessage && !string.IsNullOrEmpty(_message))
+    {
+        <div class="alert mt-3 @( _message.Contains("now a reviewer") ? "alert-success" : "alert-info")">
+            @_message
+        </div>
+    }
+}
+
+@code {
+    // 🔧 Customization parameters
+    [Parameter] public string RoleName { get; set; } = "Reviewer";
+    [Parameter] public string ButtonText { get; set; } = "Volunteer as Reviewer";
+    [Parameter] public string SubmittingText { get; set; } = "Submitting...";
+    [Parameter] public string AlreadyReviewerText { get; set; } = "Already a Reviewer";
+
+    [Parameter] public bool ShowTitle { get; set; } = false;
+    [Parameter] public bool ShowDescription { get; set; } = false;
+    [Parameter] public bool ShowMessage { get; set; } = true;
+    [Parameter] public bool ShowLoginMessage { get; set; } = true;
+
+    [Parameter] public string ButtonSizeClass { get; set; } = "btn-lg";
+
+    // 📡 State
+    private bool _isLoading = true;
+    private bool _isAuthenticated = false;
+    private bool _isSubmitting = false;
+    private string? _message;
+
+    private Guid _userId;
+    private IList<string> _currentRoles = new List<string>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            _isAuthenticated = true;
+
+            var appUser = await UserService.GetCurrentUserAsync(user);
+
+            if (appUser != null)
+            {
+                _userId = appUser.Id;
+
+                var roles = await UserService.GetRolesAsync(appUser.Id.ToString());
+                if (roles != null)
+                {
+                    _currentRoles = roles.ToList();
+                }
+            }
+        }
+
+        _isLoading = false;
+    }
+
+    private async Task VolunteerAsync()
+    {
+        _isSubmitting = true;
+        _message = null;
+
+        try
+        {
+            if (!_currentRoles.Contains(RoleName))
+            {
+                _currentRoles.Add(RoleName);
+
+                var success = await UserService.UpdateUserRolesAsync(_userId, _currentRoles);
+
+                _message = success
+                    ? "You are now a reviewer!"
+                    : "Failed to update roles.";
+            }
+            else
+            {
+                _message = "You are already a reviewer.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _message = $"Error: {ex.Message}";
+        }
+
+        _isSubmitting = false;
+    }
+}
