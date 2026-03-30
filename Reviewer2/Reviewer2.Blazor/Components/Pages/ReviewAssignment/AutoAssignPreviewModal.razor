@@ -1,0 +1,114 @@
+@using Reviewer2.Services.DTOs.ReviewAssignments
+
+@if (Visible)
+{
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+
+                <!-- Header -->
+                <div class="modal-header">
+                    <h5 class="modal-title">Auto Assignment Preview</h5>
+                    <button type="button" class="btn-close" @onclick="OnCancel"></button>
+                </div>
+
+                <!-- Body -->
+                <div class="modal-body">
+
+                    @if (Preview.Count == 0)
+                    {
+                        <div class="alert alert-secondary mb-0">
+                            No assignment suggestions available.
+                        </div>
+                    }
+                    else
+                    {
+                        @foreach (var paper in Preview)
+                        {
+                            <div class="card mb-3">
+                                <div class="card-body">
+
+                                    <!-- Paper Title -->
+                                    <h6 class="card-title mb-2">
+                                        @paper.Title
+                                    </h6>
+
+                                    @if (paper.SuggestedReviewers.Count == 0)
+                                    {
+                                        <div class="text-muted">
+                                            No eligible reviewers found.
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <ul class="list-group list-group-flush">
+                                            @foreach (var reviewer in paper.SuggestedReviewers)
+                                            {
+                                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                    <span>@reviewer.Name</span>
+                                                    <span class="badge bg-secondary">
+                                                        @reviewer.AssignmentCount assignments
+                                                    </span>
+                                                </li>
+                                            }
+                                        </ul>
+                                    }
+
+                                    @if (paper.IsIncomplete)
+                                    {
+                                        <div class="alert alert-warning mt-3 mb-0">
+                                            <i class="bi bi-exclamation-triangle"></i>
+                                            Not enough reviewers available to meet the target.
+                                        </div>
+                                    }
+
+                                </div>
+                            </div>
+                        }
+                    }
+
+                </div>
+
+                <!-- Footer -->
+                <div class="modal-footer">
+                    <button class="btn btn-secondary"
+                            @onclick="OnCancel">
+                        Cancel
+                    </button>
+
+                    <button class="btn btn-primary"
+                            @onclick="OnConfirm">
+                        <i class="bi bi-check-circle"></i>
+                        Confirm Assignments
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Backdrop -->
+    <div class="modal-backdrop fade show"></div>
+}
+
+@code {
+    /// <summary>
+    /// Indicates whether the modal is visible.
+    /// </summary>
+    [Parameter] public bool Visible { get; set; }
+
+    /// <summary>
+    /// The preview data representing suggested reviewer assignments.
+    /// </summary>
+    [Parameter] public List<AutoAssignmentPreviewDTO> Preview { get; set; } = new();
+
+    /// <summary>
+    /// Invoked when the user confirms the auto-assignment.
+    /// </summary>
+    [Parameter] public Func<Task> OnConfirm { get; set; } = default!;
+
+    /// <summary>
+    /// Invoked when the user cancels the preview.
+    /// </summary>
+    [Parameter] public Action OnCancel { get; set; } = default!;
+}

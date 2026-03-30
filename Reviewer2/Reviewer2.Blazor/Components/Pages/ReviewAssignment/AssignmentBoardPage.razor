@@ -1,0 +1,110 @@
+@page "/assignments"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Reviewer2.Services.DTOs.ReviewAssignments
+@using Reviewer2.Services.ReviewAssignments
+@inject IReviewAssignmentService ReviewAssignmentService
+
+@attribute [Authorize(Roles = "Admin, PaperChair")]
+
+<h3>Reviewer Assignment Board</h3>
+
+@if (_isLoading)
+{
+    <p>Loading...</p>
+}
+else if (_board is null)
+{
+    <p>Failed to load assignment board.</p>
+}
+else
+{
+    <!-- Toolbar -->
+    <AssignmentToolbar OnPreviewAutoAssign="HandlePreviewAutoAssign" />
+
+    <!-- Main Board -->
+    <AssignmentBoard 
+        Papers="_board.Papers"
+        Reviewers="_board.Reviewers"
+        OnAssign="HandleAssign"
+        OnRemove="HandleRemove" />
+
+    <!-- Preview Modal -->
+    <AutoAssignPreviewModal 
+        Visible="_showPreview"
+        Preview="_preview"
+        OnConfirm="HandleConfirmAutoAssign"
+        OnCancel="HandleCancelPreview" />
+}
+
+@code {
+    private ReviewAssignmentBoardDTO? _board;
+    private bool _isLoading = true;
+
+    // Auto-assign preview state
+    private List<AutoAssignmentPreviewDTO> _preview = new();
+    private bool _showPreview = false;
+
+    private const int DefaultReviewersPerPaper = 3;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadBoardAsync();
+    }
+
+    private async Task LoadBoardAsync()
+    {
+        _isLoading = true;
+        _board = await ReviewAssignmentService.GetAssignmentBoardAsync();
+        _isLoading = false;
+    }
+
+    private async Task HandleAssign(Guid paperId, Guid reviewerId)
+    {
+        var result = await ReviewAssignmentService.AssignReviewerAsync(paperId, reviewerId);
+
+        if (result != AssignmentResult.Success)
+        {
+            Console.WriteLine($"Assignment failed: {result}");
+        }
+
+        await LoadBoardAsync();
+    }
+
+    private async Task HandleRemove(Guid assignmentId)
+    {
+        var result = await ReviewAssignmentService.RemoveReviewerAsync(assignmentId);
+
+        if (result != AssignmentResult.Success)
+        {
+            Console.WriteLine($"Remove failed: {result}");
+        }
+
+        await LoadBoardAsync();
+    }
+
+    private async Task HandlePreviewAutoAssign()
+    {
+        _preview = await ReviewAssignmentService
+            .PreviewAutoAssignAsync(DefaultReviewersPerPaper);
+
+        _showPreview = true;
+    }
+
+    private async Task HandleConfirmAutoAssign()
+    {
+        var created = await ReviewAssignmentService
+            .AutoAssignReviewersAsync(DefaultReviewersPerPaper);
+
+        Console.WriteLine($"Created {created} assignments.");
+
+        _showPreview = false;
+
+        await LoadBoardAsync();
+    }
+
+    private void HandleCancelPreview()
+    {
+        _showPreview = false;
+    }
+}

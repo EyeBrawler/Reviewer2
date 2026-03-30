@@ -1,0 +1,76 @@
+@using Reviewer2.Services.DTOs.ReviewAssignments
+
+<SortableContainer Mode="paper"
+                   PaperId="@Paper.PaperId"
+                   OnDrop="HandleDrop">
+
+    <div class="paper-column">
+
+        <!-- Paper Header -->
+        <div class="paper-header">
+            <h5>@Paper.Title</h5>
+
+            @if (Paper.Authors?.Any() == true)
+            {
+                <div class="paper-authors">
+                    @string.Join(", ", Paper.Authors)
+                </div>
+            }
+        </div>
+
+        <!-- Assigned Reviewers -->
+        <div class="assigned-reviewers">
+            @if (Paper.AssignedReviewers.Count == 0)
+            {
+                <p class="empty">No reviewers assigned.</p>
+            }
+            else
+            {
+                @foreach (var reviewer in Paper.AssignedReviewers)
+                {
+                    <div class="assigned-reviewer"
+                         data-reviewer-id="@reviewer.ReviewerId">
+
+                        <div class="reviewer-info">
+                            <span class="name">@reviewer.Name</span>
+                            <span class="status">(@reviewer.Status)</span>
+                        </div>
+
+                        <button class="remove-btn"
+                                title="Remove reviewer"
+                                @onclick="() => OnRemove.Invoke(reviewer.AssignmentId)">
+                            ✖
+                        </button>
+                    </div>
+                }
+            }
+        </div>
+
+    </div>
+
+</SortableContainer>
+
+@code {
+    /// <summary>
+    /// The paper represented by this column.
+    /// </summary>
+    [Parameter] public PaperAssignmentDTO Paper { get; set; } = null!;
+
+    /// <summary>
+    /// Invoked when a reviewer is assigned (drag/drop)
+    /// </summary>
+    [Parameter] public Func<Guid, Guid, Task> OnAssign { get; set; } = default!;
+
+    /// <summary>
+    /// Invoked when a reviewer assignment is removed.
+    /// </summary>
+    [Parameter] public Func<Guid, Task> OnRemove { get; set; } = default!;
+
+    /// <summary>
+    /// Handles drop from SortableContainer
+    /// </summary>
+    private async Task HandleDrop((Guid paperId, Guid reviewerId) args)
+    {
+        await OnAssign.Invoke(args.paperId, args.reviewerId);
+    }
+}

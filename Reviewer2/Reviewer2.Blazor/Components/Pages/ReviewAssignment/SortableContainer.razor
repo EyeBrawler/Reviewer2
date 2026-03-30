@@ -1,0 +1,111 @@
+@using Microsoft.JSInterop
+
+<div @ref="_elementRef">
+    @ChildContent
+</div>
+
+@code {
+    [Inject] private IJSRuntime JS { get; set; } = default!;
+
+    private IJSObjectReference? _module;
+    private ElementReference _elementRef;
+    private DotNetObjectReference<SortableContainer>? _objRef;
+
+    // =============================
+    // PARAMETERS
+    // =============================
+
+    /// <summary>
+    /// Content inside the sortable container.
+    /// </summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>
+    /// Type of container: "pool" or "paper"
+    /// </summary>
+    [Parameter] public string Mode { get; set; } = "pool";
+
+    /// <summary>
+    /// Paper ID (only used for paper mode)
+    /// </summary>
+    [Parameter] public Guid? PaperId { get; set; }
+
+    /// <summary>
+    /// Callback when reviewer is dropped onto a paper
+    /// </summary>
+    [Parameter] public EventCallback<(Guid paperId, Guid reviewerId)> OnDrop { get; set; }
+
+    /// <summary>
+    /// Optional drag start callback
+    /// </summary>
+    [Parameter] public EventCallback<Guid> OnDragStart { get; set; }
+
+    // =============================
+    // LIFECYCLE
+    // =============================
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _module = await JS.InvokeAsync<IJSObjectReference>(
+                "import", "./Scripts/reviewerDragDrop.js");
+
+            _objRef = DotNetObjectReference.Create(this);
+
+            if (Mode == "pool")
+            {
+                await _module.InvokeVoidAsync("initReviewerPool", _elementRef, _objRef);
+            }
+            else if (Mode == "paper" && PaperId.HasValue)
+            {
+                await _module.InvokeVoidAsync(
+                    "initPaperColumn",
+                    _elementRef,
+                    _objRef,
+                    PaperId.Value.ToString()
+                );
+            }
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (_module is not null)
+            {
+                await _module.InvokeVoidAsync("destroy", _elementRef);
+                await _module.DisposeAsync();
+            }
+        }
+        catch { }
+
+        _objRef?.Dispose();
+    }
+
+    // =============================
+    // JS CALLBACKS
+    // =============================
+
+    [JSInvokable]
+    public async Task OnReviewerDroppedJS(string paperIdStr, string reviewerIdStr)
+    {
+        if (Guid.TryParse(paperIdStr, out var paperId) &&
+            Guid.TryParse(reviewerIdStr, out var reviewerId))
+        {
+            if (OnDrop.HasDelegate)
+                await OnDrop.InvokeAsync((paperId, reviewerId));
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnDragStartJS(string reviewerIdStr)
+    {
+        if (Guid.TryParse(reviewerIdStr, out var reviewerId))
+        {
+            if (OnDragStart.HasDelegate)
+                await OnDragStart.InvokeAsync(reviewerId);
+        }
+    }
+}

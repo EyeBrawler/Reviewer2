@@ -43,6 +43,15 @@
                 </div>
                 
                 <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="submissions">
+                        <div class="align-middle">
+                            <i class="bi bi-newspaper"></i>
+                            Submissions
+                        </div>
+                    </NavLink>
+                </div>
+                
+                <div class="nav-item px-3">
                     <NavLink class="nav-link" href="review">
                         <div class="align-middle">
                             <i class="bi bi-clipboard-check"></i>
@@ -51,14 +60,18 @@
                     </NavLink>
                 </div>
                 
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="submissions">
-                        <div class="align-middle">
-                            <i class="bi bi-newspaper"></i>
-                            Submissions
+                <AuthorizeView Roles="Admin,PaperChair">
+                    <Authorized Context="authContext">
+                        <div class="nav-item px-3">
+                            <NavLink class="nav-link" href="assignments">
+                                <div class="align-middle">
+                                    <i class="bi bi-people-fill"></i>
+                                    Review Assignments
+                                </div>
+                            </NavLink>
                         </div>
-                    </NavLink>
-                </div>
+                    </Authorized>
+                </AuthorizeView>
                 
                 <div class="nav-item px-3">
                     <form action="Account/Logout" method="post">
@@ -88,7 +101,7 @@
             </NotAuthorized>
         </AuthorizeView>
         <div class="mt-auto">
-            <AuthorizeView Roles="Admin">
+            <AuthorizeView Roles="Admin, ConferenceChair">
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="admin">
                         <div class="align-middle">
