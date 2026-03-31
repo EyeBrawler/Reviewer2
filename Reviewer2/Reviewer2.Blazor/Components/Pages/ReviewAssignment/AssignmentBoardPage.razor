@@ -25,7 +25,7 @@ else
     <!-- Toolbar -->
     <AssignmentToolbar OnPreviewAutoAssign="HandlePreviewAutoAssign" />
 
-    <ErrorAlert Message="_errorMessage" />
+    <ErrorAlert Message="@_errorMessage" />
     
     <!-- Main Board -->
     <AssignmentBoard 
@@ -72,7 +72,7 @@ else
 
         if (result != AssignmentResult.Success)
         {
-            _errorMessage = result switch
+            await ShowError(result switch
             {
                 AssignmentResult.AlreadyAssigned =>
                     "This reviewer is already assigned to the paper.",
@@ -85,14 +85,15 @@ else
 
                 _ =>
                     "An unexpected error occurred while assigning the reviewer."
-            };
+            });
 
-            return; // Prevent reload so user sees the error
+            return;
         }
 
         _errorMessage = null;
 
         await LoadBoardAsync();
+        
         await InvokeAsync(StateHasChanged);
     }
 
@@ -102,15 +103,17 @@ else
 
         if (result != AssignmentResult.Success)
         {
-            _errorMessage = "Failed to remove reviewer assignment.";
+            await ShowError("Failed to remove reviewer assignment.");
             return;
         }
+
+        _errorMessage = null;
 
         await LoadBoardAsync();
         
         await InvokeAsync(StateHasChanged);
     }
-
+    
     private async Task HandlePreviewAutoAssign()
     {
         _preview = await ReviewAssignmentService
@@ -129,10 +132,23 @@ else
         _showPreview = false;
 
         await LoadBoardAsync();
+        
+        await InvokeAsync(StateHasChanged);
     }
 
     private void HandleCancelPreview()
     {
         _showPreview = false;
+    }
+    
+    private async Task ShowError(string message)
+    {
+        _errorMessage = message;
+        StateHasChanged();
+
+        await Task.Delay(3000); // 3 seconds
+
+        _errorMessage = null;
+        StateHasChanged();
     }
 }
