@@ -33,6 +33,13 @@ After this, the simplest way to get a database going is to run this command.
 docker run --name Reviewer2_Data -e POSTGRES_PASSWORD=mystrongpassword123 -p 5432:5432 -d postgres
 ```
 
+Creating a more configured DBMS may look like...
+```bash
+docker run -d --name postgres --hostname postgres-db -e POSTGRES_USER=reviewer2 -e POSTGRES_PASSWORD="my_password" -e POSTGRES_DB=reviewer2_prod -p 5432:5432 postgres:latest
+```
+In the above line, port 5433 is being exposed rather than 5432 as to not conflict with an existing Postgres install.
+
+
 ## How to create a systemd daemon for Reviewer2
 After verifying the `publish.sh` script runs, you need to create a reviewer2.service file.
 ```bash
@@ -115,3 +122,18 @@ sudo systemctl reload nginx
 ```
 
 Additional instructions for HTTPS and SSL may come in the future.
+
+## Full Docker Compose Deployment.
+First, update your system.
+```bash
+sudo apt update
+```
+```bash
+sudo apt full-upgrade
+```
+Next, install docker and docker compose. On Ubuntu 24.04 and similar Ubuntu based Linux distributions.
+```bash
+sudo apt install docker.io docker-compose-v2
+```
+After upgrading and installing all of this software, a full reboot of your system is advisable. (docker can be weird)
+
