@@ -23,7 +23,7 @@ public enum AssignmentResult
     /// The assignment could not be completed due to a conflict,
     /// such as the reviewer being an author of the paper.
     /// </summary>
-    Conflict,
+    ReviewerIsAuthor,
 
     /// <summary>
     /// The target entity (paper, reviewer, or assignment) was not found.

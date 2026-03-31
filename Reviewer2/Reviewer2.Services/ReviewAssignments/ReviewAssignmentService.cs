@@ -117,7 +117,7 @@ public class ReviewAssignmentService : IReviewAssignmentService
             ));
 
         if (isAuthor)
-            return AssignmentResult.Conflict;
+            return AssignmentResult.ReviewerIsAuthor;
 
         // Duplicate check
         bool exists = await context.ReviewAssignments

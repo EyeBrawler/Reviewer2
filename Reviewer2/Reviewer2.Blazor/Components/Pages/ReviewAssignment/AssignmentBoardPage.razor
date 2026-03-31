@@ -3,6 +3,7 @@
 @using Microsoft.AspNetCore.Authorization
 @using Reviewer2.Services.DTOs.ReviewAssignments
 @using Reviewer2.Services.ReviewAssignments
+@using Serilog
 @inject IReviewAssignmentService ReviewAssignmentService
 
 @attribute [Authorize(Roles = "Admin, PaperChair")]
@@ -24,6 +25,8 @@ else
     <!-- Toolbar -->
     <AssignmentToolbar OnPreviewAutoAssign="HandlePreviewAutoAssign" />
 
+    <ErrorAlert Message="_errorMessage" />
+    
     <!-- Main Board -->
     <AssignmentBoard 
         Papers="_board.Papers"
@@ -48,6 +51,8 @@ else
     private bool _showPreview = false;
 
     private const int DefaultReviewersPerPaper = 3;
+    
+    private string? _errorMessage;
 
     protected override async Task OnInitializedAsync()
     {
@@ -67,11 +72,27 @@ else
 
         if (result != AssignmentResult.Success)
         {
-            Console.WriteLine($"Assignment failed: {result}");
+            _errorMessage = result switch
+            {
+                AssignmentResult.AlreadyAssigned =>
+                    "This reviewer is already assigned to the paper.",
+
+                AssignmentResult.ReviewerIsAuthor =>
+                    "This reviewer cannot be assigned because they are an author of the paper.",
+
+                AssignmentResult.NotFound =>
+                    "The selected paper or reviewer could not be found.",
+
+                _ =>
+                    "An unexpected error occurred while assigning the reviewer."
+            };
+
+            return; // Prevent reload so user sees the error
         }
 
+        _errorMessage = null;
+
         await LoadBoardAsync();
-        
         await InvokeAsync(StateHasChanged);
     }
 
@@ -81,7 +102,8 @@ else
 
         if (result != AssignmentResult.Success)
         {
-            Console.WriteLine($"Remove failed: {result}");
+            _errorMessage = "Failed to remove reviewer assignment.";
+            return;
         }
 
         await LoadBoardAsync();
@@ -102,7 +124,7 @@ else
         var created = await ReviewAssignmentService
             .AutoAssignReviewersAsync(DefaultReviewersPerPaper);
 
-        Console.WriteLine($"Created {created} assignments.");
+        Log.Information("Created {Created} assignments.", created);
 
         _showPreview = false;
 
