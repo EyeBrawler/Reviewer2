@@ -25,16 +25,15 @@
                                   .OrderBy(r => r.AssignmentCount)
                                   .ThenBy(r => r.Name))
                     {
-                        <li class="list-group-item d-flex justify-content-between align-items-center"
+                        <li @key="reviewer.ReviewerId"
+                            class="list-group-item d-flex justify-content-between align-items-center"
                             data-reviewer-id="@reviewer.ReviewerId"
                             style="cursor: grab;">
 
-                            <!-- Name -->
                             <span class="fw-semibold">
                                 @reviewer.Name
                             </span>
 
-                            <!-- Assignment Count -->
                             <span class="badge bg-secondary">
                                 @reviewer.AssignmentCount
                             </span>
