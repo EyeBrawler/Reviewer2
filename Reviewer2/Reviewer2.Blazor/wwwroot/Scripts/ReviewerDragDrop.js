@@ -1,53 +1,35 @@
 // reviewerDragDrop.js
 
-// Keep track of initialized elements to avoid double init
-
 const initialized = new WeakMap();
+
 function log(...args) {
     console.log("[DragDrop]", ...args);
 }
 
-/**
- * Initialize the Reviewer Pool (drag source)
- * @param {HTMLElement} el - UL or container element
- * @param {any} dotNetRef - DotNetObjectReference
- */
+// =====================
+// REVIEWER POOL
+// =====================
 export function initReviewerPool(el, dotNetRef) {
     log("INIT POOL", el);
 
     const list = el.querySelector("ul");
     log("POOL LIST FOUND:", list);
 
-    if (!list) return;
-
-    log("POOL CHILD COUNT:", list.children.length);
-    
-    if (!el || initialized.has(el)) return;
-
-   // const list = el.querySelector("ul"); 
-
-    if (!list) return;
+    if (!list || initialized.has(list)) return;
 
     const sortable = new Sortable(list, {
         group: {
             name: "reviewers",
-            pull: "clone",   // clone reviewers when dragging
-            put: false       // cannot drop into pool
+            pull: "clone",
+            put: false
         },
-        sort: false,          // do not reorder pool
+        sort: false,
         animation: 150,
-        ghostClass: "drag-ghost",
-        chosenClass: "drag-chosen",
-        dragClass: "drag-dragging",
 
         onStart: (evt) => {
             const reviewerId = evt.item.dataset.reviewerId;
 
-            log("DRAG START", {
-                reviewerId,
-                text: evt.item.innerText,
-                element: evt.item
-            });
+            log("DRAG START", reviewerId);
 
             if (dotNetRef && reviewerId) {
                 dotNetRef.invokeMethodAsync("OnDragStartJS", reviewerId);
@@ -55,27 +37,17 @@ export function initReviewerPool(el, dotNetRef) {
         }
     });
 
-    initialized.set(el, sortable);
-
-    log("POOL SORTABLE CREATED", sortable);
-    log("POOL REVIEWER COUNTS:", countReviewers(list));
+    initialized.set(list, sortable);
 }
 
-/**
- * Initialize a Paper Column (drop target)
- * @param {HTMLElement} el - Drop container
- * @param {any} dotNetRef - DotNetObjectReference
- * @param {string} paperId - Guid string
- */
+// =====================
+// PAPER COLUMN
+// =====================
 export function initPaperColumn(el, dotNetRef, paperId) {
-
     log("INIT PAPER", el, "paperId:", paperId);
-    log("PAPER CHILD COUNT:", el.children.length);
-    
-    if (!el || initialized.has(el)) return;
 
     const list = el.querySelector("ul");
-    if (!list) return;
+    if (!list || initialized.has(list)) return;
 
     const sortable = new Sortable(list, {
         group: {
@@ -90,24 +62,12 @@ export function initPaperColumn(el, dotNetRef, paperId) {
         onAdd: (evt) => {
             const reviewerId = evt.item.dataset.reviewerId;
 
-            log("ON ADD (DROP)", {
-                reviewerId,
-                to: evt.to,
-                from: evt.from,
-                item: evt.item
-            });
+            log("ON ADD (DROP)", reviewerId);
 
-            // BEFORE removal
-            log("BEFORE REMOVE - children:", evt.to.children.length);
-
+            // Let Blazor own state
             evt.item.remove();
 
-            // AFTER removal
-            log("AFTER REMOVE - children:", evt.to.children.length);
-            log("PAPER REVIEWER COUNTS:", countReviewers(evt.to));
-
             if (dotNetRef && reviewerId && paperId) {
-                log("CALLING BLAZOR", paperId, reviewerId);
                 dotNetRef.invokeMethodAsync("OnReviewerDroppedJS", paperId, reviewerId);
             }
         },
@@ -115,17 +75,11 @@ export function initPaperColumn(el, dotNetRef, paperId) {
         onMove: (evt) => {
             const reviewerId = evt.dragged.dataset.reviewerId;
 
-            log("ON MOVE", {
-                reviewerId,
-                to: evt.to,
-                from: evt.from
-            });
-
             const alreadyAssigned = [...evt.to.querySelectorAll("[data-reviewer-id]")]
                 .some(e => e.dataset.reviewerId === reviewerId);
 
             if (alreadyAssigned) {
-                log("BLOCKING DROP - DUPLICATE", reviewerId);
+                log("BLOCKING DUPLICATE", reviewerId);
                 return false;
             }
 
@@ -136,18 +90,17 @@ export function initPaperColumn(el, dotNetRef, paperId) {
     initialized.set(list, sortable);
 }
 
-/**
- * Destroy a sortable instance (important for Blazor re-renders)
- */
+// =====================
+// DESTROY
+// =====================
 export function destroy(el) {
     if (!el) return;
 
-    log("DESTROY CALLED", el);
-
-    const sortable = initialized.get(el);
+    const list = el.querySelector("ul") ?? el;
+    const sortable = initialized.get(list);
 
     if (sortable) {
-        log("DESTROYING SORTABLE", sortable);
+        log("DESTROYING SORTABLE");
 
         try {
             sortable.destroy();
@@ -155,18 +108,6 @@ export function destroy(el) {
             console.warn("Failed to destroy sortable", e);
         }
 
-        initialized.delete(el);
-    } else {
-        log("NO SORTABLE FOUND FOR ELEMENT");
+        initialized.delete(list);
     }
-}
-
-function countReviewers(container) {
-    const ids = [...container.querySelectorAll("[data-reviewer-id]")]
-        .map(e => e.dataset.reviewerId);
-
-    const counts = {};
-    ids.forEach(id => counts[id] = (counts[id] || 0) + 1);
-
-    return counts;
 }
