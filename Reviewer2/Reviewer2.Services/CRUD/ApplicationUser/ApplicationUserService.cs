@@ -185,6 +185,31 @@ public class ApplicationUserService : IApplicationUserService
             return null;
         }
     }
+    
+    /// <inheritdoc />
+    public async Task<List<UserLookupDTO>> SearchUsersAsync(string query, int maxResults = 10)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+            return [];
+
+        query = query.Trim().ToLower();
+
+        return await _context.Users
+            .Where(u =>
+                    (u.Email != null && u.Email.ToLower().Contains(query)) ||
+                    (u.FirstName != null && u.FirstName.ToLower().Contains(query)) ||
+                    (u.LastName != null && u.LastName.ToLower().Contains(query)))
+            .OrderBy(u => u.LastName ?? "")
+            .ThenBy(u => u.FirstName ?? "")
+            .Take(maxResults)
+            .Select(u => new UserLookupDTO(
+                u.Id,
+                u.FirstName ?? "",
+                u.LastName ?? "",
+                u.Email ?? ""
+            ))
+            .ToListAsync();
+    }
 
     /// <inheritdoc />
     public async Task<IdentityResult> AddApplicationUser(ApplicationUser applicationUser)
