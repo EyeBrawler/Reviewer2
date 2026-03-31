@@ -103,9 +103,18 @@ public class ReviewAssignmentService : IReviewAssignmentService
         if (!reviewerIds.Contains(reviewerId))
             return AssignmentResult.NotFound;
 
+        var reviewer = await context.Users
+            .Where(u => u.Id == reviewerId)
+            .Select(u => new { u.Id, u.Email })
+            .FirstAsync();
+        
         // Conflict check (author)
-        bool isAuthor = await context.Authors
-            .AnyAsync(a => a.PaperId == paperId && a.UserId == reviewerId);
+        bool isAuthor = await context.Authors.AnyAsync(a =>
+            a.PaperId == paperId &&
+            (
+                (a.UserId != null && a.UserId == reviewer.Id) ||
+                (a.UserId == null && a.Email == reviewer.Email)
+            ));
 
         if (isAuthor)
             return AssignmentResult.Conflict;
