@@ -6,6 +6,8 @@ echo "Waiting for database at $ConnectionStrings__Reviewer2Connection..."
 # Move into the Data project directory
 cd /app/Reviewer2/Reviewer2.Data
 
+dotnet restore
+
 # Retry until DB is ready and migrations succeed
 until dotnet ef database update; do
   echo "Database not ready yet, retrying in 5 seconds..."
