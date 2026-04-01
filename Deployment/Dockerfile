@@ -33,7 +33,7 @@ RUN dotnet tool install --global dotnet-ef --version 10.*
 ENV PATH="$PATH:/root/.dotnet/tools"
 
 # Copy startup script
-COPY wait-for-db.sh .
+COPY Deployment/wait-for-db.sh .
 
 # App config
 ENV ASPNETCORE_URLS=http://+:5000
