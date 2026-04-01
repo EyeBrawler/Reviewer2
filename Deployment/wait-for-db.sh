@@ -3,6 +3,8 @@ set -e
 
 echo "Waiting for database at $ConnectionStrings__Reviewer2Connection..."
 
+cd /app/Reviewer2
+
 dotnet restore
 
 # Move into the Data project directory
