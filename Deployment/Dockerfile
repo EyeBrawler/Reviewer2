@@ -19,7 +19,7 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0
 WORKDIR /app
 
 COPY --from=build /app/publish .
-COPY --from=build /app/Reviewer2/Reviewer2.Data /app/Reviewer2.Data
+COPY --from=build /app/Reviewer2 /app/Reviewer2
 
 # Install EF tool
 RUN dotnet tool install --global dotnet-ef --version 10.*
