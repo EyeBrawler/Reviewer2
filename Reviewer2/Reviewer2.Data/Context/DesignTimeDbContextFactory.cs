@@ -24,6 +24,7 @@ namespace Reviewer2.Data.Context
                 .SetBasePath(basePath)
                 .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
                 .AddUserSecrets<ApplicationContextFactory>() // <-- This line adds user secrets
+                .AddEnvironmentVariables()
                 .Build();
 
             var optionsBuilder = new DbContextOptionsBuilder<ApplicationContext>();
