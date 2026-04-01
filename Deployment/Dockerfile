@@ -19,7 +19,7 @@ WORKDIR /app
 COPY --from=build /app/publish .
 
 # Copy Data Project for Database Migration
-COPY --from=build /app/Reviewer2.Data /app/Reviewer2.Data
+COPY --from=build /app/Reviewer2/Reviewer2.Data /app/Reviewer2.Data
 
 RUN dotnet tool install --global dotnet-ef --version 10.*
 ENV PATH="$PATH:/root/.dotnet/tools"
