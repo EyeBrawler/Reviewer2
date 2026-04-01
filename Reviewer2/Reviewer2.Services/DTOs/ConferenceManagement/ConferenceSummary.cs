@@ -1,30 +1,30 @@
 ﻿using System.Collections.Generic;
 
-namespace Reviewer2.Services.DTOs.ConferenceManagement;
-
-/// <summary>
-/// Represents a simplified view of a conference for display or API purposes.
-/// Contains core descriptive fields and associated deadlines.
-/// </summary>
-public class ConferenceSummary
+namespace Reviewer2.Services.DTOs.ConferenceManagement
 {
     /// <summary>
-    /// Gets or sets the official name of the conference.
+    /// Represents a conference for presentation to the client or UI.
     /// </summary>
-    public string? Name { get; set; }
-    
-    /// <summary>
-    /// Gets or sets the description of the conference, including scope, purpose, or theme.
-    /// </summary>
-    public string? Description { get; set; }
-    
-    /// <summary>
-    /// Gets or sets the call-for-papers (CFP) text providing submission guidelines for authors.
-    /// </summary>
-    public string? CallForPapers { get; set; }
+    public class ConferenceSummary
+    {
+        /// <summary>
+        /// The conference name.
+        /// </summary>
+        public string? Name { get; set; }
 
-    /// <summary>
-    /// Gets or sets the collection of deadlines associated with the conference.
-    /// </summary>
-    public List<DeadlineSummary> Deadlines { get; set; } = new();
+        /// <summary>
+        /// The conference description.
+        /// </summary>
+        public string? Description { get; set; }
+
+        /// <summary>
+        /// The call for papers text.
+        /// </summary>
+        public string? CallForPapers { get; set; }
+
+        /// <summary>
+        /// The deadlines associated with the conference, ordered descending by priority.
+        /// </summary>
+        public List<DeadlineSummary> Deadlines { get; set; } = new();
+    }
 }

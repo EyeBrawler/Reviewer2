@@ -2,54 +2,46 @@
 using System.Linq;
 using Reviewer2.Data.Models;
 
-namespace Reviewer2.Services.DTOs.ConferenceManagement;
-
-/// <summary>
-/// Provides extension methods to map between Conference domain entities and their DTO representations.
-/// </summary>
-public static class ConferenceMapper
+namespace Reviewer2.Services.DTOs.ConferenceManagement
 {
     /// <summary>
-    /// Maps a <see cref="Conference"/> entity to a <see cref="ConferenceSummary"/> DTO.
-    /// Deadlines are mapped and sorted by descending priority.
+    /// Provides extension methods to map Conference domain entities to DTOs.
     /// </summary>
-    /// <param name="model">The <see cref="Conference"/> entity to map.</param>
-    /// <returns>A <see cref="ConferenceSummary"/> DTO containing core conference information and deadlines.</returns>
-    /// <exception cref="ArgumentNullException">Thrown if <paramref name="model"/> is null.</exception>
-    public static ConferenceSummary ToSummary(this Conference model)
+    public static class ConferenceMapper
     {
-        if (model == null)
-            throw new ArgumentNullException(nameof(model));
-
-        return new ConferenceSummary
+        /// <summary>
+        /// Maps a <see cref="Conference"/> to a <see cref="ConferenceSummary"/>.
+        /// Deadlines are sorted descending by priority.
+        /// </summary>
+        public static ConferenceSummary ToSummary(this Conference model)
         {
-            Name = model.Name,
-            Description = model.Description,
-            CallForPapers = model.CallForPapers,
+            if (model == null) throw new ArgumentNullException(nameof(model));
 
-            Deadlines = model.Deadlines?
-                .OrderByDescending(d => d.Priority)
-                .Select(d => d.ToSummary())
-                .ToList() ?? new()
-        };
-    }
+            return new ConferenceSummary
+            {
+                Name = model.Name,
+                Description = model.Description,
+                CallForPapers = model.CallForPapers,
+                Deadlines = model.Deadlines?
+                    .OrderByDescending(d => d.Priority)
+                    .Select(d => d.ToSummary())
+                    .ToList() ?? new()
+            };
+        }
 
-    /// <summary>
-    /// Maps a <see cref="Deadline"/> entity to a <see cref="DeadlineSummary"/> DTO.
-    /// </summary>
-    /// <param name="model">The <see cref="Deadline"/> entity to map.</param>
-    /// <returns>A <see cref="DeadlineSummary"/> DTO with name, date, and priority.</returns>
-    /// <exception cref="ArgumentNullException">Thrown if <paramref name="model"/> is null.</exception>
-    public static DeadlineSummary ToSummary(this Deadline model)
-    {
-        if (model == null)
-            throw new ArgumentNullException(nameof(model));
-
-        return new DeadlineSummary
+        /// <summary>
+        /// Maps a <see cref="Deadline"/> to a <see cref="DeadlineSummary"/>.
+        /// </summary>
+        public static DeadlineSummary ToSummary(this Deadline model)
         {
-            Name = model.Name,
-            Date = model.Date.UtcDateTime,
-            Priority = model.Priority
-        };
+            if (model == null) throw new ArgumentNullException(nameof(model));
+
+            return new DeadlineSummary
+            {
+                Name = model.Name,
+                Date = model.Date.UtcDateTime,
+                Priority = model.Priority
+            };
+        }
     }
 }
