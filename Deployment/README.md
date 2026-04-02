@@ -93,6 +93,12 @@ APP_EXTERNAL_PORT=5000
 REVIEWER2_CONNECTION="Host=${DB_HOST};Port=${DB_PORT};Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
 ```
 
+Then, you can use this command to build and run the containers. This will automatically build and publish the Reviewer2
+along with running the database migrations to get the database ready. Once the migrations are complete, the web app will automatically start.
+```bash
+docker compose -f docker-compose-full.yml --env-file .env.fullstack up
+```
+
 ---
 
 ## Using nginx with Reviewer2
