@@ -2,30 +2,30 @@
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Reviewer2.Data.Context;
-using Reviewer2.Data.Models;
+using Reviewer2.Services.DTOs.ConferenceManagement;
 
-namespace Reviewer2.Services.DTOs.ConferenceManagement
+namespace Reviewer2.Services.CRUD.Conferences
 {
     /// <summary>
     /// Service to manage conference queries using <see cref="ApplicationContext"/> via a DbContext factory.
     /// </summary>
-    public class ConferenceManager
+    public class ConferenceService : IConferenceService
     {
         private readonly IDbContextFactory<ApplicationContext> _contextFactory;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ConferenceManager"/> class.
+        /// Initializes a new instance of the <see cref="ConferenceService"/> class.
         /// </summary>
-        public ConferenceManager(IDbContextFactory<ApplicationContext> contextFactory)
+        public ConferenceService(IDbContextFactory<ApplicationContext> contextFactory)
         {
             _contextFactory = contextFactory;
         }
 
         /// <summary>
-        /// Retrieves the latest conference and maps it to a <see cref="ConferenceSummary"/> asynchronously.
+        /// Retrieves the latest conference and maps it to a <see cref="ConferenceDTO"/> asynchronously.
         /// Returns null if no conferences exist.
         /// </summary>
-        public async Task<ConferenceSummary?> GetActiveConferenceAsync()
+        public async Task<ConferenceDTO?> GetConferenceAsync()
         {
             await using var context = await _contextFactory.CreateDbContextAsync();
 
@@ -34,15 +34,7 @@ namespace Reviewer2.Services.DTOs.ConferenceManagement
                 .OrderByDescending(c => c.Id) // latest conference
                 .FirstOrDefaultAsync();
 
-            return conf?.ToSummary();
-        }
-
-        /// <summary>
-        /// Synchronous wrapper for <see cref="GetActiveConferenceAsync"/>.
-        /// </summary>
-        public ConferenceSummary? GetActiveConference()
-        {
-            return GetActiveConferenceAsync().GetAwaiter().GetResult();
+            return conf?.ToDTO();
         }
     }
 }

@@ -5,7 +5,7 @@ namespace Reviewer2.Services.DTOs.ConferenceManagement
     /// <summary>
     /// Represents a conference for presentation to the client or UI.
     /// </summary>
-    public class ConferenceSummary
+    public class ConferenceDTO
     {
         /// <summary>
         /// The conference name.
@@ -25,6 +25,6 @@ namespace Reviewer2.Services.DTOs.ConferenceManagement
         /// <summary>
         /// The deadlines associated with the conference, ordered descending by priority.
         /// </summary>
-        public List<DeadlineSummary> Deadlines { get; set; } = new();
+        public List<DeadlineSummaryDTO> Deadlines { get; set; } = new();
     }
 }

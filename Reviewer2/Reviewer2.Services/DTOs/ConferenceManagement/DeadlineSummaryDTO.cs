@@ -5,7 +5,7 @@ namespace Reviewer2.Services.DTOs.ConferenceManagement
     /// <summary>
     /// Represents a single deadline for a conference.
     /// </summary>
-    public class DeadlineSummary
+    public class DeadlineSummaryDTO
     {
         /// <summary>
         /// The deadline name (e.g., submission, review).
@@ -13,9 +13,9 @@ namespace Reviewer2.Services.DTOs.ConferenceManagement
         public string? Name { get; set; }
 
         /// <summary>
-        /// The deadline date in UTC.
+        /// The deadline date and time.
         /// </summary>
-        public DateTime Date { get; set; }
+        public DateTimeOffset Date { get; set; }
 
         /// <summary>
         /// The relative priority of this deadline.
