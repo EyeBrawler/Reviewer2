@@ -16,5 +16,11 @@ namespace Reviewer2.Services.CRUD.Conferences
         /// or <c>null</c> if no conferences exist.
         /// </returns>
         Task<ConferenceDTO?> GetConferenceAsync();
+
+        /// <summary>
+        /// Updates the first conference with the values from <see cref="ConferenceEditDTO"/>.
+        /// Returns true if the update was successful; false otherwise.
+        /// </summary>
+        Task<bool> UpdateConferenceAsync(ConferenceEditDTO editDto);
     }
 }
