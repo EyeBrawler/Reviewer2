@@ -1,7 +1,7 @@
 ## [demo-4] - 2026-04-03
 
 ### Added
-* New Database tables for to store conference metadata (like the call for papers text and deadlines)
+* New Database tables to store conference metadata (like the call for papers text and deadlines)
 * A new "Reviewer Assignment" page with drag and drop functionality for paper chairs and admins to use for pairing Reviewers to 
 submitted papers. Basic auto assignment/matching is available.
 * A new button exists on the home page which allows logged-in users to volunteer to be a reviewer.
