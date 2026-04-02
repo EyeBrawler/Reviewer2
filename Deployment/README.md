@@ -78,18 +78,20 @@ Below is an example of ``.env.fullstack``. The main fields worth changing here a
 # App environment
 ASPNETCORE_ENVIRONMENT=Production
 
-# Database (full stack)
+# Database
 POSTGRES_USER=reviewer2
-POSTGRES_PASSWORD=mysecurepassword123 # <--- Your user's password goes here
+POSTGRES_PASSWORD=mysecurepassword123 <--- Your user's password goes here
 POSTGRES_DB=reviewer2_prod
 DB_HOST=db
-DB_PORT=5432 # <--- You may want to change the port number if postgres is already installed
+DB_PORT=5432
 
-# Full connection string for the app
+# External ports
+DB_EXTERNAL_PORT=5432 <--- You may want to change the port number if postgres is already installed
+APP_EXTERNAL_PORT=5000
+
+# Connection string (unchanged)
 REVIEWER2_CONNECTION="Host=${DB_HOST};Port=${DB_PORT};Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
 ```
-
-
 
 ---
 
@@ -218,6 +220,27 @@ docker run -d --name postgres --hostname postgres-db -e POSTGRES_USER=reviewer2 
 ```
 
 In the above line, port 5433 is being exposed rather than 5432 as to not conflict with an existing Postgres install.
+
+To add the necessary tables to your database you will first need to set a user secret.
+
+Navigate to the Reviewer2.Data directory of your clone of the repository. The command below is run from the root of the repo.
+```bash
+cd Reviewer2/Reviewer2.Data
+```
+
+Set your user secrets. Change fields like passwords and names to match the values you specified when creating the container.
+```bash
+dotnet user-secrets set "ConnectionStrings:Reviewer2Connection" "Host=localhost;Port=5432;Database=reviewer2;Username=myPostgresUser;Password=My Secure Password;Include Error Detail=true"
+```
+Update the database
+```bash
+dotnet ef database update
+```
+
+If you are missing the EF Core tools, you can install them with this command.
+```bash
+dotnet tool install --global dotnet-ef
+```
 
 ## How to Create a systemd Daemon for Reviewer2
 
