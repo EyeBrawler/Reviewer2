@@ -1,3 +1,23 @@
+## [demo-4] - 2026-04-03
+
+### Added
+* New Database tables for to store conference metadata (like the call for papers text and deadlines)
+* A new "Reviewer Assignment" page with drag and drop functionality for paper chairs and admins to use for pairing Reviewers to 
+submitted papers. Basic auto assignment/matching is available.
+* A new button exists on the home page which allows logged-in users to volunteer to be a reviewer.
+* A new homepage exists that can display user configurable conference information such as a call for papers, the name of the conference,
+and deadlines.
+* The mockup review submission page has been made functional.
+* Paper chairs have a page to approve papers that have been reviewed.
+
+### Changed
+* The primary deployment method for Reviewer2 is now Docker with the Docker compose plugin rather than systemd services. All well known
+options for deployment are generally documented in the ``README.md`` located in the ``Deployment`` folder.
+
+### Removed
+* The old generic Reviewer2 home page
+
+
 ## [demo-3] - 2026-03-06
 
 ### Added
