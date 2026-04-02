@@ -13,6 +13,7 @@ and deadlines.
 ### Changed
 * The primary deployment method for Reviewer2 is now Docker with the Docker compose plugin rather than systemd services. All well known
 options for deployment are generally documented in the ``README.md`` located in the ``Deployment`` folder.
+* The paper submission form now allows other Reviewer2 users to be linked as Authors on a paper.
 
 ### Removed
 * The old generic Reviewer2 home page
