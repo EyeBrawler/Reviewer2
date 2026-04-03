@@ -109,4 +109,11 @@ public interface IReviewAssignmentService
     /// <returns>A list of <see cref="ReviewerPaperDTO"/> representing all review assignments.</returns>
     /// <exception cref="ArgumentException">Thrown if <paramref name="reviewerId"/> is empty.</exception>
     Task<List<ReviewerPaperDTO>> GetReviewerPapersAsync(Guid reviewerId);
+
+    /// <summary>
+    /// Retrieves all review assignments across all reviewers, including related paper and review data,
+    /// and maps them to <see cref="ReviewerPaperDTO"/> objects.
+    /// </summary>
+    /// <returns>A list of <see cref="ReviewerPaperDTO"/> representing all review assignments.</returns>
+    Task<List<ReviewerPaperDTO>> GetAllReviewerAssignmentsAsync();
 }
