@@ -23,6 +23,11 @@ public class ReviewAssignment
     /// Identifier of the paper being reviewed.
     /// </summary>
     public Guid PaperId { get; set; }
+    
+    /// <summary>
+    /// Navigation property to the paper being reviewed.
+    /// </summary>
+    public Paper Paper { get; set; } = null!;
 
     /// <summary>
     /// Identifier of the user assigned to review the paper.
