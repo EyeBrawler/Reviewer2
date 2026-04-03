@@ -20,14 +20,14 @@
 
     <Authorized>
 
-    @if (IsLoading)
+    @if (_isLoading)
     {
         <div class="text-center my-5">
             <div class="spinner-border" role="status"></div>
             <p>Loading submissions...</p>
         </div>
     }
-    else if (!Papers.Any())
+    else if (!_papers.Any())
     {
         <div class="alert alert-info">
             No submissions found.
@@ -36,57 +36,69 @@
     else
     {
     <div class="d-flex justify-content-between align-items-center my-3">
-        <h3 class="mb-0">Submissions</h3>
+        <h3 class="mb-0">@PageTitleText</h3>
 
         <input type="text"
                class="form-control w-auto"
                placeholder="Search..."
-               @bind="SearchString"
+               @bind="_searchString"
                @bind:event="oninput" />
     </div>
 
     <div class="table-responsive">
     <table class="table table-bordered table-striped table-hover">
 
-    <thead class="table-light">
-    <tr>
-        <th role="button" @onclick="() => SortBy(nameof(UserPaperDTO.Title))">
-            Title @SortIcon(nameof(UserPaperDTO.Title))
-        </th>
+        <thead class="table-light">
+        <tr>
+            <th role="button" @onclick="() => SortBy(nameof(UserPaperDTO.Title))">
+                Title @SortIcon(nameof(UserPaperDTO.Title))
+            </th>
 
-        <th role="button" @onclick="() => SortBy(nameof(UserPaperDTO.Status))">
-            Status @SortIcon(nameof(UserPaperDTO.Status))
-        </th>
+            @if (_showAllPapers)
+            {
+                <th role="button" @onclick="() => SortBy(nameof(UserPaperDTO.Authors))">
+                    Authors @SortIcon(nameof(UserPaperDTO.Authors))
+                </th>
+            }
 
-        <th role="button" @onclick="() => SortBy(nameof(UserPaperDTO.SubmittedAtUtc))">
-            Submitted @SortIcon(nameof(UserPaperDTO.SubmittedAtUtc))
-        </th>
+            <th role="button" @onclick="() => SortBy(nameof(UserPaperDTO.Status))">
+                Status @SortIcon(nameof(UserPaperDTO.Status))
+            </th>
 
-        <th style="width:120px;">Actions</th>
-    </tr>
-    </thead>
+            <th role="button" @onclick="() => SortBy(nameof(UserPaperDTO.SubmittedAtUtc))">
+                Submitted @SortIcon(nameof(UserPaperDTO.SubmittedAtUtc))
+            </th>
 
-    <tbody>
-    @foreach (var paper in PagedPapers)
-    {
-    <tr>
-        <td>@paper.Title</td>
+            <th style="width:120px;">Actions</th>
+        </tr>
+        </thead>
 
-        <td>@paper.Status</td>
+        <tbody>
+        @foreach (var paper in PagedPapers)
+        {
+            <tr>
+                <td>@paper.Title</td>
 
-        <td>
-            @paper.SubmittedAtUtc?.LocalDateTime.ToString("M/d/yy h:mm tt")
-        </td>
+                @if (_showAllPapers)
+                {
+                    <td>@paper.Authors</td>
+                }
 
-        <td>
-            <button class="btn btn-primary btn-sm"
-                    @onclick="() => ViewDetails(paper.PaperId)">
-                View
-            </button>
-        </td>
-    </tr>
-    }
-    </tbody>
+                <td>@paper.Status</td>
+
+                <td>
+                    @paper.SubmittedAtUtc?.LocalDateTime.ToString("M/d/yy h:mm tt")
+                </td>
+
+                <td>
+                    <button class="btn btn-primary btn-sm"
+                            @onclick="() => ViewDetails(paper.PaperId)">
+                        View
+                    </button>
+                </td>
+            </tr>
+        }
+        </tbody>
 
     </table>
     </div>
@@ -98,7 +110,7 @@
     <div>
         <label class="me-2">Rows:</label>
         <select class="form-select d-inline w-auto"
-                @bind="PageSize">
+                @bind="_pageSize">
             <option>5</option>
             <option>10</option>
             <option>25</option>
@@ -109,17 +121,17 @@
     <div>
 
     <button class="btn btn-sm btn-secondary me-2"
-            disabled="@(CurrentPage == 1)"
+            disabled="@(_currentPage == 1)"
             @onclick="PreviousPage">
         Previous
     </button>
 
     <span class="me-2">
-        Page @CurrentPage of @TotalPages
+        Page @_currentPage of @TotalPages
     </span>
 
     <button class="btn btn-sm btn-secondary"
-            disabled="@(CurrentPage == TotalPages)"
+            disabled="@(_currentPage == TotalPages)"
             @onclick="NextPage">
         Next
     </button>
@@ -134,49 +146,61 @@
 </AuthorizeView>
 
 @code {
-    private bool IsLoading = true;
-    private List<UserPaperDTO> Papers = new();
-    private string SearchString = string.Empty;
+    private string PageTitleText =>
+        _showAllPapers ? "Submissions" : "My Submissions";
+    
+    private bool _isLoading = true;
+    private List<UserPaperDTO> _papers = new();
+    private string _searchString = string.Empty;
 
-    private string SortColumn = nameof(UserPaperDTO.SubmittedAtUtc);
-    private bool SortAscending = false;
+    private string _sortColumn = nameof(UserPaperDTO.SubmittedAtUtc);
+    private bool _sortAscending;
 
-    private int PageSize = 10;
-    private int CurrentPage = 1;
+    private int _pageSize = 10;
+    private int _currentPage = 1;
 
+    private bool _showAllPapers;
+    
     private IEnumerable<UserPaperDTO> FilteredPapers =>
-    string.IsNullOrWhiteSpace(SearchString)
-    ? Papers
-    : Papers.Where(p =>
-    (p.Title?.Contains(SearchString, StringComparison.OrdinalIgnoreCase) ?? false) ||
-    (p.Status?.Contains(SearchString, StringComparison.OrdinalIgnoreCase) ?? false));
+        string.IsNullOrWhiteSpace(_searchString)
+            ? _papers
+            : _papers.Where(p =>
+                p.Title.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ||
+                p.Status.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ||
+                (_showAllPapers && (p.Authors.Contains(_searchString, StringComparison.OrdinalIgnoreCase)))
+            );
 
     private IEnumerable<UserPaperDTO> SortedFilteredPapers =>
-    SortColumn switch
+    _sortColumn switch
     {
         nameof(UserPaperDTO.Title) =>
-            SortAscending
+            _sortAscending
                 ? FilteredPapers.OrderBy(p => p.Title)
                 : FilteredPapers.OrderByDescending(p => p.Title),
 
         nameof(UserPaperDTO.Status) =>
-            SortAscending
+            _sortAscending
                 ? FilteredPapers.OrderBy(p => p.Status)
                 : FilteredPapers.OrderByDescending(p => p.Status),
+            
+        nameof(UserPaperDTO.Authors) =>
+            _sortAscending
+                ? FilteredPapers.OrderBy(p => p.Authors)
+                : FilteredPapers.OrderByDescending(p => p.Authors),
 
         _ =>
-            SortAscending
+            _sortAscending
                 ? FilteredPapers.OrderBy(p => p.SubmittedAtUtc)
                 : FilteredPapers.OrderByDescending(p => p.SubmittedAtUtc)
     };
 
     private IEnumerable<UserPaperDTO> PagedPapers =>
     SortedFilteredPapers
-    .Skip((CurrentPage - 1) * PageSize)
-    .Take(PageSize);
+    .Skip((_currentPage - 1) * _pageSize)
+    .Take(_pageSize);
 
     private int TotalPages =>
-    (int)Math.Ceiling(SortedFilteredPapers.Count() / (double)PageSize);
+    (int)Math.Ceiling(SortedFilteredPapers.Count() / (double)_pageSize);
 
     protected override async Task OnInitializedAsync()
     {
@@ -185,7 +209,7 @@
 
     private async Task LoadPapers()
     {
-        IsLoading = true;
+        _isLoading = true;
 
         var authState = await AuthProvider.GetAuthenticationStateAsync();
         var user = authState.User;
@@ -207,46 +231,48 @@
                     roles.Contains("ConferenceChair") ||
                     roles.Contains("PaperChair"))
                 {
-                    Papers = (await PaperQueryService.GetAllPapersAsync()).ToList();
+                    _papers = (await PaperQueryService.GetAllPapersAsync()).ToList();
+                    _showAllPapers = true;
                 }
                 else
                 {
-                    Papers = (await PaperQueryService.GetUserPapersAsync(userId)).ToList();
+                    _papers = (await PaperQueryService.GetUserPapersAsync(userId)).ToList();
+                    _showAllPapers = false;
                 }
             }
         }
 
-        IsLoading = false;
+        _isLoading = false;
     }
 
     private void SortBy(string column)
     {
-        if (SortColumn == column)
-            SortAscending = !SortAscending;
+        if (_sortColumn == column)
+            _sortAscending = !_sortAscending;
         else
         {
-            SortColumn = column;
-            SortAscending = true;
+            _sortColumn = column;
+            _sortAscending = true;
         }
     }
 
     private string SortIcon(string column)
     {
-        if (SortColumn != column) return "";
+        if (_sortColumn != column) return "";
 
-        return SortAscending ? "▲" : "▼";
+        return _sortAscending ? "▲" : "▼";
     }
 
     private void PreviousPage()
     {
-        if (CurrentPage > 1)
-            CurrentPage--;
+        if (_currentPage > 1)
+            _currentPage--;
     }
 
     private void NextPage()
     {
-        if (CurrentPage < TotalPages)
-            CurrentPage++;
+        if (_currentPage < TotalPages)
+            _currentPage++;
     }
 
     private void ViewDetails(Guid paperId)
