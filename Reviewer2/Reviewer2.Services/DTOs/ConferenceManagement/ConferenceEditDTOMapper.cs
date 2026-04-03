@@ -9,7 +9,7 @@ namespace Reviewer2.Services.DTOs.ConferenceManagement
     /// Provides extension methods to map between <see cref="Conference"/> entities
     /// and <see cref="ConferenceEditDTO"/> objects.
     /// </summary>
-    public static class ConferenceMappingExtensions
+    public static class ConferenceEditDTOMapper
     {
         /// <summary>
         /// Converts a <see cref="Conference"/> entity to a <see cref="ConferenceEditDTO"/>.
@@ -63,7 +63,9 @@ namespace Reviewer2.Services.DTOs.ConferenceManagement
                     Id = d.Id ?? 0,
                     Name = d.Name ?? string.Empty,
                     // Convert DateTime? back to DateTimeOffset
-                    Date = d.Date.HasValue ? new DateTimeOffset(d.Date.Value) : DateTimeOffset.Now,
+                    Date = d.Date.HasValue
+                        ? new DateTimeOffset(d.Date.Value.ToUniversalTime())
+                        : DateTimeOffset.UtcNow,
                     Priority = d.Priority
                 });
             }

@@ -1,8 +1,10 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System;
+using Microsoft.EntityFrameworkCore;
 using Reviewer2.Data.Context;
 using Reviewer2.Data.Models;
 using System.Threading.Tasks;
 using Reviewer2.Services.DTOs.ConferenceManagement;
+using Serilog;
 
 namespace Reviewer2.Services.CRUD.Conferences
 {
@@ -31,12 +33,33 @@ namespace Reviewer2.Services.CRUD.Conferences
         /// </returns>
         public async Task<ConferenceDTO?> GetConferenceAsync()
         {
-            await using var context = _dbFactory.CreateDbContext();
-            var entity = await context.Conferences
-                .Include(c => c.Deadlines)
-                .FirstOrDefaultAsync();
+            Log.Information("Fetching conference DTO");
 
-            return entity?.ToDTO();
+            try
+            {
+                await using var context = await _dbFactory.CreateDbContextAsync();
+
+                var entity = await context.Conferences
+                    .Include(c => c.Deadlines)
+                    .FirstOrDefaultAsync();
+
+                if (entity == null)
+                {
+                    Log.Warning("No conference found in database");
+                    return null;
+                }
+
+                Log.Information("Conference retrieved successfully (Id: {ConferenceId}, Deadlines: {DeadlineCount})",
+                    entity.Id,
+                    entity.Deadlines?.Count ?? 0);
+
+                return entity.ToDTO();
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Error retrieving conference DTO");
+                throw;
+            }
         }
 
         /// <summary>
@@ -47,10 +70,34 @@ namespace Reviewer2.Services.CRUD.Conferences
         /// </returns>
         public async Task<Conference?> GetConferenceEntityAsync()
         {
-            await using var context = _dbFactory.CreateDbContext();
-            return await context.Conferences
-                .Include(c => c.Deadlines)
-                .FirstOrDefaultAsync();
+            Log.Information("Fetching conference entity");
+
+            try
+            {
+                await using var context = await _dbFactory.CreateDbContextAsync();
+
+                var entity = await context.Conferences
+                    .Include(c => c.Deadlines)
+                    .FirstOrDefaultAsync();
+
+                if (entity == null)
+                {
+                    Log.Warning("No conference entity found");
+                }
+                else
+                {
+                    Log.Information("Conference entity retrieved (Id: {ConferenceId}, Deadlines: {DeadlineCount})",
+                        entity.Id,
+                        entity.Deadlines?.Count ?? 0);
+                }
+
+                return entity;
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Error retrieving conference entity");
+                throw;
+            }
         }
 
         /// <summary>
@@ -62,19 +109,50 @@ namespace Reviewer2.Services.CRUD.Conferences
         /// </returns>
         public async Task<bool> UpdateConferenceAsync(ConferenceEditDTO editDto)
         {
-            await using var context = _dbFactory.CreateDbContext();
-            var entity = await context.Conferences
-                .Include(c => c.Deadlines)
-                .FirstOrDefaultAsync();
+            Log.Information("Starting conference update");
 
-            if (entity == null) return false;
+            try
+            {
+                await using var context = await _dbFactory.CreateDbContextAsync();
 
-            // Map DTO values to the entity
-            editDto.ToEntity(entity);
+                var entity = await context.Conferences
+                    .Include(c => c.Deadlines)
+                    .FirstOrDefaultAsync();
 
-            // Save changes to the database
-            await context.SaveChangesAsync();
-            return true;
+                if (entity == null)
+                {
+                    Log.Warning("Update failed: no conference entity found");
+                    return false;
+                }
+
+                Log.Information("Mapping DTO to entity (ConferenceId: {ConferenceId})", entity.Id);
+
+                // Optional: log incoming data snapshot (be careful with sensitive data)
+                Log.Debug("Incoming DTO: {@EditDto}", editDto);
+
+                // Map DTO values to the entity
+                editDto.ToEntity(entity);
+
+                Log.Information("Saving changes to database");
+
+                var changes = await context.SaveChangesAsync();
+
+                Log.Information("Conference update complete (ConferenceId: {ConferenceId}, Changes: {ChangeCount})",
+                    entity.Id,
+                    changes);
+
+                return true;
+            }
+            catch (DbUpdateException dbEx)
+            {
+                Log.Error(dbEx, "Database update error while saving conference");
+                throw;
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Unexpected error while updating conference");
+                throw;
+            }
         }
     }
 }
