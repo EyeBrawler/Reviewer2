@@ -1,0 +1,187 @@
+@page "/conference-edit"
+@using Microsoft.AspNetCore.Authorization
+@using MudBlazor
+@using Reviewer2.Services.CRUD.Conferences
+@using Reviewer2.Services.DTOs.ConferenceManagement
+@using Serilog
+@attribute [Authorize(Roles = "Admin, ConferenceChair")]
+@rendermode InteractiveServer
+@inject IConferenceService ConferenceService
+
+<MudThemeProvider />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<div class="container my-4">
+    <h1 class="mb-4">Conference Setup</h1>
+
+    @if (_isLoading)
+    {
+        <div class="alert alert-info">Loading conference data...</div>
+    }
+    else if (!string.IsNullOrEmpty(_errorMessage))
+    {
+        <div class="alert alert-danger">@_errorMessage</div>
+    }
+    else
+    {
+        <EditForm Model="_editModel" OnValidSubmit="SaveConferenceAsync">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <!-- Conference Info -->
+            <MudPaper Class="pa-4 mb-4">
+                <h5>Conference Info</h5>
+
+                <div class="mb-2">
+                    <label>Name</label>
+                    <InputText class="form-control" @bind-Value="_editModel.Info.Name" />
+                </div>
+
+                <div class="mb-2">
+                    <label>Description</label>
+                    <InputTextArea class="form-control" @bind-Value="_editModel.Info.Description" />
+                </div>
+            </MudPaper>
+
+            <!-- Call for Papers -->
+            <MudPaper Class="pa-4 mb-4">
+                <h5>Call for Papers</h5>
+
+                <div class="mb-2">
+                    <label>CFP Content</label>
+                    <InputTextArea class="form-control" @bind-Value="_editModel.CallForPapers.Content" />
+                </div>
+            </MudPaper>
+
+            <!-- Deadlines -->
+            <MudPaper Class="pa-4 mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h5 class="mb-0">Deadlines (@_editModel.Deadlines.Count)</h5>
+
+                    <button type="button"
+                            class="btn btn-secondary btn-sm"
+                            @onclick="AddDeadline">
+                        Add Deadline
+                    </button>
+                </div>
+
+                @foreach (var deadline in _editModel.Deadlines)
+                {
+                    <MudPaper Class="pa-3 mb-3" Elevation="1">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <strong>@(deadline.Name ?? "New Deadline")</strong>
+
+                            <button type="button"
+                                    class="btn btn-danger btn-sm"
+                                    @onclick="() => RemoveDeadline(deadline)">
+                                Remove
+                            </button>
+                        </div>
+
+                        <div class="mb-2">
+                            <label>Name</label>
+                            <InputText class="form-control" @bind-Value="deadline.Name" />
+                        </div>
+
+                        <div class="mb-2">
+                            <label>Date</label>
+                            <MudDatePicker @bind-Date="deadline.Date"
+                                           Label="Deadline Date"
+                                           Variant="Variant.Filled"
+                                           Class="w-100" />
+                        </div>
+
+                        <div class="mb-2">
+                            <label>Priority</label>
+                            <InputNumber class="form-control" @bind-Value="deadline.Priority" />
+                        </div>
+                    </MudPaper>
+                }
+            </MudPaper>
+
+            <!-- Save Button -->
+            <div class="mt-3">
+                <button type="submit" disabled="@_isSaving" class="btn btn-primary">
+                    Save Conference
+                </button>
+            </div>
+        </EditForm>
+    }
+</div>
+
+@code {
+    private ConferenceEditDTO _editModel = new();
+    private bool _isLoading = true;
+    private bool _isSaving;
+    private string? _errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var entity = await ConferenceService.GetConferenceEntityAsync();
+
+            if (entity == null)
+            {
+                _errorMessage = "No conference found.";
+                return;
+            }
+
+            _editModel = entity.ToEditDTO();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = "Failed to load conference data.";
+            Log.Error(ex, "Error loading conference");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task SaveConferenceAsync()
+    {
+        if (_isSaving) return;
+
+        _isSaving = true;
+        _errorMessage = null;
+
+        try
+        {
+            if (_editModel.Deadlines.Any(d => d.Date == null))
+            {
+                _errorMessage = "All deadlines must have a date.";
+                return;
+            }
+
+            var success = await ConferenceService.UpdateConferenceAsync(_editModel);
+
+            if (!success)
+            {
+                _errorMessage = "Failed to save conference changes.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = "An error occurred while saving.";
+            Log.Error(ex, "Error saving conference");
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private void AddDeadline()
+    {
+        _editModel.Deadlines.Add(new ConferenceEditDTO.DeadlineInfo());
+    }
+
+    private void RemoveDeadline(ConferenceEditDTO.DeadlineInfo deadline)
+    {
+        _editModel.Deadlines.Remove(deadline);
+    }
+}

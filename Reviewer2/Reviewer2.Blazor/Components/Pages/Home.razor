@@ -1,78 +1,106 @@
 ﻿@page "/"
 @rendermode InteractiveServer
+@using Reviewer2.Services.CRUD.Conferences
+@using Reviewer2.Services.DTOs.ConferenceManagement
+@inject IConferenceService ConferenceService
 
 <PageTitle>Reviewer2</PageTitle>
 
-<h1>Reviewer2 Conference Management System</h1>
+<div class="container my-4">
+    @if (_isLoading)
+    {
+        <div class="alert alert-info">Loading conference data...</div>
+    }
+    else if (!string.IsNullOrEmpty(_errorMessage))
+    {
+        <div class="alert alert-danger">@_errorMessage</div>
+    }
+    else if (_conference == null)
+    {
+        <div class="alert alert-warning">
+            No conference has been configured yet.
+        </div>
 
-<p>
-    Reviewer2 is a web-based platform for organizing and managing academic
-    conferences, workshops, and symposia. It supports the complete lifecycle
-    of a peer-reviewed academic event.
-</p>
+        <AuthorizeView Roles="Admin, ConferenceChair">
+            <Authorized>
+                <NavLink class="btn btn-primary" href="/conference-edit">
+                    Create Conference
+                </NavLink>
+            </Authorized>
+        </AuthorizeView>
+    }
+    else
+    {
+        <!-- Conference Info -->
+        <div class="mb-4 d-flex justify-content-between align-items-start">
+    
+            <div>
+                <h1 class="mb-1">@_conference.Name</h1>
+                <p class="mb-0">@_conference.Description</p>
+            </div>
 
-<h2>System Overview</h2>
+            <AuthorizeView Roles="Admin, ConferenceChair">
+                <Authorized>
+                    <NavLink class="btn btn-warning btn-sm ms-3" href="/conference-edit">
+                        <i class="bi bi-gear"></i> Edit
+                    </NavLink>
+                </Authorized>
+            </AuthorizeView>
 
-<p>
-    The system is designed to assist program chairs, reviewers, and authors
-    in coordinating submissions, peer review, and decision-making in a 
-    structured and transparent manner.
-</p>
+        </div>
 
-<h2>What you can do</h2>
+        <!-- Call for Papers -->
+        <div class="mb-4">
+            <h4>Call for Papers</h4>
+            <p>@_conference.CallForPapers</p>
+        </div>
 
-<ul>
-    <li>
-        <strong>Create and configure conferences</strong><br />
-        Define important dates, submission tracks, and review policies.
-    </li>
-    <li>
-        <strong>Manage paper submissions</strong><br />
-        Collect manuscripts, revisions, and supplementary material.
-    </li>
-    <li>
-        <strong>Coordinate the peer-review process</strong><br />
-        Assign reviewers, monitor reviews, and make acceptance decisions.
-    </li>
-</ul>
+        <!-- Deadlines -->
+        <div class="mb-4">
+            <h4>Deadlines</h4>
 
-<h2>Typical Conference Workflow</h2>
+            @if (_conference.Deadlines.Any())
+            {
+                <ul class="list-group">
+                    @foreach (var d in _conference.Deadlines.OrderBy(d => d.Date))
+                    {
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>@d.Name</span>
+                            <span>@d.Date.ToString("MMM dd, yyyy")</span>
+                        </li>
+                    }
+                </ul>
+            }
+            else
+            {
+                <p>No deadlines available.</p>
+            }
+        </div>
+    }
+    <!-- Volunteer Reviewer Button -->
+    <div class="mt-4">
+        <VolunteerReviewerButton ShowTitle="true" ShowDescription="true" />
+    </div>
+</div>
 
-<ol>
-    <li>Conference creation and configuration</li>
-    <li>Paper submission by authors</li>
-    <li>Reviewer bidding and assignment</li>
-    <li>Peer review and discussion</li>
-    <li>Acceptance and rejection decisions</li>
-    <li>Camera-ready paper submission</li>
-</ol>
+@code {
+    private ConferenceDTO? _conference;
+    private bool _isLoading = true;
+    private string? _errorMessage;
 
-<h2>Getting Started</h2>
-
-<p>
-    Use the navigation menu to get registered, or sign-in to access your conference portal.
-</p>
-
-<h2>Get Involved</h2>
-
-<p>
-    Interested in helping with the review process?
-</p>
-
-<VolunteerReviewerButton 
-    ShowTitle="false" 
-    ShowDescription="false" />
-
-<h2>Notes</h2>
-
-<p>
-    This system is under active development. Features and workflows
-    may evolve based on user feedback and institutional requirements.
-</p>
-
-<h2>Support</h2>
-
-<p>
-    For questions or issues related to conference setup, submissions, 
-    or reviews, please contact the system administrator.
-</p>
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _conference = await ConferenceService.GetConferenceAsync();
+        }
+        catch
+        {
+            _errorMessage = "Failed to load conference data.";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+}
