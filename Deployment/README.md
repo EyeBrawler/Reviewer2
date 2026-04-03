@@ -90,7 +90,7 @@ DB_EXTERNAL_PORT=5432 <--- You may want to change the port number if postgres is
 APP_EXTERNAL_PORT=5000
 
 # Connection string (unchanged)
-REVIEWER2_CONNECTION="Host=${DB_HOST};Port=${DB_PORT};Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
+REVIEWER2_CONNECTION=Host=${DB_HOST};Port=${DB_PORT};Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
 ```
 
 ### Deploying and Starting the Containers
