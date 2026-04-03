@@ -180,6 +180,12 @@ public class ReviewAssignmentService : IReviewAssignmentService
             .Select(a => a.UserId!.Value)
             .ToHashSetAsync();
 
+        var authorEmails = await context.Authors
+            .AsNoTracking()
+            .Where(a => a.PaperId == paperId && a.UserId == null)
+            .Select(a => a.Email)
+            .ToHashSetAsync();
+
         // Get already assigned reviewers (to exclude from candidates)
         var assignedReviewerIds = await context.ReviewAssignments
             .AsNoTracking()
@@ -206,7 +212,9 @@ public class ReviewAssignmentService : IReviewAssignmentService
         var candidates = users
             .Select(u =>
             {
-                bool hasConflict = authorUserIds.Contains(u.Id);
+                bool hasConflict =
+                    authorUserIds.Contains(u.Id) ||
+                    (u.Email != null && authorEmails.Contains(u.Email));
 
                 return new ReviewerCandidateDTO
                 {
@@ -297,17 +305,22 @@ public class ReviewAssignmentService : IReviewAssignmentService
                 assignmentCounts[reviewer.ReviewerId] =
                     assignmentCounts.GetValueOrDefault(reviewer.ReviewerId) + 1;
 
-                if (persist)
+                if (!existingReviewerIds.Contains(reviewer.ReviewerId))
                 {
-                    context.ReviewAssignments.Add(new ReviewAssignment
+                    if (persist)
                     {
-                        Id = Guid.NewGuid(),
-                        PaperId = paper.Id,
-                        ReviewerId = reviewer.ReviewerId,
-                        Status = ReviewStatus.Pending
-                    });
+                        context.ReviewAssignments.Add(new ReviewAssignment
+                        {
+                            Id = Guid.NewGuid(),
+                            PaperId = paper.Id,
+                            ReviewerId = reviewer.ReviewerId,
+                            Status = ReviewStatus.Pending
+                        });
 
-                    created++;
+                        created++;
+                    }
+
+                    existingReviewerIds.Add(reviewer.ReviewerId);
                 }
             }
 
