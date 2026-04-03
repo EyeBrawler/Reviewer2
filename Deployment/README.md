@@ -104,7 +104,7 @@ docker compose -f docker-compose-full.yml --env-file .env.fullstack up
 Sometimes Docker Compose can cache data it should not, even after the codebase has been updated. Running these commands
 will lead to a clean build with no cache.
 ```bash
-docker compose -f docker-compose-full.yml --env-file .env.fullstack build
+docker compose -f docker-compose-full.yml --env-file .env.fullstack build --no-cache
 ```
 ```bash
 docker compose -f docker-compose-full.yml --env-file .env.fullstack up -d
