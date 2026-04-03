@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Reviewer2.Data.Models;
 using Reviewer2.Services.DTOs.FileStorage;
 using Reviewer2.Services.DTOs.PaperSubmission;
+using Reviewer2.Services.DTOs.ReviewAssignments;
 
 namespace Reviewer2.Services.Submissions.PaperSubmission
 {
@@ -74,5 +75,13 @@ namespace Reviewer2.Services.Submissions.PaperSubmission
         /// and file summaries suitable for display in an overview table.
         /// </returns>
         Task<IEnumerable<UserPaperDTO>> GetAllPapersAsync(PaperStatus? status = null);
+
+        /// <summary>
+        /// Retrieves all papers assigned to a reviewer, including review status and details.
+        /// </summary>
+        /// <param name="reviewerId">The unique identifier of the reviewer.</param>
+        /// <returns>A list of <see cref="ReviewerPaperDTO"/> representing all review assignments.</returns>
+        /// <exception cref="ArgumentException">Thrown if <paramref name="reviewerId"/> is empty.</exception>
+        Task<List<ReviewerPaperDTO>> GetReviewerPapersAsync(Guid reviewerId);
     }
 }

@@ -10,6 +10,7 @@ using Reviewer2.Data.Models;
 using Reviewer2.Services.CRUD.FileStorage;
 using Reviewer2.Services.DTOs.FileStorage;
 using Reviewer2.Services.DTOs.PaperSubmission;
+using Reviewer2.Services.DTOs.ReviewAssignments;
 using Serilog;
 
 namespace Reviewer2.Services.Submissions.PaperSubmission;
@@ -306,5 +307,38 @@ public class PaperQueryService : IPaperQueryService
         Log.Information("Mapped all papers to DTOs");
 
         return result;
+    }
+    
+    /// <inheritdoc/>
+    public async Task<List<ReviewerPaperDTO>> GetReviewerPapersAsync(Guid reviewerId)
+    {
+        if (reviewerId == Guid.Empty)
+            throw new ArgumentException("Reviewer ID cannot be empty.", nameof(reviewerId));
+
+        Log.Information("Fetching all review assignments for reviewer {ReviewerId}", reviewerId);
+
+        await using var dbContext = await _contextFactory.CreateDbContextAsync();
+
+        // Eagerly load related data for mapping
+        var assignments = await dbContext.ReviewAssignments
+            .Where(ra => ra.ReviewerId == reviewerId)
+            .Include(ra => ra.Review)
+            .Include(ra => ra.Paper)
+            .ThenInclude(p => p.Authors)
+            .ThenInclude(a => a.User)
+            .Include(ra => ra.Paper)
+            .ThenInclude(p => p.Files)
+            .ToListAsync();
+
+        Log.Information("Retrieved {Count} review assignments for reviewer {ReviewerId}", assignments.Count, reviewerId);
+
+        // Map assignments to DTOs using the extension method
+        var dtos = assignments
+            .Select(ra => ra.ToReviewerPaperDto())
+            .ToList();
+
+        Log.Information("Mapped {Count} review assignments to ReviewerPaperDTO for reviewer {ReviewerId}", dtos.Count, reviewerId);
+
+        return dtos;
     }
 }
