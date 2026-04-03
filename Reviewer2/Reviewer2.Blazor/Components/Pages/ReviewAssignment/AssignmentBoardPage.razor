@@ -93,10 +93,11 @@ else
 
         _errorMessage = null;
 
-        //Soft Reload, Buggy
+        //Soft Reload, Buggy. In a perfect world, the drag and drop cloned sortable item bug should get fixed.
         //await LoadBoardAsync();
         //await InvokeAsync(StateHasChanged);
 
+        //Force Reload, Equally jank, but works.
         Navigation.NavigateTo(Navigation.Uri, forceLoad: true);
     }
 
