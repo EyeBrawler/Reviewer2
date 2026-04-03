@@ -8,6 +8,7 @@ using Reviewer2.Data.Context;
 using Reviewer2.Data.Models;
 using Reviewer2.Services.CRUD.ApplicationUser;
 using Reviewer2.Services.CRUD.FileStorage;
+using Reviewer2.Services.CRUD.Conferences;
 using Reviewer2.Services.ReviewAssignments;
 using Reviewer2.Services.Submissions.PaperSubmission;
 using Serilog;
@@ -50,6 +51,8 @@ builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
 builder.Services.AddScoped<IPaperSubmissionService, PaperSubmissionService>();
 builder.Services.AddScoped<IPaperQueryService, PaperQueryService>();
 builder.Services.AddScoped<IReviewAssignmentService, ReviewAssignmentService>();
+
+builder.Services.AddScoped<IConferenceService, ConferenceService>();
 
 builder.Services.AddMudServices();
 builder.Services.AddRazorPages();

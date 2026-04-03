@@ -1,4 +1,5 @@
 ﻿using System.Threading.Tasks;
+using Reviewer2.Data.Models;
 using Reviewer2.Services.DTOs.ConferenceManagement;
 
 namespace Reviewer2.Services.CRUD.Conferences
@@ -22,5 +23,11 @@ namespace Reviewer2.Services.CRUD.Conferences
         /// Returns true if the update was successful; false otherwise.
         /// </summary>
         Task<bool> UpdateConferenceAsync(ConferenceEditDTO editDto);
+        
+        /// <summary>
+        /// Asynchronously retrieves the conference entity, or <c>null</c> if none exists.
+        /// </summary>
+        Task<Conference?> GetConferenceEntityAsync();
+
     }
 }
