@@ -1,109 +1,91 @@
-// reviewerDragDrop.js
-
-// Keep track of initialized elements to avoid double init
 const initialized = new WeakMap();
 
-/**
- * Initialize the Reviewer Pool (drag source)
- * @param {HTMLElement} el - UL or container element
- * @param {any} dotNetRef - DotNetObjectReference
- */
+function log(...args) {
+    console.log("[DragDrop]", ...args);
+}
+
+// =====================
+// REVIEWER POOL (drag source)
+// =====================
 export function initReviewerPool(el, dotNetRef) {
     if (!el || initialized.has(el)) return;
 
-    const list = el.querySelector("ul"); 
-
+    const list = el.querySelector("ul");
     if (!list) return;
 
-    const sortable = new Sortable(list, {
+    new Sortable(list, {
         group: {
             name: "reviewers",
-            pull: "clone",   // clone reviewers when dragging
-            put: false       // cannot drop into pool
+            pull: "clone", // clone from pool
+            put: false
         },
-        sort: false,          // do not reorder pool
+        sort: false,
         animation: 150,
-        ghostClass: "drag-ghost",
-        chosenClass: "drag-chosen",
-        dragClass: "drag-dragging",
-
         onStart: (evt) => {
             const reviewerId = evt.item.dataset.reviewerId;
-
             if (dotNetRef && reviewerId) {
                 dotNetRef.invokeMethodAsync("OnDragStartJS", reviewerId);
             }
-        }
+        },
+        // IMPORTANT: disable DOM insertion entirely for clones
+        setData: function(dataTransfer, dragEl) {
+            // store reviewerId in the drag event
+            dataTransfer.setData("text/plain", dragEl.dataset.reviewerId);
+        },
     });
 
-    initialized.set(el, sortable);
+    initialized.set(el, list);
 }
 
-/**
- * Initialize a Paper Column (drop target)
- * @param {HTMLElement} el - Drop container
- * @param {any} dotNetRef - DotNetObjectReference
- * @param {string} paperId - Guid string
- */
+// =====================
+// PAPER COLUMN (drop target)
+// =====================
 export function initPaperColumn(el, dotNetRef, paperId) {
     if (!el || initialized.has(el)) return;
 
-    const sortable = new Sortable(el, {
+    const list = el.querySelector("ul");
+    if (!list) return;
+
+    new Sortable(list, {
         group: {
             name: "reviewers",
             pull: false,
             put: true
         },
+        sort: false, // no reordering
         animation: 150,
         ghostClass: "drag-ghost",
         chosenClass: "drag-chosen",
-
         onAdd: (evt) => {
+            // Get reviewerId from dataTransfer (clean, clone-safe)
             const reviewerId = evt.item.dataset.reviewerId;
 
-            // IMPORTANT: revert DOM change immediately
+            // Do NOT touch evt.item or the DOM
             // Blazor owns rendering
-            evt.item.remove();
-
             if (dotNetRef && reviewerId && paperId) {
                 dotNetRef.invokeMethodAsync("OnReviewerDroppedJS", paperId, reviewerId);
             }
         },
-
         onMove: (evt) => {
-            // Optional: prevent dropping duplicates
             const reviewerId = evt.dragged.dataset.reviewerId;
-
-            if (!reviewerId) return true;
-
             const alreadyAssigned = [...evt.to.querySelectorAll("[data-reviewer-id]")]
                 .some(e => e.dataset.reviewerId === reviewerId);
-
-            if (alreadyAssigned) {
-                return false; // block drop
-            }
-
-            return true;
+            return !alreadyAssigned;
         }
     });
 
-    initialized.set(el, sortable);
+    initialized.set(el, list);
 }
 
-/**
- * Destroy a sortable instance (important for Blazor re-renders)
- */
+// =====================
+// DESTROY
+// =====================
 export function destroy(el) {
     if (!el) return;
-
-    const sortable = initialized.get(el);
+    const list = el.querySelector("ul") ?? el;
+    const sortable = initialized.get(list);
     if (sortable) {
-        try {
-            sortable.destroy();
-        } catch (e) {
-            console.warn("Failed to destroy sortable", e);
-        }
-
-        initialized.delete(el);
+        try { sortable.destroy(); } catch { }
+        initialized.delete(list);
     }
 }

@@ -3,7 +3,9 @@
 @using Microsoft.AspNetCore.Authorization
 @using Reviewer2.Services.DTOs.ReviewAssignments
 @using Reviewer2.Services.ReviewAssignments
+@using Serilog
 @inject IReviewAssignmentService ReviewAssignmentService
+@inject NavigationManager Navigation
 
 @attribute [Authorize(Roles = "Admin, PaperChair")]
 
@@ -22,8 +24,12 @@ else if (_board is null)
 else
 {
     <!-- Toolbar -->
-    <AssignmentToolbar OnPreviewAutoAssign="HandlePreviewAutoAssign" />
+    <AssignmentToolbar 
+        @bind-ReviewersPerPaper="_reviewersPerPaper"
+        OnPreviewAutoAssign="HandlePreviewAutoAssign" />
 
+    <ErrorAlert Message="@_errorMessage" />
+    
     <!-- Main Board -->
     <AssignmentBoard 
         Papers="_board.Papers"
@@ -47,7 +53,9 @@ else
     private List<AutoAssignmentPreviewDTO> _preview = new();
     private bool _showPreview = false;
 
-    private const int DefaultReviewersPerPaper = 3;
+    private int _reviewersPerPaper = 3;
+    
+    private string? _errorMessage;
 
     protected override async Task OnInitializedAsync()
     {
@@ -67,12 +75,32 @@ else
 
         if (result != AssignmentResult.Success)
         {
-            Console.WriteLine($"Assignment failed: {result}");
+            await ShowError(result switch
+            {
+                AssignmentResult.AlreadyAssigned =>
+                    "This reviewer is already assigned to the paper.",
+
+                AssignmentResult.ReviewerIsAuthor =>
+                    "This reviewer cannot be assigned because they are an author of the paper.",
+
+                AssignmentResult.NotFound =>
+                    "The selected paper or reviewer could not be found.",
+
+                _ =>
+                    "An unexpected error occurred while assigning the reviewer."
+            });
+
+            return;
         }
 
-        await LoadBoardAsync();
-        
-        await InvokeAsync(StateHasChanged);
+        _errorMessage = null;
+
+        //Soft Reload, Buggy. In a perfect world, the drag and drop cloned sortable item bug should get fixed.
+        //await LoadBoardAsync();
+        //await InvokeAsync(StateHasChanged);
+
+        //Force Reload, Equally jank, but works.
+        Navigation.NavigateTo(Navigation.Uri, forceLoad: true);
     }
 
     private async Task HandleRemove(Guid assignmentId)
@@ -81,18 +109,21 @@ else
 
         if (result != AssignmentResult.Success)
         {
-            Console.WriteLine($"Remove failed: {result}");
+            await ShowError("Failed to remove reviewer assignment.");
+            return;
         }
+
+        _errorMessage = null;
 
         await LoadBoardAsync();
         
         await InvokeAsync(StateHasChanged);
     }
-
+    
     private async Task HandlePreviewAutoAssign()
     {
         _preview = await ReviewAssignmentService
-            .PreviewAutoAssignAsync(DefaultReviewersPerPaper);
+            .PreviewAutoAssignAsync(_reviewersPerPaper);
 
         _showPreview = true;
     }
@@ -100,17 +131,30 @@ else
     private async Task HandleConfirmAutoAssign()
     {
         var created = await ReviewAssignmentService
-            .AutoAssignReviewersAsync(DefaultReviewersPerPaper);
+            .AutoAssignReviewersAsync(_reviewersPerPaper);
 
-        Console.WriteLine($"Created {created} assignments.");
+        Log.Information("Created {Created} assignments.", created);
 
         _showPreview = false;
 
         await LoadBoardAsync();
+        
+        await InvokeAsync(StateHasChanged);
     }
 
     private void HandleCancelPreview()
     {
         _showPreview = false;
+    }
+    
+    private async Task ShowError(string message)
+    {
+        _errorMessage = message;
+        StateHasChanged();
+
+        await Task.Delay(3000); // 3 seconds
+
+        _errorMessage = null;
+        StateHasChanged();
     }
 }

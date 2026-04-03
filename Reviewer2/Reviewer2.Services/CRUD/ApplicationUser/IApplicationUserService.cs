@@ -92,6 +92,27 @@ public interface IApplicationUserService
     /// <returns>An ApplicationUser object if found, otherwise null.</returns>
     public Task<ApplicationUser?> GetByEmailAsync(string email);
     
+    /// <summary>
+    /// Searches for users whose name or email matches the provided query string.
+    /// </summary>
+    /// <param name="query">
+    /// A partial search string used to match against user first name, last name, or email.
+    /// The search is case-insensitive. If null or whitespace, an empty result is returned.
+    /// </param>
+    /// <param name="maxResults">
+    /// The maximum number of users to return. Defaults to 10.
+    /// </param>
+    /// <returns>
+    /// A list of <see cref="UserLookupDTO"/> representing users that match the query,
+    /// ordered by last name and then first name.
+    /// </returns>
+    /// <remarks>
+    /// This method is intended for lightweight user lookup scenarios such as autocomplete
+    /// or linking authors to existing accounts. The results are limited to improve performance
+    /// and avoid loading large user datasets.
+    /// </remarks>
+    Task<List<UserLookupDTO>> SearchUsersAsync(string query, int maxResults = 10);
+    
     ///<summary>
     /// Creates a ApplicationUser object and saves it to the database
     ///</summary>

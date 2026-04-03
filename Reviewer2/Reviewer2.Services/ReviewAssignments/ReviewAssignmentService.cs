@@ -103,12 +103,21 @@ public class ReviewAssignmentService : IReviewAssignmentService
         if (!reviewerIds.Contains(reviewerId))
             return AssignmentResult.NotFound;
 
+        var reviewer = await context.Users
+            .Where(u => u.Id == reviewerId)
+            .Select(u => new { u.Id, u.Email })
+            .FirstAsync();
+        
         // Conflict check (author)
-        bool isAuthor = await context.Authors
-            .AnyAsync(a => a.PaperId == paperId && a.UserId == reviewerId);
+        bool isAuthor = await context.Authors.AnyAsync(a =>
+            a.PaperId == paperId &&
+            (
+                (a.UserId != null && a.UserId == reviewer.Id) ||
+                (a.UserId == null && a.Email == reviewer.Email)
+            ));
 
         if (isAuthor)
-            return AssignmentResult.Conflict;
+            return AssignmentResult.ReviewerIsAuthor;
 
         // Duplicate check
         bool exists = await context.ReviewAssignments
@@ -171,6 +180,12 @@ public class ReviewAssignmentService : IReviewAssignmentService
             .Select(a => a.UserId!.Value)
             .ToHashSetAsync();
 
+        var authorEmails = await context.Authors
+            .AsNoTracking()
+            .Where(a => a.PaperId == paperId && a.UserId == null)
+            .Select(a => a.Email)
+            .ToHashSetAsync();
+
         // Get already assigned reviewers (to exclude from candidates)
         var assignedReviewerIds = await context.ReviewAssignments
             .AsNoTracking()
@@ -197,7 +212,9 @@ public class ReviewAssignmentService : IReviewAssignmentService
         var candidates = users
             .Select(u =>
             {
-                bool hasConflict = authorUserIds.Contains(u.Id);
+                bool hasConflict =
+                    authorUserIds.Contains(u.Id) ||
+                    (u.Email != null && authorEmails.Contains(u.Email));
 
                 return new ReviewerCandidateDTO
                 {
@@ -288,17 +305,22 @@ public class ReviewAssignmentService : IReviewAssignmentService
                 assignmentCounts[reviewer.ReviewerId] =
                     assignmentCounts.GetValueOrDefault(reviewer.ReviewerId) + 1;
 
-                if (persist)
+                if (!existingReviewerIds.Contains(reviewer.ReviewerId))
                 {
-                    context.ReviewAssignments.Add(new ReviewAssignment
+                    if (persist)
                     {
-                        Id = Guid.NewGuid(),
-                        PaperId = paper.Id,
-                        ReviewerId = reviewer.ReviewerId,
-                        Status = ReviewStatus.Pending
-                    });
+                        context.ReviewAssignments.Add(new ReviewAssignment
+                        {
+                            Id = Guid.NewGuid(),
+                            PaperId = paper.Id,
+                            ReviewerId = reviewer.ReviewerId,
+                            Status = ReviewStatus.Pending
+                        });
 
-                    created++;
+                        created++;
+                    }
+
+                    existingReviewerIds.Add(reviewer.ReviewerId);
                 }
             }
 

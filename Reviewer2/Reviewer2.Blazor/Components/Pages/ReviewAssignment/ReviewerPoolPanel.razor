@@ -21,20 +21,17 @@
                                OnDragStart="HandleDragStart">
 
                 <ul class="list-group list-group-flush">
-                    @foreach (var reviewer in Reviewers
-                                  .OrderBy(r => r.AssignmentCount)
-                                  .ThenBy(r => r.Name))
+                    @foreach (var reviewer in Reviewers)
                     {
-                        <li class="list-group-item d-flex justify-content-between align-items-center"
+                        <li @key="(reviewer.ReviewerId, reviewer.AssignmentCount)"
+                            class="list-group-item d-flex justify-content-between align-items-center"
                             data-reviewer-id="@reviewer.ReviewerId"
                             style="cursor: grab;">
 
-                            <!-- Name -->
                             <span class="fw-semibold">
                                 @reviewer.Name
                             </span>
 
-                            <!-- Assignment Count -->
                             <span class="badge bg-secondary">
                                 @reviewer.AssignmentCount
                             </span>
