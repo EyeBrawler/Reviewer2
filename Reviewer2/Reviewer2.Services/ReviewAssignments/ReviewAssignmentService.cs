@@ -378,4 +378,33 @@ public class ReviewAssignmentService : IReviewAssignmentService
 
         return dtos;
     }
+    
+    /// <inheritdoc/>
+    public async Task<List<ReviewerPaperDTO>> GetAllReviewerAssignmentsAsync()
+    {
+        Log.Information("Fetching all review assignments");
+
+        await using var dbContext = await _contextFactory.CreateDbContextAsync();
+
+        // Eagerly load related data for mapping
+        var assignments = await dbContext.ReviewAssignments
+            .Include(ra => ra.Review)
+            .Include(ra => ra.Paper)
+            .ThenInclude(p => p.Authors)
+            .ThenInclude(a => a.User)
+            .Include(ra => ra.Paper)
+            .ThenInclude(p => p.Files)
+            .ToListAsync();
+
+        Log.Information("Retrieved {Count} review assignments", assignments.Count);
+
+        // Map assignments to DTOs using the extension method
+        var dtos = assignments
+            .Select(ra => ra.ToReviewerPaperDto())
+            .ToList();
+
+        Log.Information("Mapped {Count} review assignments to ReviewerPaperDTO", dtos.Count);
+
+        return dtos;
+    }
 }
