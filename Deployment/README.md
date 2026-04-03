@@ -93,11 +93,29 @@ APP_EXTERNAL_PORT=5000
 REVIEWER2_CONNECTION="Host=${DB_HOST};Port=${DB_PORT};Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
 ```
 
+### Deploying and Starting the Containers
 Then, you can use this command to build and run the containers. This will automatically build and publish the Reviewer2
 along with running the database migrations to get the database ready. Once the migrations are complete, the web app will automatically start.
 ```bash
 docker compose -f docker-compose-full.yml --env-file .env.fullstack up
 ```
+
+### Updating your Deployment
+Sometimes Docker Compose can cache data it should not, even after the codebase has been updated. Running these commands
+will lead to a clean build with no cache.
+```bash
+docker compose -f docker-compose-full.yml --env-file .env.fullstack build
+```
+```bash
+docker compose -f docker-compose-full.yml --env-file .env.fullstack up -d
+```
+
+### Wiping your Deployment
+If you ever want to delete your containers (including database data) you can run this command.
+```bash
+docker compose -f docker-compose-full.yml --env-file .env.fullstack down -v
+```
+If you want to delete your containers but not your data, you can omit the ``-v`` flag.
 
 ---
 
