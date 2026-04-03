@@ -24,7 +24,9 @@ else if (_board is null)
 else
 {
     <!-- Toolbar -->
-    <AssignmentToolbar OnPreviewAutoAssign="HandlePreviewAutoAssign" />
+    <AssignmentToolbar 
+        @bind-ReviewersPerPaper="_reviewersPerPaper"
+        OnPreviewAutoAssign="HandlePreviewAutoAssign" />
 
     <ErrorAlert Message="@_errorMessage" />
     
@@ -51,7 +53,7 @@ else
     private List<AutoAssignmentPreviewDTO> _preview = new();
     private bool _showPreview = false;
 
-    private const int DefaultReviewersPerPaper = 3;
+    private int _reviewersPerPaper = 3;
     
     private string? _errorMessage;
 
@@ -121,7 +123,7 @@ else
     private async Task HandlePreviewAutoAssign()
     {
         _preview = await ReviewAssignmentService
-            .PreviewAutoAssignAsync(DefaultReviewersPerPaper);
+            .PreviewAutoAssignAsync(_reviewersPerPaper);
 
         _showPreview = true;
     }
@@ -129,7 +131,7 @@ else
     private async Task HandleConfirmAutoAssign()
     {
         var created = await ReviewAssignmentService
-            .AutoAssignReviewersAsync(DefaultReviewersPerPaper);
+            .AutoAssignReviewersAsync(_reviewersPerPaper);
 
         Log.Information("Created {Created} assignments.", created);
 

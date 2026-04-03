@@ -13,21 +13,16 @@
                    min="1"
                    class="form-control form-control-sm"
                    style="width: 80px;"
-                   @bind="ReviewersPerPaper" />
+                   value="@ReviewersPerPaper"
+                   @oninput="OnInputChanged" />
         </div>
 
         <!-- Right: Actions -->
         <div class="d-flex gap-2">
             <button class="btn btn-primary btn-sm"
                     @onclick="OnPreviewAutoAssign">
-                <i class="bi bi-eye"></i>
-                Preview
-            </button>
-
-            <button class="btn btn-outline-secondary btn-sm"
-                    @onclick="OnRefresh">
-                <i class="bi bi-arrow-clockwise"></i>
-                Refresh
+                <i class="bi bi-lightning"></i>
+                Auto Assign
             </button>
         </div>
 
@@ -38,15 +33,20 @@
     /// <summary>
     /// Number of reviewers to assign per paper.
     /// </summary>
-    [Parameter] public int ReviewersPerPaper { get; set; } = 3;
+    [Parameter] public int ReviewersPerPaper { get; set; }
+
+    [Parameter] public EventCallback<int> ReviewersPerPaperChanged { get; set; }
 
     /// <summary>
     /// Invoked when the user requests auto-assignment preview.
     /// </summary>
     [Parameter] public EventCallback OnPreviewAutoAssign { get; set; }
-
-    /// <summary>
-    /// Invoked when the user refreshes the board.
-    /// </summary>
-    [Parameter] public EventCallback OnRefresh { get; set; }
+    
+    private async Task OnInputChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var value))
+        {
+            await ReviewersPerPaperChanged.InvokeAsync(value);
+        }
+    }
 }
