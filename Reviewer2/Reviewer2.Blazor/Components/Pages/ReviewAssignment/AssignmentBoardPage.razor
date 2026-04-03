@@ -5,6 +5,7 @@
 @using Reviewer2.Services.ReviewAssignments
 @using Serilog
 @inject IReviewAssignmentService ReviewAssignmentService
+@inject NavigationManager Navigation
 
 @attribute [Authorize(Roles = "Admin, PaperChair")]
 
@@ -92,9 +93,11 @@ else
 
         _errorMessage = null;
 
-        await LoadBoardAsync();
-        
-        await InvokeAsync(StateHasChanged);
+        //Soft Reload, Buggy
+        //await LoadBoardAsync();
+        //await InvokeAsync(StateHasChanged);
+
+        Navigation.NavigateTo(Navigation.Uri, forceLoad: true);
     }
 
     private async Task HandleRemove(Guid assignmentId)
