@@ -13,10 +13,9 @@ namespace Reviewer2.Services.CRUD.Conferences
         /// Retrieves the latest conference asynchronously.
         /// </summary>
         /// <returns>
-        /// A <see cref="ConferenceDTO"/> representing the most recent conference, 
-        /// or <c>null</c> if no conferences exist.
+        /// A <see cref="ConferenceDTO"/> representing the most recent conference.
         /// </returns>
-        Task<ConferenceDTO?> GetConferenceAsync();
+        Task<ConferenceDTO> GetConferenceAsync();
 
         /// <summary>
         /// Updates the first conference with the values from <see cref="ConferenceEditDTO"/>.

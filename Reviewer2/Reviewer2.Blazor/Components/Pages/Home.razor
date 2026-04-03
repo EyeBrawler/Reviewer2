@@ -3,28 +3,10 @@
 @using Reviewer2.Services.CRUD.Conferences
 @using Reviewer2.Services.DTOs.ConferenceManagement
 @inject IConferenceService ConferenceService
-@using Microsoft.AspNetCore.Components.Authorization
 
 <PageTitle>Reviewer2</PageTitle>
 
-<!-- Volunteer Reviewer Button -->
-<div class="mt-4">
-    <VolunteerReviewerButton ShowTitle="true" ShowDescription="true" />
-</div>
-
-<!-- Admin-only Edit Button -->
-<AuthorizeView Roles="Admin, ConferenceChair">
-    <Authorized>
-        <div class="mt-2">
-            <NavLink class="btn btn-warning" href="/conference-edit">
-                <i class="bi bi-gear"></i> Edit Conference
-            </NavLink>
-        </div>
-    </Authorized>
-</AuthorizeView>
-
 <div class="container my-4">
-
     @if (_isLoading)
     {
         <div class="alert alert-info">Loading conference data...</div>
@@ -33,32 +15,58 @@
     {
         <div class="alert alert-danger">@_errorMessage</div>
     }
+    else if (_conference == null)
+    {
+        <div class="alert alert-warning">
+            No conference has been configured yet.
+        </div>
+
+        <AuthorizeView Roles="Admin, ConferenceChair">
+            <Authorized>
+                <NavLink class="btn btn-primary" href="/conference-edit">
+                    Create Conference
+                </NavLink>
+            </Authorized>
+        </AuthorizeView>
+    }
     else
     {
         <!-- Conference Info -->
-        <div class="mb-4">
-            <h3>@_model.Info.Name</h3>
-            <p>@_model.Info.Description</p>
+        <div class="mb-4 d-flex justify-content-between align-items-start">
+    
+            <div>
+                <h1 class="mb-1">@_conference.Name</h1>
+                <p class="mb-0">@_conference.Description</p>
+            </div>
+
+            <AuthorizeView Roles="Admin, ConferenceChair">
+                <Authorized>
+                    <NavLink class="btn btn-warning btn-sm ms-3" href="/conference-edit">
+                        <i class="bi bi-gear"></i> Edit
+                    </NavLink>
+                </Authorized>
+            </AuthorizeView>
+
         </div>
 
         <!-- Call for Papers -->
         <div class="mb-4">
             <h4>Call for Papers</h4>
-            <p>@_model.CallForPapers.Content</p>
+            <p>@_conference.CallForPapers</p>
         </div>
 
         <!-- Deadlines -->
         <div class="mb-4">
             <h4>Deadlines</h4>
 
-            @if (_model.Deadlines != null && _model.Deadlines.Any())
+            @if (_conference.Deadlines.Any())
             {
                 <ul class="list-group">
-                    @foreach (var d in _model.Deadlines.OrderBy(d => d.Date))
+                    @foreach (var d in _conference.Deadlines.OrderBy(d => d.Date))
                     {
                         <li class="list-group-item d-flex justify-content-between">
                             <span>@d.Name</span>
-                            <span>@d.Date?.ToString("MMM dd, yyyy")</span>
+                            <span>@d.Date.ToString("MMM dd, yyyy")</span>
                         </li>
                     }
                 </ul>
@@ -69,10 +77,14 @@
             }
         </div>
     }
+    <!-- Volunteer Reviewer Button -->
+    <div class="mt-4">
+        <VolunteerReviewerButton ShowTitle="true" ShowDescription="true" />
+    </div>
 </div>
 
 @code {
-    private ConferenceEditDTO _model = new();
+    private ConferenceDTO? _conference;
     private bool _isLoading = true;
     private string? _errorMessage;
 
@@ -80,49 +92,7 @@
     {
         try
         {
-            var entity = await ConferenceService.GetConferenceEntityAsync();
-
-            if (entity == null)
-            {
-                // Fallback sample conference for all users
-                _model = new ConferenceEditDTO
-                {
-                    Info = new ConferenceEditDTO.ConferenceInfo
-                    {
-                        Name = "Sample Conference 2026",
-                        Description = "This is a preview of the conference. Details will be updated by the admin."
-                    },
-                    CallForPapers = new ConferenceEditDTO.CallForPapersInfo
-                    {
-                        Content = "Submit your research papers here. Deadlines and requirements are for demonstration purposes."
-                    },
-                    Deadlines = new List<ConferenceEditDTO.DeadlineInfo>
-                    {
-                        new ConferenceEditDTO.DeadlineInfo
-                        {
-                            Name = "Paper Submission Deadline",
-                            Date = DateTime.Today.AddDays(14),
-                            Priority = 1
-                        },
-                        new ConferenceEditDTO.DeadlineInfo
-                        {
-                            Name = "Notification of Acceptance",
-                            Date = DateTime.Today.AddDays(30),
-                            Priority = 2
-                        },
-                        new ConferenceEditDTO.DeadlineInfo
-                        {
-                            Name = "Camera Ready Submission",
-                            Date = DateTime.Today.AddDays(45),
-                            Priority = 3
-                        }
-                    }
-                };
-            }
-            else
-            {
-                _model = entity.ToEditDTO();
-            }
+            _conference = await ConferenceService.GetConferenceAsync();
         }
         catch
         {

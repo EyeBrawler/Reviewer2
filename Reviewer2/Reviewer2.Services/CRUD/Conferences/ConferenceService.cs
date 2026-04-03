@@ -26,12 +26,15 @@ namespace Reviewer2.Services.CRUD.Conferences
         }
 
         /// <summary>
-        /// Retrieves the first conference as a read-only DTO, including its deadlines.
+        /// Retrieves the conference as a read-only DTO, including its deadlines.
         /// </summary>
         /// <returns>
-        /// A <see cref="ConferenceDTO"/> representing the conference, or <c>null</c> if no conference exists.
+        /// A <see cref="ConferenceDTO"/> representing the conference.
         /// </returns>
-        public async Task<ConferenceDTO?> GetConferenceAsync()
+        /// <exception cref="InvalidOperationException">
+        /// Thrown if no conference exists in the database.
+        /// </exception>
+        public async Task<ConferenceDTO> GetConferenceAsync()
         {
             Log.Information("Fetching conference DTO");
 
@@ -41,17 +44,13 @@ namespace Reviewer2.Services.CRUD.Conferences
 
                 var entity = await context.Conferences
                     .Include(c => c.Deadlines)
-                    .FirstOrDefaultAsync();
+                    .SingleAsync();
 
-                if (entity == null)
-                {
-                    Log.Warning("No conference found in database");
-                    return null;
-                }
-
-                Log.Information("Conference retrieved successfully (Id: {ConferenceId}, Deadlines: {DeadlineCount})",
+                Log.Information(
+                    "Conference retrieved successfully (Id: {ConferenceId}, Deadlines: {DeadlineCount})",
                     entity.Id,
-                    entity.Deadlines?.Count ?? 0);
+                    entity.Deadlines?.Count ?? 0
+                );
 
                 return entity.ToDTO();
             }
