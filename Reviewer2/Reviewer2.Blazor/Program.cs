@@ -9,7 +9,9 @@ using Reviewer2.Data.Models;
 using Reviewer2.Services.CRUD.ApplicationUser;
 using Reviewer2.Services.CRUD.FileStorage;
 using Reviewer2.Services.CRUD.Conferences;
+using Reviewer2.Services.CRUD.ReviewTemplates;
 using Reviewer2.Services.ReviewAssignments;
+using Reviewer2.Services.Reviews;
 using Reviewer2.Services.Submissions.PaperSubmission;
 using Serilog;
 using Serilog.Events;
@@ -51,7 +53,7 @@ builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
 builder.Services.AddScoped<IPaperSubmissionService, PaperSubmissionService>();
 builder.Services.AddScoped<IPaperQueryService, PaperQueryService>();
 builder.Services.AddScoped<IReviewAssignmentService, ReviewAssignmentService>();
-
+builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddScoped<IConferenceService, ConferenceService>();
 
 builder.Services.AddMudServices();
@@ -90,12 +92,20 @@ var app = builder.Build();
 // Seed data
 using (var scope = app.Services.CreateScope())
 {
-    // Initializes the roles if they are not already created in the database
-    var roleInit = scope.ServiceProvider.GetRequiredService<RoleInitializer>();
+    var services = scope.ServiceProvider;
+
+    // Roles
+    var roleInit = services.GetRequiredService<RoleInitializer>();
     await roleInit.InitializeAsync();
-    
-    // Seed default admin user
-    await InitialUserSeed.SeedDefaultUserAsync(scope.ServiceProvider);
+
+    // Users
+    await InitialUserSeed.SeedDefaultUserAsync(services);
+
+    // Conference
+    await ConferenceSeeder.SeedDefaultConferenceAsync(services);
+
+    // Review Template
+    await ReviewTemplateSeeder.SeedDefaultTemplateAsync(services);
 }
 
 
