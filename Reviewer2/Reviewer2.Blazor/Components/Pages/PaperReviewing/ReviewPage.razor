@@ -1,0 +1,15 @@
+@page "/papers/{PaperId:guid}/review"
+
+@using Microsoft.AspNetCore.Authorization
+@rendermode InteractiveServer
+
+@attribute [Authorize(Roles = "Admin,PaperChair,Reviewer")]
+
+<PageTitle>Review Paper</PageTitle>
+
+<ReviewPageContainer PaperId="PaperId" />
+
+@code {
+    [Parameter]
+    public Guid PaperId { get; set; }
+}

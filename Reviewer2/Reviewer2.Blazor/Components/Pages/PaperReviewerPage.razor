@@ -1,70 +1,319 @@
-@page "/review"
+@page "/review-dashboard"
 @rendermode InteractiveServer
-@using Microsoft.AspNetCore.Components.Forms
+@using Reviewer2.Data.Models
+@using Reviewer2.Services.DTOs.ReviewAssignments
+@using Reviewer2.Services.ReviewAssignments
+@inject IReviewAssignmentService ReviewAssignmentService
+@inject AuthenticationStateProvider AuthProvider
+@inject NavigationManager NavManager
 
-<PageTitle>Review Paper</PageTitle>
+<PageTitle>My Review Assignments</PageTitle>
 
-<h1 class="mb-4">Reviewer Dashboard</h1>
+<AuthorizeView>
+    <Authorizing>
+        <p>Authorizing...</p>
+    </Authorizing>
 
-<div class="content container">
-    <div class="mx-auto" style="max-width: 900px;">
-        @foreach (var paper in AssignedPapers)
-        {
-            <section class="card shadow-sm p-4 mb-4" @key="paper.Id">
-                
-                <h3>@paper.Title</h3>
-                
-                <p class="text-muted mb-2">
-                    <strong>Authors:</strong>
-                    @string.Join(", ", paper.Authors.Select(a => (string)a.Name))
-                </p>
-                
-                <p class="mb-4">@paper.Abstract</p>
-                
-                <EditForm Model="@paper.Review"
-                          FormName="@($"ReviewForm_{paper.Id}")"
-                          OnValidSubmit="() => SubmitReview(paper)">
-                    
-                    <DataAnnotationsValidator/>
-                    
-                    <h5>Evaluation</h5>
-                    
-                    <label class="form-label mt-3">Overall Score (1-5)</label>
-                    <InputSelect class="form-select"
-                                 @bind-Value="paper.Review.Score">
-                        <option value="">Select score</option>
-                        @for (int i = 1; i <= 5; i++)
-                        {
-                            <option value="@i">@i</option>
-                        }
-                    </InputSelect>
-                    
-                    <label class="form-label mt-3">Confidence (1-5)</label>
-                    <InputSelect class="form-select"
-                                 @bind-Value="paper.Review.Confidence">
-                        <option value="">Select confidence</option>
-                        @for (int i = 1; i <= 5; i++)
-                        {
-                            <option value="@i">@i</option>
-                        }
-                    </InputSelect>
-                    
-                    <h5 class="mt-4">Review Comments</h5>
-                    
-                    <label class="form-label mt-2">Comments for Authors</label>
-                    <InputTextArea class="form-control"
-                                   Rows="4"
-                                   @bind-Value="paper.Review.AuthorComments" />
-                    
-                    <div class="text-end mt-4">
-                        <button type="submit" class="btn btn-primary">
-                            Submit Review
-                        </button>
-                    </div>
-                    
-                </EditForm>
-            </section>
-        }
+    <NotAuthorized>
+        <div class="alert alert-warning">
+            You are not authorized to view this page.
+        </div>
+    </NotAuthorized>
+
+    <Authorized>
+
+    @if (_isLoading)
+    {
+        <div class="text-center my-5">
+            <div class="spinner-border" role="status"></div>
+            <p>Loading review assignments...</p>
+        </div>
+    }
+    else if (!_papers.Any())
+    {
+        <div class="alert alert-info">
+            No review assignments found.
+        </div>
+    }
+    else
+    {
+    <div class="d-flex justify-content-between align-items-center my-3">
+        <h3 class="mb-0">@PageTitleText</h3>
         
+        <input type="text"
+               class="form-control w-auto"
+               placeholder="Search..."
+               @bind="_searchString"
+               @bind:event="oninput" />
     </div>
-</div>
+
+    <div class="table-responsive">
+    <table class="table table-bordered table-striped table-hover">
+        <thead class="table-light">
+            <tr>
+                <th role="button" @onclick="() => SortBy(nameof(ReviewerPaperDTO.Title))">
+                    Title @SortIcon(nameof(ReviewerPaperDTO.Title))
+                </th>
+
+                <th role="button" 
+                    @onclick="() => SortBy(nameof(ReviewerPaperDTO.Authors))"
+                    class="@(_showAuthors ? "" : "d-none")">
+                    Authors @SortIcon(nameof(ReviewerPaperDTO.Authors))
+                </th>
+
+                <th role="button" @onclick="() => SortBy(nameof(ReviewerPaperDTO.ReviewStatus))">
+                    Review Status @SortIcon(nameof(ReviewerPaperDTO.ReviewStatus))
+                </th>
+
+                <th role="button" @onclick="() => SortBy(nameof(ReviewerPaperDTO.ReviewSubmittedAtUtc))">
+                    Submitted @SortIcon(nameof(ReviewerPaperDTO.ReviewSubmittedAtUtc))
+                </th>
+
+                <th style="width:180px;">Actions</th>
+            </tr>
+        </thead>
+
+        <tbody>
+        @foreach (var paper in PagedPapers)
+        {
+            <tr>
+                <td>@paper.Title</td>
+                <td class="@(_showAuthors ? "" : "d-none")">@paper.Authors</td>
+                <td>
+                    <span class="badge @GetStatusBadge(paper.ReviewStatus)">
+                        @FormatReviewStatus(paper.ReviewStatus)
+                    </span>
+                </td>
+                <td>
+                    @paper.ReviewSubmittedAtUtc?.LocalDateTime.ToString("M/d/yy h:mm tt")
+                </td>
+                <td>
+                    <button class="btn btn-sm w-100 @(paper.CanSubmitReview ? "btn-primary" : "btn-outline-secondary")"
+                            @onclick="() => OpenReview(paper.PaperId)">
+                        @GetReviewButtonText(paper)
+                    </button>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+    </div>
+
+    <!-- Pagination Controls -->
+    <div class="d-flex justify-content-between align-items-center mt-3">
+        <div>
+            <label class="me-2">Rows:</label>
+            <select class="form-select d-inline w-auto"
+                    @bind="_pageSize">
+                <option>5</option>
+                <option>10</option>
+                <option>25</option>
+                <option>50</option>
+            </select>
+        </div>
+
+        <div>
+            <button class="btn btn-sm btn-secondary me-2"
+                    disabled="@(_currentPage == 1)"
+                    @onclick="PreviousPage">
+                Previous
+            </button>
+
+            <span class="me-2">
+                Page @_currentPage of @TotalPages
+            </span>
+
+            <button class="btn btn-sm btn-secondary"
+                    disabled="@(_currentPage == TotalPages)"
+                    @onclick="NextPage">
+                Next
+            </button>
+        </div>
+    </div>
+
+    }
+
+    </Authorized>
+</AuthorizeView>
+
+@code {
+    // Determines whether author names should be displayed
+    private bool _showAuthors; // double-blind default
+
+    private string PageTitleText =>
+        _showAuthors ? "Review Assignments" : "My Review Assignments";
+    
+    private bool _isLoading = true;
+    private List<ReviewerPaperDTO> _papers = [];
+    private string _searchString = string.Empty;
+
+    private string _sortColumn = nameof(ReviewerPaperDTO.ReviewSubmittedAtUtc);
+    private bool _sortAscending;
+
+    private int _pageSize = 10;
+    private int _currentPage = 1;
+    
+    private static string FormatReviewStatus(ReviewStatus status) =>
+        status switch
+        {
+            ReviewStatus.Pending => "Pending",
+            ReviewStatus.InProgress => "In Progress",
+            ReviewStatus.Submitted => "Submitted",
+            ReviewStatus.Declined => "Declined",
+            _ => status.ToString()
+        };
+    
+    private static string GetStatusBadge(ReviewStatus status) =>
+        status switch
+        {
+            ReviewStatus.Pending => "bg-secondary",
+            ReviewStatus.InProgress => "bg-warning text-dark",
+            ReviewStatus.Submitted => "bg-success",
+            ReviewStatus.Declined => "bg-danger",
+            _ => "bg-light text-dark"
+        };
+
+    private IEnumerable<ReviewerPaperDTO> FilteredPapers =>
+        string.IsNullOrWhiteSpace(_searchString)
+            ? _papers
+            : _papers.Where(p =>
+                p.Title.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ||
+                p.Authors.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ||
+                p.ReviewStatus.ToString().Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            );
+
+    private IEnumerable<ReviewerPaperDTO> SortedFilteredPapers =>
+    _sortColumn switch
+    {
+        nameof(ReviewerPaperDTO.Title) =>
+            _sortAscending
+                ? FilteredPapers.OrderBy(p => p.Title)
+                : FilteredPapers.OrderByDescending(p => p.Title),
+
+        nameof(ReviewerPaperDTO.Authors) =>
+            _sortAscending
+                ? FilteredPapers.OrderBy(p => p.Authors)
+                : FilteredPapers.OrderByDescending(p => p.Authors),
+
+        nameof(ReviewerPaperDTO.ReviewStatus) =>
+            _sortAscending
+                ? FilteredPapers.OrderBy(p => p.ReviewStatus)
+                : FilteredPapers.OrderByDescending(p => p.ReviewStatus),
+
+        _ =>
+            _sortAscending
+                ? FilteredPapers.OrderBy(p => p.ReviewSubmittedAtUtc)
+                : FilteredPapers.OrderByDescending(p => p.ReviewSubmittedAtUtc)
+    };
+
+    private IEnumerable<ReviewerPaperDTO> PagedPapers =>
+        SortedFilteredPapers
+            .Skip((_currentPage - 1) * _pageSize)
+            .Take(_pageSize);
+
+    private int TotalPages =>
+        (int)Math.Ceiling(SortedFilteredPapers.Count() / (double)_pageSize);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPapers();
+    }
+
+    private async Task LoadPapers()
+    {
+        _isLoading = true;
+
+        var authState = await AuthProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            var userIdClaim = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+            if (!string.IsNullOrWhiteSpace(userIdClaim))
+            {
+                var userId = Guid.Parse(userIdClaim);
+
+                // Get the user's roles
+                var roles = user.Claims
+                    .Where(c => c.Type == System.Security.Claims.ClaimTypes.Role)
+                    .Select(c => c.Value)
+                    .ToList();
+
+                // Admins, PaperChair, or ConferenceChair see all review assignments
+                if (roles.Contains("Admin") || roles.Contains("PaperChair") || roles.Contains("ConferenceChair"))
+                {
+                    _papers = (await ReviewAssignmentService.GetAllReviewerAssignmentsAsync()).ToList();
+                    _showAuthors = true;
+                }
+                else
+                {
+                    // Regular reviewer sees only their assignments
+                    _papers = (await ReviewAssignmentService.GetReviewerPapersAsync(userId)).ToList();
+                }
+            }
+        }
+
+        _isLoading = false;
+    }
+    
+    private static string GetReviewButtonText(ReviewerPaperDTO paper)
+    {
+        // Chair/Admin (not reviewer)
+        if (paper.ReviewStatus == ReviewStatus.Submitted)
+        {
+            return "View Reviews";
+        }
+
+        // Reviewer cases
+        if (paper.CanSubmitReview)
+        {
+            return paper.ReviewStatus switch
+            {
+                ReviewStatus.Pending => "Start Review",
+                ReviewStatus.InProgress => "Resume Review",
+                ReviewStatus.Submitted => "View Reviews",
+                ReviewStatus.Declined => "Declined",
+                _ => "Review"
+            };
+        }
+
+        return paper.ReviewSubmittedAtUtc != null
+            ? "View Reviews"
+            : "View";
+    }
+
+    private void SortBy(string column)
+    {
+        if (_sortColumn == column)
+            _sortAscending = !_sortAscending;
+        else
+        {
+            _sortColumn = column;
+            _sortAscending = true;
+        }
+    }
+
+    private string SortIcon(string column)
+    {
+        if (_sortColumn != column) return "";
+        return _sortAscending ? "▲" : "▼";
+    }
+
+    private void PreviousPage()
+    {
+        if (_currentPage > 1)
+            _currentPage--;
+    }
+
+    private void NextPage()
+    {
+        if (_currentPage < TotalPages)
+            _currentPage++;
+    }
+
+    private void OpenReview(Guid paperId)
+    {
+        NavManager.NavigateTo($"/papers/{paperId}/review");
+    }
+}

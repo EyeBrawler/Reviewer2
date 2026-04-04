@@ -10,6 +10,7 @@ using Reviewer2.Data.Models;
 using Reviewer2.Services.CRUD.FileStorage;
 using Reviewer2.Services.DTOs.FileStorage;
 using Reviewer2.Services.DTOs.PaperSubmission;
+using Reviewer2.Services.DTOs.ReviewAssignments;
 using Serilog;
 
 namespace Reviewer2.Services.Submissions.PaperSubmission;

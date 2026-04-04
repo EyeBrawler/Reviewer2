@@ -1,0 +1,273 @@
+@using System.ComponentModel.DataAnnotations
+@using System.Reflection
+@using Reviewer2.Services.DTOs.ReviewSubmission
+@using Reviewer2.Services.Reviews
+@inject IReviewService ReviewService
+@inject AuthenticationStateProvider AuthStateProvider
+
+<EditForm EditContext="_editContext" OnValidSubmit="SubmitAsync">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <fieldset disabled="@_isSubmitting">
+    <div class="card shadow-sm">
+        <div class="card-body">
+
+            <h5 class="card-title">Review</h5>
+
+            @if (_errorMessage is not null)
+            {
+                <div class="alert alert-danger">@_errorMessage</div>
+            }
+
+            <!-- Overall Score -->
+            <div class="mb-3">
+                <label class="form-label">Overall Score</label>
+                <InputNumber class="form-control"
+                             @bind-Value="_model.OverallScore"
+                             type="number"
+                             min="@(OverallScoreRange?.Minimum)"
+                             max="@(OverallScoreRange?.Maximum)"
+                             step="1" />
+                <div class="form-text text-muted">
+                    @GetFieldHint(nameof(_model.OverallScore))
+                </div>
+                <ValidationMessage For="@(() => _model.OverallScore)" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Confidence</label>
+                <InputNumber class="form-control"
+                             @bind-Value="_model.ConfidenceScore"
+                             type="number"
+                             min="@(ConfidenceScoreRange?.Minimum)"
+                             max="@(ConfidenceScoreRange?.Maximum)"
+                             step="1" />
+                <div class="form-text text-muted">
+                    @GetFieldHint(nameof(_model.ConfidenceScore))
+                </div>
+                <ValidationMessage For="@(() => _model.ConfidenceScore)" />
+            </div>
+
+            <!-- Recommendation -->
+            <div class="mb-3">
+                <label class="form-label">Recommendation</label>
+                <InputSelect class="form-select"
+                             @bind-Value="_model.Recommendation">
+                    <option value="">Select...</option>
+                    <option>Accept</option>
+                    <option>Weak Accept</option>
+                    <option>Borderline</option>
+                    <option>Weak Reject</option>
+                    <option>Reject</option>
+                </InputSelect>
+                <div class="form-text text-muted">
+                    @GetFieldHint(nameof(_model.Recommendation))
+                </div>
+                <ValidationMessage For="@(() => _model.Recommendation)" />
+            </div>
+
+            <!-- Detailed Review -->
+            <div class="mb-3">
+                <label class="form-label">Detailed Review</label>
+                <InputTextArea class="form-control"
+                               rows="8"
+                               @bind-Value="_model.JsonContent" />
+                <div class="form-text text-muted">
+                    @GetFieldHint(nameof(_model.JsonContent))
+                </div>
+                <ValidationMessage For="@(() => _model.JsonContent)" />
+            </div>
+
+            <!-- Actions -->
+            <div class="d-flex gap-2">
+
+                <!-- Save Draft (no validation) -->
+                <button type="button"
+                        class="btn btn-secondary"
+                        @onclick="SaveDraftAsync"
+                        disabled="@(_isSaving || _isSubmitting)">
+                    @(_isSaving ? "Saving..." : "Save Draft")
+                </button>
+
+                <!-- Submit (validated) -->
+                <button type="submit"
+                        class="btn btn-primary"
+                        disabled="@(!_isValid || _isSubmitting)">
+                    @(_isSubmitting ? "Submitting..." : "Submit Review")
+                </button>
+
+            </div>
+
+        </div>
+    </div>
+    </fieldset>
+</EditForm>
+
+@code {
+    [Parameter, EditorRequired]
+    public Guid ReviewAssignmentId { get; set; }
+
+    [Parameter]
+    public ReviewDTO? ExistingReview { get; set; }
+
+    [Parameter]
+    public EventCallback OnSubmitted { get; set; }
+    
+    private EditContext? _editContext;
+
+    private SubmitReviewDTO _model = new();
+
+    private Guid _currentUserId;
+
+    private bool _isSaving;
+    private bool _isSubmitting;
+    private string? _errorMessage;
+    private bool _isValid;
+    
+    // Property info for OverallScore
+    private PropertyInfo? OverallScoreProp => typeof(SubmitReviewDTO).GetProperty(nameof(_model.OverallScore));
+
+    // RangeAttribute for OverallScore
+    private RangeAttribute? OverallScoreRange => OverallScoreProp?.GetCustomAttribute<RangeAttribute>();
+
+    // Similarly for ConfidenceScore
+    private PropertyInfo? ConfidenceScoreProp => typeof(SubmitReviewDTO).GetProperty(nameof(_model.ConfidenceScore));
+    private RangeAttribute? ConfidenceScoreRange => ConfidenceScoreProp?.GetCustomAttribute<RangeAttribute>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _currentUserId = await GetUserIdAsync();
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (ExistingReview is not null)
+        {
+            _model = new SubmitReviewDTO
+            {
+                ReviewAssignmentId = ExistingReview.ReviewAssignmentId,
+                OverallScore = ExistingReview.OverallScore,
+                ConfidenceScore = ExistingReview.ConfidenceScore,
+                Recommendation = ExistingReview.Recommendation,
+                JsonContent = ExistingReview.JsonContent
+            };
+        }
+        else
+        {
+            _model = new SubmitReviewDTO
+            {
+                ReviewAssignmentId = ReviewAssignmentId
+            };
+        }
+
+        _editContext = new EditContext(_model);
+        _editContext.OnFieldChanged += HandleFieldChanged;
+
+        _editContext.OnFieldChanged += (_, _) =>
+        {
+            var newIsValid = _editContext.Validate();
+            if (newIsValid != _isValid)
+            {
+                _isValid = newIsValid;
+                StateHasChanged();
+            }
+        };
+        
+        _isValid = _editContext.Validate();
+    }
+
+    private async Task SaveDraftAsync()
+    {
+        if (_isSaving) return;
+        
+        _isSaving = true;
+        _errorMessage = null;
+
+        try
+        {
+            await ReviewService.SaveDraftAsync(_model, _currentUserId);
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        if (_isSubmitting) return;
+
+        _isSubmitting = true;
+        _errorMessage = null;
+
+        try
+        {
+            await ReviewService.SubmitReviewAsync(_model, _currentUserId);
+
+            if (OnSubmitted.HasDelegate)
+            {
+                await OnSubmitted.InvokeAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+
+    private async Task<Guid> GetUserIdAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated != true)
+        {
+            throw new UnauthorizedAccessException("User is not authenticated.");
+        }
+
+        var userIdClaim = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+        if (string.IsNullOrWhiteSpace(userIdClaim))
+        {
+            throw new UnauthorizedAccessException("User identifier claim is missing.");
+        }
+
+        return Guid.Parse(userIdClaim);
+    }
+    
+    private void HandleFieldChanged(object? sender, FieldChangedEventArgs e)
+    {
+        if (_editContext is null) return;
+
+        _isValid = _editContext.Validate();
+        StateHasChanged();
+    }
+    
+    private string GetFieldHint(string propertyName)
+    {
+        var member = typeof(SubmitReviewDTO).GetProperty(propertyName);
+        if (member == null) return string.Empty;
+
+        var hints = new List<string>();
+
+        if (member.GetCustomAttribute<RangeAttribute>() is RangeAttribute range)
+            hints.Add($"Enter a number between {range.Minimum} and {range.Maximum}.");
+
+        if (member.GetCustomAttribute<StringLengthAttribute>() is StringLengthAttribute strLength)
+            hints.Add($"Max {strLength.MaximumLength} characters.");
+
+        if (member.GetCustomAttribute<RequiredAttribute>() is not null)
+            hints.Add("This field is required.");
+
+        return string.Join(" ", hints);
+    }
+}

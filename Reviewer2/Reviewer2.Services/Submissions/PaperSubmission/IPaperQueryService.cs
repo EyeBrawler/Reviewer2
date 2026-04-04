@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Reviewer2.Data.Models;
 using Reviewer2.Services.DTOs.FileStorage;
 using Reviewer2.Services.DTOs.PaperSubmission;
+using Reviewer2.Services.DTOs.ReviewAssignments;
 
 namespace Reviewer2.Services.Submissions.PaperSubmission
 {
