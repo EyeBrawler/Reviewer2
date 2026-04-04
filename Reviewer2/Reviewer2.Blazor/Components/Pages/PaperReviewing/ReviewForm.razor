@@ -24,18 +24,25 @@
             <div class="mb-3">
                 <label class="form-label">Overall Score</label>
                 <InputNumber class="form-control"
-                             @bind-Value="_model.OverallScore" />
+                             @bind-Value="_model.OverallScore"
+                             type="number"
+                             min="@(OverallScoreRange?.Minimum)"
+                             max="@(OverallScoreRange?.Maximum)"
+                             step="1" />
                 <div class="form-text text-muted">
                     @GetFieldHint(nameof(_model.OverallScore))
                 </div>
                 <ValidationMessage For="@(() => _model.OverallScore)" />
             </div>
 
-            <!-- Confidence -->
             <div class="mb-3">
                 <label class="form-label">Confidence</label>
                 <InputNumber class="form-control"
-                             @bind-Value="_model.ConfidenceScore" />
+                             @bind-Value="_model.ConfidenceScore"
+                             type="number"
+                             min="@(ConfidenceScoreRange?.Minimum)"
+                             max="@(ConfidenceScoreRange?.Maximum)"
+                             step="1" />
                 <div class="form-text text-muted">
                     @GetFieldHint(nameof(_model.ConfidenceScore))
                 </div>
@@ -117,6 +124,16 @@
     private bool _isSubmitting;
     private string? _errorMessage;
     private bool _isValid;
+    
+    // Property info for OverallScore
+    private PropertyInfo? OverallScoreProp => typeof(SubmitReviewDTO).GetProperty(nameof(_model.OverallScore));
+
+    // RangeAttribute for OverallScore
+    private RangeAttribute? OverallScoreRange => OverallScoreProp?.GetCustomAttribute<RangeAttribute>();
+
+    // Similarly for ConfidenceScore
+    private PropertyInfo? ConfidenceScoreProp => typeof(SubmitReviewDTO).GetProperty(nameof(_model.ConfidenceScore));
+    private RangeAttribute? ConfidenceScoreRange => ConfidenceScoreProp?.GetCustomAttribute<RangeAttribute>();
 
     protected override async Task OnInitializedAsync()
     {
