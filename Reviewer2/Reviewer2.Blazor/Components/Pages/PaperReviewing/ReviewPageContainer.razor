@@ -1,0 +1,138 @@
+@using Reviewer2.Services.DTOs.ReviewAssignments
+@using Reviewer2.Services.DTOs.ReviewSubmission
+@using Reviewer2.Services.Reviews
+@using Reviewer2.Services.ReviewAssignments
+
+@inject IReviewService ReviewService
+@inject IReviewAssignmentService ReviewAssignmentService
+@inject AuthenticationStateProvider AuthStateProvider
+
+@if (_isLoading)
+{
+    <p>Loading review data...</p>
+}
+else if (_errorMessage is not null)
+{
+    <div class="alert alert-danger">@_errorMessage</div>
+}
+else if (_assignment is { CanSubmitReview: true } assignment)
+{
+    <ReviewForm 
+        ReviewAssignmentId="assignment.ReviewAssignmentId"
+        ExistingReview="_myReview"
+        OnSubmitted="HandleReviewSubmitted" />
+}
+else if (_canViewAllReviews)
+{
+    <ReviewList Reviews="_reviews" />
+}
+else
+{
+    <div class="alert alert-info">
+        You must submit your review before viewing other reviews.
+    </div>
+}
+ 
+ @code {
+    [Parameter]
+    public Guid PaperId { get; set; }
+
+    private bool _isLoading = true;
+    private string? _errorMessage;
+
+    private Guid _currentUserId;
+
+    private ReviewerPaperDTO? _assignment;
+    private ReviewDTO? _myReview;
+    private List<ReviewDTO> _reviews = [];
+
+    private bool _canViewAllReviews;
+    
+    private bool _isPrivilegedUser;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _isLoading = true;
+        _errorMessage = null;
+
+        try
+        {
+            await LoadDataAsync();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task LoadDataAsync()
+    {
+        var user = await GetAuthenticatedUserAsync();
+
+        var isAdmin = user.IsInRole("Admin");
+        var isChair = user.IsInRole("PaperChair");
+        
+        _isPrivilegedUser = isAdmin || isChair;
+
+        _currentUserId = GetUserId(user);
+
+        var myAssignments = await ReviewAssignmentService
+            .GetReviewerPapersAsync(_currentUserId);
+
+        _assignment = myAssignments
+            .FirstOrDefault(a => a.PaperId == PaperId);
+
+        // Load my review if assigned
+        _myReview = _assignment is null
+            ? null
+            : await ReviewService.GetReviewAsync(
+                _assignment.ReviewAssignmentId,
+                _currentUserId);
+
+        // Determine visibility (centralized)
+        _canViewAllReviews =
+            _isPrivilegedUser ||
+            _assignment?.ReviewSubmittedAtUtc != null;
+
+        // Load reviews only if allowed
+        _reviews = _canViewAllReviews
+            ? (await ReviewService.GetReviewsForPaperAsync(PaperId)).ToList()
+            : [];
+    }
+
+    private async Task HandleReviewSubmitted()
+    {
+        await LoadDataAsync();
+        StateHasChanged();
+    }
+
+    // Helper Methods
+    private async Task<System.Security.Claims.ClaimsPrincipal> GetAuthenticatedUserAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated != true)
+        {
+            throw new UnauthorizedAccessException("User is not authenticated.");
+        }
+
+        return user;
+    }
+
+    private static Guid GetUserId(System.Security.Claims.ClaimsPrincipal user)
+    {
+        var userIdClaim = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+        if (string.IsNullOrWhiteSpace(userIdClaim))
+        {
+            throw new UnauthorizedAccessException("User identifier claim is missing.");
+        }
+
+        return Guid.Parse(userIdClaim);
+    }
+}

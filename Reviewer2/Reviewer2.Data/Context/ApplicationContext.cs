@@ -133,10 +133,10 @@ public class ApplicationContext
             .IsUnique();
 
         builder.Entity<ReviewAssignment>()
-            .HasOne(r => r.Reviewer)
-            .WithMany()
-            .HasForeignKey(r => r.ReviewerId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .HasOne(a => a.Review)
+            .WithOne(r => r.ReviewAssignment)
+            .HasForeignKey<Review>(r => r.ReviewAssignmentId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 
     private static void ConfigureReview(ModelBuilder builder)

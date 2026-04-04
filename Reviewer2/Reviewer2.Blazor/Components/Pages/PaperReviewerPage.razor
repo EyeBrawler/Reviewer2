@@ -1,5 +1,6 @@
 @page "/review-dashboard"
 @rendermode InteractiveServer
+@using Reviewer2.Data.Models
 @using Reviewer2.Services.DTOs.ReviewAssignments
 @using Reviewer2.Services.ReviewAssignments
 @inject IReviewAssignmentService ReviewAssignmentService
@@ -78,23 +79,19 @@
             <tr>
                 <td>@paper.Title</td>
                 <td class="@(_showAuthors ? "" : "d-none")">@paper.Authors</td>
-                <td>@paper.ReviewStatus</td>
+                <td>
+                    <span class="badge @GetStatusBadge(paper.ReviewStatus)">
+                        @FormatReviewStatus(paper.ReviewStatus)
+                    </span>
+                </td>
                 <td>
                     @paper.ReviewSubmittedAtUtc?.LocalDateTime.ToString("M/d/yy h:mm tt")
                 </td>
-                <td class="text-center">
-                    <div class="d-inline-block text-start">
-                        <button class="btn btn-primary btn-sm mb-2"
-                                disabled="@( !paper.CanSubmitReview )"
-                                @onclick="() => SubmitReview(paper.ReviewAssignmentId)">
-                            Submit Review
-                        </button>
-                        <br />
-                        <button class="btn btn-secondary btn-sm w-100"
-                                @onclick="() => ViewPaper(paper.PaperId)">
-                            View Paper
-                        </button>
-                    </div>
+                <td>
+                    <button class="btn btn-sm w-100 @(paper.CanSubmitReview ? "btn-primary" : "btn-outline-secondary")"
+                            @onclick="() => OpenReview(paper.PaperId)">
+                        @GetReviewButtonText(paper)
+                    </button>
                 </td>
             </tr>
         }
@@ -141,13 +138,13 @@
 
 @code {
     // Determines whether author names should be displayed
-    private bool _showAuthors = false; // double-blind default
+    private bool _showAuthors; // double-blind default
 
     private string PageTitleText =>
         _showAuthors ? "Review Assignments" : "My Review Assignments";
     
     private bool _isLoading = true;
-    private List<ReviewerPaperDTO> _papers = new();
+    private List<ReviewerPaperDTO> _papers = [];
     private string _searchString = string.Empty;
 
     private string _sortColumn = nameof(ReviewerPaperDTO.ReviewSubmittedAtUtc);
@@ -155,6 +152,26 @@
 
     private int _pageSize = 10;
     private int _currentPage = 1;
+    
+    private static string FormatReviewStatus(ReviewStatus status) =>
+        status switch
+        {
+            ReviewStatus.Pending => "Pending",
+            ReviewStatus.InProgress => "In Progress",
+            ReviewStatus.Submitted => "Submitted",
+            ReviewStatus.Declined => "Declined",
+            _ => status.ToString()
+        };
+    
+    private static string GetStatusBadge(ReviewStatus status) =>
+        status switch
+        {
+            ReviewStatus.Pending => "bg-secondary",
+            ReviewStatus.InProgress => "bg-warning text-dark",
+            ReviewStatus.Submitted => "bg-success",
+            ReviewStatus.Declined => "bg-danger",
+            _ => "bg-light text-dark"
+        };
 
     private IEnumerable<ReviewerPaperDTO> FilteredPapers =>
         string.IsNullOrWhiteSpace(_searchString)
@@ -162,7 +179,7 @@
             : _papers.Where(p =>
                 p.Title.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ||
                 p.Authors.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ||
-                p.ReviewStatus.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+                p.ReviewStatus.ToString().Contains(_searchString, StringComparison.OrdinalIgnoreCase)
             );
 
     private IEnumerable<ReviewerPaperDTO> SortedFilteredPapers =>
@@ -239,6 +256,32 @@
 
         _isLoading = false;
     }
+    
+    private static string GetReviewButtonText(ReviewerPaperDTO paper)
+    {
+        // Chair/Admin (not reviewer)
+        if (paper.ReviewStatus == ReviewStatus.Submitted)
+        {
+            return "View Reviews";
+        }
+
+        // Reviewer cases
+        if (paper.CanSubmitReview)
+        {
+            return paper.ReviewStatus switch
+            {
+                ReviewStatus.Pending => "Start Review",
+                ReviewStatus.InProgress => "Resume Review",
+                ReviewStatus.Submitted => "View Reviews",
+                ReviewStatus.Declined => "Declined",
+                _ => "Review"
+            };
+        }
+
+        return paper.ReviewSubmittedAtUtc != null
+            ? "View Reviews"
+            : "View";
+    }
 
     private void SortBy(string column)
     {
@@ -269,13 +312,8 @@
             _currentPage++;
     }
 
-    private void SubmitReview(Guid assignmentId)
+    private void OpenReview(Guid paperId)
     {
-        NavManager.NavigateTo($"/reviews/submit/{assignmentId}");
-    }
-
-    private void ViewPaper(Guid paperId)
-    {
-        NavManager.NavigateTo($"/submissions/{paperId}");
+        NavManager.NavigateTo($"/papers/{paperId}/review");
     }
 }

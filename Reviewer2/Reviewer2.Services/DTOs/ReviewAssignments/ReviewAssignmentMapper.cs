@@ -55,11 +55,11 @@ namespace Reviewer2.Services.DTOs.ReviewAssignments
                 }).ToList(),
 
                 ReviewAssignmentId = assignment.Id,
-                ReviewStatus = assignment.Status.ToString(),
+                ReviewStatus = assignment.Status,
                 ReviewSubmittedAtUtc = assignment.Review?.SubmittedAtUtc,
 
                 CanEditReview = assignment.Status is ReviewStatus.Pending or ReviewStatus.InProgress,
-                CanSubmitReview = assignment.Status == ReviewStatus.InProgress,
+                CanSubmitReview = assignment.Status is ReviewStatus.Pending or ReviewStatus.InProgress,
                 CanDeclineReview = assignment.Status == ReviewStatus.Pending
             };
         }

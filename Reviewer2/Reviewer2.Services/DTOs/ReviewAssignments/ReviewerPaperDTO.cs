@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using Reviewer2.Data.Models;
-using Reviewer2.Services.DTOs.FileStorage;
 using Reviewer2.Services.DTOs.PaperSubmission;
 
 namespace Reviewer2.Services.DTOs.ReviewAssignments;
@@ -70,11 +69,8 @@ public class ReviewerPaperDTO
 
     /// <summary>
     /// Current status of the review assignment.
-    /// 
-    /// This reflects the reviewer's progress and interaction with
-    /// the assignment (e.g., Pending, InProgress, Submitted, Declined).
     /// </summary>
-    public string ReviewStatus { get; set; } = string.Empty;
+    public ReviewStatus ReviewStatus { get; set; }
 
     /// <summary>
     /// The date and time (UTC) when the review was formally submitted, if submitted.

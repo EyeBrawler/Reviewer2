@@ -76,9 +76,8 @@ public class ReviewService : IReviewService
 
         var assignment = await db.ReviewAssignments
             .Include(a => a.Review)
-            .FirstOrDefaultAsync(
-                a => a.Id == dto.ReviewAssignmentId,
-                cancellationToken);
+            .FirstOrDefaultAsync(a => a.Id == dto.ReviewAssignmentId, cancellationToken);
+
 
         if (assignment == null)
         {
@@ -96,9 +95,9 @@ public class ReviewService : IReviewService
         }
 
         // CREATE
+        
         if (assignment.Review == null)
         {
-            // Resolve template
             var template = await db.ReviewTemplates
                 .AsNoTracking()
                 .FirstOrDefaultAsync(t => t.IsActive, cancellationToken);
@@ -107,18 +106,22 @@ public class ReviewService : IReviewService
             {
                 throw new InvalidOperationException("No active review template is available.");
             }
-
+            
             var review = dto.ToEntity();
             review.Id = Guid.NewGuid();
             review.ReviewAssignmentId = assignment.Id;
             review.ReviewTemplateId = template.Id;
 
+            db.Reviews.Add(review); 
             assignment.Review = review;
         }
         else
         {
-            // UPDATE
-            dto.ToEntity(assignment.Review);
+            // update tracked entity properties only
+            assignment.Review.OverallScore = dto.OverallScore;
+            assignment.Review.ConfidenceScore = dto.ConfidenceScore;
+            assignment.Review.Recommendation = dto.Recommendation;
+            assignment.Review.JsonContent = dto.JsonContent;
         }
 
         // Status transition
@@ -185,6 +188,7 @@ public class ReviewService : IReviewService
             review.ReviewAssignmentId = assignment.Id;
             review.ReviewTemplateId = template.Id;
 
+            db.Reviews.Add(review);
             assignment.Review = review;
         }
         else
