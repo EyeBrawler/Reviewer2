@@ -7,6 +7,14 @@
 @inject IReviewAssignmentService ReviewAssignmentService
 @inject AuthenticationStateProvider AuthStateProvider
 
+@if (_assignment is not null)
+{
+    <div class="mb-4">
+        <h2>
+            Reviews for <em>@_assignment.Title</em>
+        </h2>
+    </div>
+}
 @if (_isLoading)
 {
     <p>Loading review data...</p>
