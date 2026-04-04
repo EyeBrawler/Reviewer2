@@ -8,7 +8,7 @@ submitted papers. Basic auto assignment/matching is available.
 * A new homepage exists that can display user configurable conference information such as a call for papers, the name of the conference,
 and deadlines.
 * The mockup review submission page has been made functional.
-* Paper chairs have a page to approve papers that have been reviewed. <--- This did not make it into the demo.
+* Paper chairs have a page to approve papers that have been reviewed. <--- **This did not make it into the demo**
 
 ### Changed
 * The primary deployment method for Reviewer2 is now Docker with the Docker compose plugin rather than systemd services. All well known
@@ -18,6 +18,12 @@ options for deployment are generally documented in the ``README.md`` located in 
 ### Removed
 * The old generic Reviewer2 home page
 
+### Notes
+This release marks a large step toward a more complete conference management workflow in Reviewer2. One of the most
+signigicant features still missing is conference chair paper approval. The fundamentals of the reviewing workflow are
+arguably now present though.
+
+---
 
 ## [demo-3] - 2026-03-06
 
