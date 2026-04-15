@@ -90,17 +90,18 @@ else
                     "An unexpected error occurred while assigning the reviewer."
             });
 
+            // 🔥 IMPORTANT: restore UI state after failed drag
+            await LoadBoardAsync();
+            await InvokeAsync(StateHasChanged);
+
             return;
         }
 
         _errorMessage = null;
 
-        //Soft Reload, Buggy. In a perfect world, the drag and drop cloned sortable item bug should get fixed.
-        //await LoadBoardAsync();
-        //await InvokeAsync(StateHasChanged);
-
-        //Force Reload, Equally jank, but works.
-        Navigation.NavigateTo(Navigation.Uri, forceLoad: true);
+        // ✔ refresh UI after success (no full reload)
+        await LoadBoardAsync();
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task HandleRemove(Guid assignmentId)
@@ -116,7 +117,6 @@ else
         _errorMessage = null;
 
         await LoadBoardAsync();
-        
         await InvokeAsync(StateHasChanged);
     }
     

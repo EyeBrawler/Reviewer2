@@ -57,13 +57,17 @@ export function initPaperColumn(el, dotNetRef, paperId) {
         ghostClass: "drag-ghost",
         chosenClass: "drag-chosen",
         onAdd: (evt) => {
-            // Get reviewerId from dataTransfer (clean, clone-safe)
             const reviewerId = evt.item.dataset.reviewerId;
 
-            // Do NOT touch evt.item or the DOM
-            // Blazor owns rendering
+            // Immediately remove DOM insertion (Blazor owns UI)
+            evt.item.remove();
+
             if (dotNetRef && reviewerId && paperId) {
-                dotNetRef.invokeMethodAsync("OnReviewerDroppedJS", paperId, reviewerId);
+                dotNetRef.invokeMethodAsync(
+                    "OnReviewerDroppedJS",
+                    paperId,
+                    reviewerId
+                );
             }
         },
         onMove: (evt) => {
@@ -82,10 +86,16 @@ export function initPaperColumn(el, dotNetRef, paperId) {
 // =====================
 export function destroy(el) {
     if (!el) return;
-    const list = el.querySelector("ul") ?? el;
+
+    const list = el.querySelector("ul");
+    if (!list) return;
+
     const sortable = initialized.get(list);
+
     if (sortable) {
-        try { sortable.destroy(); } catch { }
+        try {
+            sortable.destroy();
+        } catch { }
         initialized.delete(list);
     }
 }
