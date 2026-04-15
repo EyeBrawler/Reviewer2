@@ -90,7 +90,7 @@ else
                     "An unexpected error occurred while assigning the reviewer."
             });
 
-            // 🔥 IMPORTANT: restore UI state after failed drag
+            // IMPORTANT: restore UI state after failed drag
             await LoadBoardAsync();
             await InvokeAsync(StateHasChanged);
 
