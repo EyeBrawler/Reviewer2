@@ -1,6 +1,9 @@
 # Deployment Resources for Reviewer2
 
-This folder (``Deployment``) contains a variety of useful resources for deploying your own instance of Reviewer2. At the present moment, the fastest and easiest way to deploy Reviewer2 is via Docker Compose. To learn more on how to do this, see the next section, *Deploying with Docker Compose*. Additional resources for setting up a standalone Reviewer2 database with docker and configuring ``nginx`` are also below.
+This folder (``Deployment``) contains a variety of useful resources for deploying your own instance of Reviewer2. 
+At the present moment, the fastest and easiest way to deploy Reviewer2 is via Docker Compose. 
+To learn more on how to do this, see the next section, *Deploying with Docker Compose*. Additional resources for setting 
+up a standalone Reviewer2 database with docker and configuring ``nginx`` are also below.
 
 ---
 
@@ -203,7 +206,9 @@ Additional instructions for HTTPS and SSL may come in the future.
 
 ## Standalone Database Deployment with Docker
 
-If you want to install PostgreSQL separately from your web server (for whatever reason) or if you are developing Reviewer2, setting up a PostgreSQL database with docker can be significantly faster than installing PostgreSQL manually.
+If you want to install PostgreSQL separately from your web server (could be useful if you want multiple Reviewer2 databases
+on one DBMS) or if you are developing Reviewer2, setting up a PostgreSQL database with docker can be significantly faster 
+than installing PostgreSQL manually.
 
 First, install docker if you have not already. On Debian based Linux distributions...
 
@@ -243,7 +248,10 @@ Creating a more configured DBMS may look like...
 docker run -d --name postgres --hostname postgres-db -e POSTGRES_USER=reviewer2 -e POSTGRES_PASSWORD="my_password" -e POSTGRES_DB=reviewer2_prod -p 5433:5432 postgres:latest
 ```
 
-In the above line, port 5433 is being exposed rather than 5432 as to not conflict with an existing Postgres install.
+In the above line, port 5433 is being exposed rather than 5432 as to not conflict with an existing Postgres install. **Setting/creating a
+dedicated database for your Reviewer2 instance such as ``reviewer2_prod`` is recommended**, especially if you decide you later
+want to create multiple Postgres databases for your one DBMS (this is good for resources and best practice). See the section below on
+managing the databases in your docker container if you ever plan to have multiple Postgres databases on your machine.
 
 To add the necessary tables to your database you will first need to set a user secret.
 
@@ -265,6 +273,251 @@ If you are missing the EF Core tools, you can install them with this command.
 ```bash
 dotnet tool install --global dotnet-ef
 ```
+
+## Managing Postgres Databases in your Docker Container
+### 1) Find and connect to the running container
+
+First, list containers:
+
+```bash
+docker ps
+```
+
+Look for your Postgres container name (e.g. `my-postgres`).
+
+#### Open a bash shell inside it
+
+```bash
+docker exec -it my-postgres bash
+```
+
+> If `bash` isn’t available (common in minimal images), use:
+
+```bash
+docker exec -it my-postgres sh
+```
+
+---
+
+### 2) Connect to PostgreSQL using `psql`
+
+Once inside the container:
+
+#### Connect as the default postgres user
+
+```bash
+psql -U postgres
+```
+
+#### Or specify a database
+
+```bash
+psql -U postgres -d mydatabase
+```
+
+#### If a password is required
+
+You may be prompted. Alternatively:
+
+```bash
+psql -U postgres -W
+```
+
+---
+
+### 3) Useful `psql` meta-commands
+
+Inside `psql`, these are your best friends:
+
+#### List databases
+
+```pgsql
+\l
+```
+
+#### Connect to a database
+
+```pgsql
+\c mydatabase
+```
+
+#### List tables
+
+```pgsql
+\dt
+```
+
+#### Describe a table
+
+```pgsql
+\d tablename
+```
+
+---
+
+### 4) View roles, users, and permissions
+
+#### List all roles (users)
+
+```pgsql
+\du
+```
+
+This shows:
+
+* Role name
+* Attributes (SUPERUSER, CREATEDB, etc.)
+* Memberships
+
+---
+
+#### About passwords
+
+PostgreSQL **does NOT allow you to view passwords**.
+
+* Passwords are stored as **hashes**
+* You cannot retrieve plaintext passwords
+
+You *can* see hashed values (if you have permission):
+
+```pgsql
+SELECT rolname, rolpassword FROM pg_authid;
+```
+
+> Requires superuser access
+
+---
+
+### 5) Create and manage users (roles)
+
+#### Create a user
+
+```pgsql
+CREATE USER myuser WITH PASSWORD 'mypassword';
+```
+
+#### Create a user with privileges
+
+```pgsql
+CREATE USER myuser WITH PASSWORD 'mypassword' CREATEDB;
+```
+
+#### Create a superuser
+
+```pgsql
+CREATE USER admin WITH PASSWORD 'secret' SUPERUSER;
+```
+
+---
+
+#### Change a password
+
+```pgsql
+ALTER USER myuser WITH PASSWORD 'newpassword';
+```
+
+---
+
+#### Delete a user
+
+```pgsql
+DROP USER myuser;
+```
+
+---
+
+### 6) Database management
+
+#### Create a database
+
+```pgsql
+CREATE DATABASE mydatabase;
+```
+
+#### Assign ownership
+
+```pgsql
+ALTER DATABASE mydatabase OWNER TO myuser;
+```
+
+#### Drop a database
+
+```pgsql
+DROP DATABASE mydatabase;
+```
+
+---
+
+### 7) Grant permissions
+
+#### Grant access to a database
+
+```pgsql
+GRANT ALL PRIVILEGES ON DATABASE mydatabase TO myuser;
+```
+
+#### Grant table privileges
+
+```pgsql
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO myuser;
+```
+
+#### Future tables (important!)
+
+```pgsql
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+GRANT ALL ON TABLES TO myuser;
+```
+
+---
+
+### 8) Exit cleanly
+
+#### Exit `psql`
+
+```pgsql
+\q
+```
+
+#### Exit container shell
+
+```bash
+exit
+```
+
+---
+
+### 9) Alternative: connect directly without shell
+
+You don’t *have* to go into bash:
+
+```bash
+docker exec -it my-postgres psql -U postgres
+```
+
+Or:
+
+```bash
+docker exec -it my-postgres psql -U postgres -d mydatabase
+```
+
+---
+
+### 10) Common gotchas (worth knowing)
+
+* If you can’t connect:
+
+    * Check container logs:
+
+      ```bash
+      docker logs my-postgres
+      ```
+* If authentication fails:
+
+    * Verify `POSTGRES_USER` / `POSTGRES_PASSWORD` used at container creation
+* If `psql` isn’t found:
+
+    * You’re likely not in the Postgres container
 
 ## How to Create a systemd Daemon for Reviewer2
 

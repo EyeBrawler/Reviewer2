@@ -3,6 +3,8 @@
 * Paper chairs have a page from which they can approve papers.
 * When submitting a review or looking at submitted reviews for a paper, an embedded PDF view of the paper itself is visible.
 * Conference/paper chairs and admins can customize conference review forms using the template editor form.
+* The deployment documentation now contains a new section that walks through managing the databases on Postgres Docker
+container. The manual ``psql`` commands documented can be particularly useful for setting up multiple databases on one DBMS. 
 
 ### Fixed
 * Drag and drop logic for reviewers on the reviewer assignment page has been improved with no a full page refresh after
