@@ -1,3 +1,23 @@
+## [demo-5] - 2026-04-17
+### Added
+* Paper chairs have a page from which they can approve papers.
+* When submitting a review or looking at submitted reviews for a paper, an embedded PDF view of the paper itself is visible.
+* Conference/paper chairs and admins can customize conference review forms using the template editor form.
+
+### Fixed
+* Drag and drop logic for reviewers on the reviewer assignment page has been improved with no a full page refresh after
+each drop no longer required.
+* Reviewers can no longer manipulate raw JSON data for a review via the review form.
+* Minor formatting tweaks have been made to the deployment documentation to make it more readable and easy to follow, especially
+when viewing the Markdown raw.
+
+### Notes
+* This release has the main objective of completing the core reviewing logic in Reviewer2, primarily by adding the ability 
+to approve papers. With this feature now present, the application could be used to manage almost all the core 
+conference administration workflows.
+
+---
+
 ## [demo-4] - 2026-04-03
 
 ### Added
@@ -8,7 +28,6 @@ submitted papers. Basic auto assignment/matching is available.
 * A new homepage exists that can display user configurable conference information such as a call for papers, the name of the conference,
 and deadlines.
 * The mockup review submission page has been made functional.
-* Paper chairs have a page to approve papers that have been reviewed. <--- **This did not make it into the demo**
 
 ### Changed
 * The primary deployment method for Reviewer2 is now Docker with the Docker compose plugin rather than systemd services. All well known
