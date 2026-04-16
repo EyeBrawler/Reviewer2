@@ -197,13 +197,19 @@ Additional instructions for HTTPS and SSL may come in the future.
 
 ## The Publish Bash Script
 
- `publish.sh` is a bash script you can run to publish Reviewer2 within your local clone of the Reviewer2. It will automatically fetch the latest changes from the ``main`` branch of the repository each time you run it. When running the script, a folder titled `publish` will be created at the root of your repository and contain all build outputs from the script. This is useful if you plan on deploying Reviewer2 natively and want to have the web app running as a ``systemd`` daemon. To learn more about setting up the a ``systemd`` daemon for Reviewer2, see the section on *How to Create a systemd Daemon for Reviewer2.*
+ `publish.sh` is a bash script you can run to publish Reviewer2 within your local clone of the Reviewer2. 
+ It will automatically fetch the latest changes from the ``main`` branch of the repository each time you run it. When 
+ running the script, a folder titled `publish` will be created at the root of your repository and contain all build 
+ outputs from the script. This is useful if you plan on deploying Reviewer2 natively and want to have the web app 
+ running as a ``systemd`` daemon. To learn more about setting up the a ``systemd`` daemon for Reviewer2, see the 
+ section on *How to Create a systemd Daemon for Reviewer2.*
 
 **Note**: The publish script requires installation of the .NET SDK.
 
 ## Standalone Database Deployment with Docker
 
-If you want to install PostgreSQL separately from your web server (for whatever reason) or if you are developing Reviewer2, setting up a PostgreSQL database with docker can be significantly faster than installing PostgreSQL manually.
+If you want to install PostgreSQL separately from your web server (for whatever reason) or if you are developing Reviewer2, 
+setting up a PostgreSQL database with docker can be significantly faster than installing PostgreSQL manually.
 
 First, install docker if you have not already. On Debian based Linux distributions...
 
