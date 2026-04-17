@@ -254,7 +254,8 @@ public class Paper
     public void Accept(Guid chairUserId, string? comment)
     {
         if (Status != PaperStatus.ReviewsCompleted &&
-            Status != PaperStatus.Submitted)
+            Status != PaperStatus.Submitted &&
+            Status != PaperStatus.RevisionRequired)
             throw new InvalidOperationException(
                 "Paper must be either submitted or have completed reviews to be accepted.");
 

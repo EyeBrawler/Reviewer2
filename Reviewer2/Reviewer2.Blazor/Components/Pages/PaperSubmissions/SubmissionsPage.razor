@@ -387,19 +387,21 @@
             case AcceptAction:
                 if (result.AcceptWithConditions)
                 {
-                    await ExecuteDecision(
-                        _selectedPaperId,
-                        (p, u) => PaperDecisionService.AcceptAsync(p, u, result.Comment),
-                        "accept",
-                        "Paper successfully accepted.");
-                }
-                else
-                {
+                    // revisions path
                     await ExecuteDecision(
                         _selectedPaperId,
                         (p, u) => PaperDecisionService.RequestRevisionsAsync(p, u, result.Comment),
                         "accept with conditions",
                         "Paper accepted with conditions (revisions requested).");
+                }
+                else
+                {
+                    // final accept path
+                    await ExecuteDecision(
+                        _selectedPaperId,
+                        (p, u) => PaperDecisionService.AcceptAsync(p, u, result.Comment),
+                        "accept",
+                        "Paper successfully accepted.");
                 }
                 break;
 
