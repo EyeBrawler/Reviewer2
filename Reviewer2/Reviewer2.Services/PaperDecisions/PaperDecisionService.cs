@@ -7,6 +7,7 @@ using Serilog;
 
 namespace Reviewer2.Services.PaperDecisions;
 
+/// <inheritdoc/>
 public class PaperDecisionService : IPaperDecisionService
 {
     private readonly IDbContextFactory<ApplicationContext> _contextFactory;
@@ -32,6 +33,7 @@ public class PaperDecisionService : IPaperDecisionService
         _contextFactory = contextFactory;
     }
 
+    /// <inheritdoc/>
     public async Task AcceptAsync(Guid paperId, Guid chairUserId, string? comment)
     {
         try
@@ -72,6 +74,7 @@ public class PaperDecisionService : IPaperDecisionService
         }
     }
 
+    /// <inheritdoc/>
     public async Task RejectAsync(Guid paperId, Guid chairUserId, string? comment)
     {
         try
@@ -111,6 +114,7 @@ public class PaperDecisionService : IPaperDecisionService
         }
     }
 
+    /// <inheritdoc/>
     public async Task RequestRevisionsAsync(Guid paperId, Guid chairUserId, string? comment)
     {
         try
