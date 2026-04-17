@@ -231,6 +231,9 @@ public class Paper
     /// 
     /// This sets the decision metadata, including timestamp, decision maker,
     /// and optional comment.
+    /// 
+    /// Papers may be accepted either after completing the review process
+    /// or directly after submission (e.g., desk acceptance).
     /// </summary>
     /// <param name="chairUserId">
     /// The identifier of the conference chair (or authorized decision-maker)
@@ -240,12 +243,14 @@ public class Paper
     /// Optional decision remarks or instructions for the authors.
     /// </param>
     /// <exception cref="InvalidOperationException">
-    /// Thrown if the paper is not in ReviewsCompleted state.
+    /// Thrown if the paper is not in a state eligible for acceptance.
     /// </exception>
     public void Accept(Guid chairUserId, string? comment)
     {
-        if (Status != PaperStatus.ReviewsCompleted)
-            throw new InvalidOperationException("Paper must have completed reviews.");
+        if (Status != PaperStatus.ReviewsCompleted &&
+            Status != PaperStatus.Submitted)
+            throw new InvalidOperationException(
+                "Paper must be either submitted or have completed reviews to be accepted.");
 
         Status = PaperStatus.Accepted;
         LastDecisionAtUtc = DateTime.UtcNow;
@@ -259,6 +264,9 @@ public class Paper
     /// 
     /// This sets the decision metadata, including timestamp, decision maker,
     /// and optional comment.
+    /// 
+    /// Papers may be rejected either after completing the review process
+    /// or directly after submission (e.g., desk rejection).
     /// </summary>
     /// <param name="chairUserId">
     /// The identifier of the conference chair (or authorized decision-maker)
@@ -268,12 +276,14 @@ public class Paper
     /// Optional decision remarks explaining the rejection.
     /// </param>
     /// <exception cref="InvalidOperationException">
-    /// Thrown if the paper is not in ReviewsCompleted state.
+    /// Thrown if the paper is not in a state eligible for rejection.
     /// </exception>
     public void Reject(Guid chairUserId, string? comment)
     {
-        if (Status != PaperStatus.ReviewsCompleted)
-            throw new InvalidOperationException("Paper must have completed reviews.");
+        if (Status != PaperStatus.ReviewsCompleted &&
+            Status != PaperStatus.Submitted)
+            throw new InvalidOperationException(
+                "Paper must be either submitted or have completed reviews to be rejected.");
 
         Status = PaperStatus.Rejected;
         LastDecisionAtUtc = DateTime.UtcNow;
