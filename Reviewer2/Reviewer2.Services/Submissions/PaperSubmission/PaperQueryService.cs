@@ -10,7 +10,6 @@ using Reviewer2.Data.Models;
 using Reviewer2.Services.CRUD.FileStorage;
 using Reviewer2.Services.DTOs.FileStorage;
 using Reviewer2.Services.DTOs.PaperSubmission;
-using Reviewer2.Services.DTOs.ReviewAssignments;
 using Serilog;
 
 namespace Reviewer2.Services.Submissions.PaperSubmission;
@@ -70,7 +69,7 @@ public class PaperQueryService : IPaperQueryService
             Title = p.Title,
             Status = p.Status.ToString(),
             SubmittedAtUtc = p.SubmittedAtUtc,
-            DecisionMadeAtUtc = p.DecisionMadeAtUtc,
+            DecisionMadeAtUtc = p.LastDecisionAtUtc,
             Authors = string.Join(", ", p.Authors
                 .OrderBy(a => a.AuthorOrder)
                 .Select(a =>
@@ -150,7 +149,7 @@ public class PaperQueryService : IPaperQueryService
             Abstract = paper.Abstract,
             Status = paper.Status.ToString(),
             SubmittedAtUtc = paper.SubmittedAtUtc,
-            DecisionMadeAtUtc = paper.DecisionMadeAtUtc,
+            DecisionMadeAtUtc = paper.LastDecisionAtUtc,
             SubmitterName = $"{paper.Submitter.FirstName} {paper.Submitter.LastName}",
             Authors = paper.Authors
                 .OrderBy(a => a.AuthorOrder)
@@ -280,7 +279,7 @@ public class PaperQueryService : IPaperQueryService
             Title = p.Title,
             Status = p.Status.ToString(),
             SubmittedAtUtc = p.SubmittedAtUtc,
-            DecisionMadeAtUtc = p.DecisionMadeAtUtc,
+            DecisionMadeAtUtc = p.LastDecisionAtUtc,
             Authors = string.Join(", ", p.Authors
                 .OrderBy(a => a.AuthorOrder)
                 .Select(a =>

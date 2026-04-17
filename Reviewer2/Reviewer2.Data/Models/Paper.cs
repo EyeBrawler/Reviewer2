@@ -63,12 +63,12 @@ public class Paper
     public ApplicationUser Submitter { get; set; } = null!;
     
     /// <summary>
-    /// The date and time (UTC) when an acceptance or rejection decision
+    /// The date and time (UTC) when an acceptance, rejection, or accept with conditions decision
     /// was made by the conference leadership.
     /// 
-    /// This value is null until a final decision is recorded.
+    /// This value is null until the first decision for a paper is recorded.
     /// </summary>
-    public DateTimeOffset? DecisionMadeAtUtc { get; private set; }
+    public DateTimeOffset? LastDecisionAtUtc { get; private set; }
 
     /// <summary>
     /// The identifier of the user (typically a ConferenceChair)
@@ -77,12 +77,12 @@ public class Paper
     public Guid? DecisionMadeByUserId { get; private set; }
 
     /// <summary>
-    /// Comments associated with the final decision.
+    /// Comments associated with the final decision or revision request.
     /// 
     /// This may contain summary remarks, justification, or
     /// additional instructions for the authors.
     /// </summary>
-    public string? DecisionComment { get; private set; }
+    public string? DecisionOrRevisionComment { get; private set; }
 
     /// <summary>
     /// Collection of authors associated with the paper.
@@ -175,6 +175,57 @@ public class Paper
     }
     
     /// <summary>
+    /// Records a revision request for the paper and transitions it to 
+    /// <see cref="PaperStatus.RevisionRequired"/>.
+    /// 
+    /// This indicates that the paper is not yet accepted or rejected,
+    /// and that the authors must address reviewer or chair feedback
+    /// before a final decision can be made.
+    /// </summary>
+    /// <param name="chairUserId">
+    /// The identifier of the conference chair (or authorized decision-maker)
+    /// requesting revisions.
+    /// </param>
+    /// <param name="comment">
+    /// Optional feedback describing the required revisions.
+    /// This is typically visible to the authors.
+    /// </param>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown if the paper is not in <see cref="PaperStatus.ReviewsCompleted"/> state.
+    /// </exception>
+    public void RequestRevisions(Guid chairUserId, string? comment)
+    {
+        if (Status != PaperStatus.ReviewsCompleted)
+            throw new InvalidOperationException("Paper must have completed reviews.");
+
+        Status = PaperStatus.RevisionRequired;
+        LastDecisionAtUtc = DateTime.UtcNow;
+        DecisionMadeByUserId = chairUserId;
+        DecisionOrRevisionComment = comment;
+    }
+    
+    /// <summary>
+    /// Resubmits the paper after revisions have been made and transitions it
+    /// back into the review workflow.
+    /// 
+    /// This operation is used after the authors upload an updated version
+    /// addressing the requested revisions. The paper may either undergo
+    /// another round of review or proceed directly to decision depending
+    /// on conference policy.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown if the paper is not currently in 
+    /// <see cref="PaperStatus.RevisionRequired"/> state.
+    /// </exception>
+    public void ResubmitAfterRevision()
+    {
+        if (Status != PaperStatus.RevisionRequired)
+            throw new InvalidOperationException("Paper is not awaiting revisions.");
+
+        Status = PaperStatus.UnderReview;
+    }
+    
+    /// <summary>
     /// Records an acceptance decision for the paper and transitions it to 
     /// <see cref="PaperStatus.Accepted"/>.
     /// 
@@ -197,9 +248,9 @@ public class Paper
             throw new InvalidOperationException("Paper must have completed reviews.");
 
         Status = PaperStatus.Accepted;
-        DecisionMadeAtUtc = DateTime.UtcNow;
+        LastDecisionAtUtc = DateTime.UtcNow;
         DecisionMadeByUserId = chairUserId;
-        DecisionComment = comment;
+        DecisionOrRevisionComment = comment;
     }
     
     /// <summary>
@@ -225,9 +276,9 @@ public class Paper
             throw new InvalidOperationException("Paper must have completed reviews.");
 
         Status = PaperStatus.Rejected;
-        DecisionMadeAtUtc = DateTime.UtcNow;
+        LastDecisionAtUtc = DateTime.UtcNow;
         DecisionMadeByUserId = chairUserId;
-        DecisionComment = comment;
+        DecisionOrRevisionComment = comment;
     }
 
     /// <summary>
@@ -492,34 +543,44 @@ public enum PaperStatus
     /// The paper is awaiting a decision.
     /// </summary>
     ReviewsCompleted = 4,
+    
+    /// <summary>
+    /// The paper requires revisions before a final decision can be made.
+    /// 
+    /// This status indicates that reviewers and/or the conference chair
+    /// have requested changes to the submission. The authors must upload
+    /// a revised version addressing the feedback before the paper can
+    /// proceed to final acceptance or rejection.
+    /// </summary>
+    RevisionRequired = 5,
 
     /// <summary>
     /// The paper has been accepted for presentation or publication.
     /// </summary>
-    Accepted = 5,
+    Accepted = 6,
 
     /// <summary>
     /// The paper has been rejected.
     /// </summary>
-    Rejected = 6,
+    Rejected = 7,
 
     /// <summary>
     /// The paper has been withdrawn by the submitter prior to final decision.
     /// </summary>
-    Withdrawn = 7,
+    Withdrawn = 8,
 
     /// <summary>
     /// The final camera-ready version has been submitted following acceptance.
     /// </summary>
-    CameraReadySubmitted = 8,
+    CameraReadySubmitted = 9,
 
     /// <summary>
     /// The paper has been assigned to a conference session.
     /// </summary>
-    Scheduled = 9,
+    Scheduled = 10,
 
     /// <summary>
     /// The paper has been presented at the conference.
     /// </summary>
-    Presented = 10
+    Presented = 11
 }
