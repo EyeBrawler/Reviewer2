@@ -149,6 +149,7 @@
             Message="@_modalMessage"
             ConfirmText="@_modalConfirmText"
             ConfirmButtonClass="@_modalButtonClass"
+            ShowConditionalAcceptance="_pendingAction == AcceptAction"
             OnConfirm="HandleDecisionConfirmed"
             OnCancel="@CloseModal" />
 
@@ -314,13 +315,16 @@
     
     private bool CanMakeDecision(UserPaperDTO paper)
     {
-        return paper.Status is "Submitted" or "ReviewsCompleted";
+        return paper.Status is "Submitted" 
+            or "ReviewsCompleted" 
+            or "RevisionRequired";
     }
     
     private async Task ExecuteDecision(
         Guid paperId,
         Func<Guid, Guid, Task> action,
-        string actionName)
+        string actionName,
+        string successMessage)
     {
         _statusMessage = null;
 
@@ -349,7 +353,7 @@
                 "User {UserId} successfully performed {Action} on paper {PaperId}",
                 userId, actionName, paperId);
 
-            _statusMessage = $"Paper successfully {actionName}ed.";
+            _statusMessage = successMessage;
             _statusMessageType = "success";
 
             await LoadPapers();
@@ -360,7 +364,7 @@
                 "{Action} failed for paper {PaperId} by user {UserId}",
                 actionName, paperId, userId);
 
-            _statusMessage = ex.Message; // domain message is usually safe to show
+            _statusMessage = ex.Message;
             _statusMessageType = "warning";
         }
         catch (Exception ex)
@@ -374,23 +378,37 @@
         }
     }
     
-    private async Task HandleDecisionConfirmed(string? comment)
+    private async Task HandleDecisionConfirmed((string? Comment, bool AcceptWithConditions) result)
     {
         _showDecisionModal = false;
 
         switch (_pendingAction)
         {
-            case "accept":
-                await ExecuteDecision(
-                    _selectedPaperId,
-                    (p, u) => PaperDecisionService.AcceptAsync(p, u, comment),
-                    "accept");
+            case AcceptAction:
+                if (result.AcceptWithConditions)
+                {
+                    await ExecuteDecision(
+                        _selectedPaperId,
+                        (p, u) => PaperDecisionService.AcceptAsync(p, u, result.Comment),
+                        "accept",
+                        "Paper successfully accepted.");
+                }
+                else
+                {
+                    await ExecuteDecision(
+                        _selectedPaperId,
+                        (p, u) => PaperDecisionService.RequestRevisionsAsync(p, u, result.Comment),
+                        "accept with conditions",
+                        "Paper accepted with conditions (revisions requested).");
+                }
                 break;
-            case "reject":
+
+            case RejectAction:
                 await ExecuteDecision(
                     _selectedPaperId,
-                    (p, u) => PaperDecisionService.RejectAsync(p, u, comment),
-                    "reject");
+                    (p, u) => PaperDecisionService.RejectAsync(p, u, result.Comment),
+                    "reject",
+                    "Paper successfully rejected.");
                 break;
         }
     }
