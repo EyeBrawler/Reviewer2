@@ -10,6 +10,7 @@ using Reviewer2.Services.CRUD.ApplicationUser;
 using Reviewer2.Services.CRUD.FileStorage;
 using Reviewer2.Services.CRUD.Conferences;
 using Reviewer2.Services.CRUD.ReviewTemplates;
+using Reviewer2.Services.PaperDecisions;
 using Reviewer2.Services.ReviewAssignments;
 using Reviewer2.Services.Reviews;
 using Reviewer2.Services.Submissions.PaperSubmission;
@@ -52,6 +53,7 @@ builder.Services.Configure<FileStorageOptions>(
 builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
 builder.Services.AddScoped<IPaperSubmissionService, PaperSubmissionService>();
 builder.Services.AddScoped<IPaperQueryService, PaperQueryService>();
+builder.Services.AddScoped<IPaperDecisionService, PaperDecisionService>();
 builder.Services.AddScoped<IReviewAssignmentService, ReviewAssignmentService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddScoped<IConferenceService, ConferenceService>();

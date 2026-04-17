@@ -1,0 +1,93 @@
+@if (IsVisible)
+{
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+
+                <div class="modal-header">
+                    <h5 class="modal-title">@Title</h5>
+                    <button type="button" class="btn-close" @onclick="Close"></button>
+                </div>
+
+                <div class="modal-body">
+                    <p>@Message</p>
+
+                    @if (ShowConditionalAcceptance)
+                    {
+                        <div class="form-check mb-3">
+                            <input class="form-check-input"
+                                   type="checkbox"
+                                   id="acceptWithConditions"
+                                   @bind="_acceptWithConditions" />
+
+                            <label class="form-check-label" for="acceptWithConditions">
+                                Accept with conditions (requires revisions)
+                            </label>
+                        </div>
+                    }
+
+                    <div class="mb-3">
+                        <label class="form-label">Comments (optional)</label>
+                        <textarea class="form-control"
+                                  rows="3"
+                                  @bind="_comment">
+                        </textarea>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn btn-secondary"
+                            @onclick="Close">
+                        Cancel
+                    </button>
+
+                    <button class="btn @ConfirmButtonClass"
+                            @onclick="Confirm">
+                        @ComputedConfirmText
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-backdrop fade show"></div>
+}
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public string Message { get; set; } = "";
+    [Parameter] public string ConfirmText { get; set; } = "Confirm";
+    [Parameter] public string ConfirmButtonClass { get; set; } = "btn-primary";
+    
+    [Parameter] public bool ShowConditionalAcceptance { get; set; }
+
+    private bool _acceptWithConditions;
+
+    [Parameter] public EventCallback<(string? Comment, bool AcceptWithConditions)> OnConfirm { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    private string? _comment;
+    
+    private string ComputedConfirmText =>
+        ShowConditionalAcceptance && _acceptWithConditions
+            ? "Accept with Conditions"
+            : ConfirmText;
+
+    private async Task Confirm()
+    {
+        await OnConfirm.InvokeAsync((_comment, _acceptWithConditions));
+
+        _comment = null;
+        _acceptWithConditions = false;
+    }
+
+    private async Task Close()
+    {
+        await OnCancel.InvokeAsync();
+
+        _comment = null;
+        _acceptWithConditions = false;
+    }
+}

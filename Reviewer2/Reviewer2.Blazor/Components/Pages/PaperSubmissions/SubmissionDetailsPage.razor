@@ -3,7 +3,8 @@
 @attribute [Authorize]
 @using Microsoft.AspNetCore.Authorization
 @using Reviewer2.Services.DTOs.PaperSubmission
-@inject Reviewer2.Services.Submissions.PaperSubmission.IPaperQueryService PaperQueryService
+@using Reviewer2.Services.Submissions.PaperSubmission
+@inject IPaperQueryService PaperQueryService
 @inject AuthenticationStateProvider AuthProvider
 @inject NavigationManager NavManager
 
@@ -20,14 +21,14 @@
         </button>
     </div>
 
-    @if (IsLoading)
+    @if (_isLoading)
     {
         <section class="card shadow-sm p-4 mb-4 text-center">
             <div class="spinner-border mb-3" role="status"></div>
             <div class="text-muted">Loading paper...</div>
         </section>
     }
-    else if (Paper == null)
+    else if (_paper == null)
     {
         <section class="card shadow-sm p-4 mb-4">
             <div class="alert alert-danger mb-0">
@@ -39,37 +40,37 @@ else
 {
     <!-- Paper Information -->
     <section class="card shadow-sm p-4 mb-4">
-        <h3>@Paper.Title</h3>
+        <h3>@_paper.Title</h3>
 
         <div class="text-muted small mb-3">
-            Paper ID: @Paper.PaperId
+            Paper ID: @_paper.PaperId
         </div>
 
         <div class="mt-3">
             <label class="form-label fw-semibold">Status</label>
             <div>
                 <span class="badge bg-secondary">
-                    @Paper.Status
+                    @_paper.Status
                 </span>
             </div>
         </div>
 
-        @if (Paper.SubmittedAtUtc.HasValue)
+        @if (_paper.SubmittedAtUtc.HasValue)
         {
             <div class="mt-3">
                 <label class="form-label fw-semibold">Submitted</label>
                 <div class="text-muted">
-                    @Paper.SubmittedAtUtc.Value.ToLocalTime().ToString("f")
+                    @_paper.SubmittedAtUtc.Value.ToLocalTime().ToString("f")
                 </div>
             </div>
         }
 
-        @if (Paper.DecisionMadeAtUtc.HasValue)
+        @if (_paper.DecisionMadeAtUtc.HasValue)
         {
             <div class="mt-3">
                 <label class="form-label fw-semibold">Decision Made</label>
                 <div class="text-muted">
-                    @Paper.DecisionMadeAtUtc.Value.ToLocalTime().ToString("f")
+                    @_paper.DecisionMadeAtUtc.Value.ToLocalTime().ToString("f")
                 </div>
             </div>
         }
@@ -77,26 +78,26 @@ else
         <div class="mt-3">
             <label class="form-label fw-semibold">Submitter</label>
             <div class="form-control bg-light">
-                @Paper.SubmitterName
+                @_paper.SubmitterName
             </div>
         </div>
 
         <div class="mt-4">
             <label class="form-label fw-semibold">Abstract</label>
             <div class="form-control bg-light" style="min-height:120px;">
-                @Paper.Abstract
+                @_paper.Abstract
             </div>
         </div>
     </section>
 
     <!-- Authors -->
-    @if (Paper.Authors.Any())
+    @if (_paper.Authors.Any())
     {
         <section class="card shadow-sm p-4 mb-4">
             <h3>Authors</h3>
 
             <ul class="list-group list-group-flush mt-3">
-                @foreach (var author in Paper.Authors)
+                @foreach (var author in _paper.Authors)
                 {
                     <li class="list-group-item">
                         @author
@@ -107,13 +108,13 @@ else
     }
 
     <!-- Files -->
-    @if (Paper.Files.Any())
+    @if (_paper.Files.Any())
     {
         <section class="card shadow-sm p-4 mb-4">
             <h3>Files</h3>
 
             <ul class="list-group list-group-flush mt-3">
-                @foreach (var file in Paper.Files)
+                @foreach (var file in _paper.Files)
                 {
                     <li class="list-group-item d-flex justify-content-between align-items-center">
                         <div>
@@ -135,7 +136,7 @@ else
         </section>
 
         var validTypes = new[] { "InitialSubmission", "CameraReady" };
-        var pdfFile = Paper.Files
+        var pdfFile = _paper.Files
             .FirstOrDefault(f => validTypes.Contains(f.FileType));
 
         if (pdfFile != null)
@@ -158,10 +159,10 @@ else
 </div>
 
 @code {
-    [Parameter] public Guid paperId { get; set; }
+    [Parameter] public Guid PaperId { get; set; }
 
-    private PaperDetailsDTO? Paper;
-    private bool IsLoading = true;
+    private PaperDetailsDTO? _paper;
+    private bool _isLoading = true;
 
     protected override async Task OnInitializedAsync()
     {
@@ -170,7 +171,7 @@ else
 
     private async Task LoadPaper()
     {
-        IsLoading = true;
+        _isLoading = true;
 
         var authState = await AuthProvider.GetAuthenticationStateAsync();
         var user = authState.User;
@@ -180,10 +181,10 @@ else
         if (!string.IsNullOrWhiteSpace(userIdClaim))
         {
             var userId = Guid.Parse(userIdClaim);
-            Paper = await PaperQueryService.GetPaperDetailsAsync(paperId, userId);
+            _paper = await PaperQueryService.GetPaperDetailsAsync(PaperId, userId);
         }
 
-        IsLoading = false;
+        _isLoading = false;
     }
     
     private void GoBack()
