@@ -142,17 +142,8 @@ else
         if (pdfFile != null)
         {
             <!-- Manuscript Preview -->
-            <section class="card shadow-sm p-4 mb-4">
-                <h3>Manuscript Preview</h3>
-
-                <div class="border rounded mt-3" style="height:800px;">
-                    <iframe src="@pdfFile.FileUrl"
-                            width="100%"
-                            height="100%"
-                            style="border:none;">
-                    </iframe>
-                </div>
-            </section>
+            <ManuscriptPreview FileUrl="@pdfFile.FileUrl"
+                               Title="Manuscript Preview" />
         }
     }
 }
