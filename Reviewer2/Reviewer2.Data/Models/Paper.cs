@@ -178,9 +178,10 @@ public class Paper
     /// Records a revision request for the paper and transitions it to 
     /// <see cref="PaperStatus.RevisionRequired"/>.
     /// 
-    /// This indicates that the paper is not yet accepted or rejected,
-    /// and that the authors must address reviewer or chair feedback
-    /// before a final decision can be made.
+    /// Revisions may be requested at multiple stages of the workflow,
+    /// including after submission, during review, or after reviews have
+    /// been completed. This allows chairs to provide early or iterative
+    /// feedback before a final decision is made.
     /// </summary>
     /// <param name="chairUserId">
     /// The identifier of the conference chair (or authorized decision-maker)
@@ -191,12 +192,17 @@ public class Paper
     /// This is typically visible to the authors.
     /// </param>
     /// <exception cref="InvalidOperationException">
-    /// Thrown if the paper is not in <see cref="PaperStatus.ReviewsCompleted"/> state.
+    /// Thrown if the paper is not in a state where revisions can be requested.
     /// </exception>
     public void RequestRevisions(Guid chairUserId, string? comment)
     {
-        if (Status != PaperStatus.ReviewsCompleted)
-            throw new InvalidOperationException("Paper must have completed reviews.");
+        if (Status != PaperStatus.Submitted &&
+            Status != PaperStatus.UnderReview &&
+            Status != PaperStatus.ReviewsCompleted)
+        {
+            throw new InvalidOperationException(
+                "Revisions can only be requested for submitted or reviewed papers.");
+        }
 
         Status = PaperStatus.RevisionRequired;
         LastDecisionAtUtc = DateTime.UtcNow;
