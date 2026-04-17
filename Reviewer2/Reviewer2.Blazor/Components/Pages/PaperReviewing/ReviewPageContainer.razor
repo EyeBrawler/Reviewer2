@@ -7,15 +7,7 @@
 @inject IReviewAssignmentService ReviewAssignmentService
 @inject AuthenticationStateProvider AuthStateProvider
 
-@if (_isLoading)
-{
-    <p>Loading review data...</p>
-}
-else if (_errorMessage is not null)
-{
-    <div class="alert alert-danger">@_errorMessage</div>
-}
-else if (_assignment is not null)
+@if (_assignment is not null)
 {
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="mb-0">
@@ -31,46 +23,37 @@ else if (_assignment is not null)
             @(_showPreview ? "Hide Manuscript" : "Show Manuscript")
         </button>
     </div>
-
+    
     <!-- Preview Component -->
     @if (_showPreview && !string.IsNullOrWhiteSpace(_assignment.InitialSubmissionUrl))
     {
         <ManuscriptPreview FileUrl="@_assignment.InitialSubmissionUrl"
                            Title="Initial Submission" />
     }
-
-    <!-- Review Content -->
-    @if (_assignment is { CanSubmitReview: true } assignment)
-    {
-        <ReviewForm 
-            ReviewAssignmentId="assignment.ReviewAssignmentId"
-            ExistingReview="_myReview"
-            OnSubmitted="HandleReviewSubmitted" />
-    }
-    else if (_canViewAllReviews)
-    {
-        if (_reviews.Any())
-        {
-            <ReviewList Reviews="_reviews" />
-        }
-        else
-        {
-            <div class="alert alert-secondary">
-                No reviews have been submitted yet.
-            </div>
-        }
-    }
-    else
-    {
-        <div class="alert alert-info">
-            You must submit your review before viewing other reviews.
-        </div>
-    }
-} 
+}
+@if (_isLoading)
+{
+    <p>Loading review data...</p>
+}
+else if (_errorMessage is not null)
+{
+    <div class="alert alert-danger">@_errorMessage</div>
+}
+else if (_assignment is { CanSubmitReview: true } assignment)
+{
+    <ReviewForm 
+        ReviewAssignmentId="assignment.ReviewAssignmentId"
+        ExistingReview="_myReview"
+        OnSubmitted="HandleReviewSubmitted" />
+}
+else if (_canViewAllReviews)
+{
+    <ReviewList Reviews="_reviews" />
+}
 else
 {
-    <div class="alert alert-warning">
-        No review assignment found for this paper.
+    <div class="alert alert-info">
+        You must submit your review before viewing other reviews.
     </div>
 }
  
@@ -86,10 +69,10 @@ else
     private ReviewerPaperDTO? _assignment;
     private ReviewDTO? _myReview;
     private List<ReviewDTO> _reviews = [];
-    
-    private bool _showPreview;
 
     private bool _canViewAllReviews;
+
+    private bool _showPreview;
     
     private bool _isPrivilegedUser;
 
