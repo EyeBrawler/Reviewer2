@@ -9,11 +9,27 @@
 
 @if (_assignment is not null)
 {
-    <div class="mb-4">
-        <h2>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">
             Reviews for <em>@_assignment.Title</em>
         </h2>
+
+        <button class="btn btn-primary btn-sm"
+                @onclick="TogglePreview"
+                disabled="@string.IsNullOrWhiteSpace(_assignment.InitialSubmissionUrl)">
+            
+            <i class="bi @( _showPreview ? "bi-eye-slash" : "bi-eye") me-1"></i>
+            
+            @(_showPreview ? "Hide Manuscript" : "Show Manuscript")
+        </button>
     </div>
+    
+    <!-- Preview Component -->
+    @if (_showPreview && !string.IsNullOrWhiteSpace(_assignment.InitialSubmissionUrl))
+    {
+        <ManuscriptPreview FileUrl="@_assignment.InitialSubmissionUrl"
+                           Title="Initial Submission" />
+    }
 }
 @if (_isLoading)
 {
@@ -55,6 +71,8 @@ else
     private List<ReviewDTO> _reviews = [];
 
     private bool _canViewAllReviews;
+
+    private bool _showPreview;
     
     private bool _isPrivilegedUser;
 
@@ -142,5 +160,10 @@ else
         }
 
         return Guid.Parse(userIdClaim);
+    }
+    
+    private void TogglePreview()
+    {
+        _showPreview = !_showPreview;
     }
 }

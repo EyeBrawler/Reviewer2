@@ -213,15 +213,34 @@ public class PaperQueryService : IPaperQueryService
             return FileReadResult.NotFound("Requesting user not found.");
         }
 
-        // Authorization check: submitter or privileged roles
+        // Authorization check: submitter or privileged roles or assigned reviewer
         var privilegedRoles = new[] { "Admin", "ConferenceChair", "PaperChair" };
+
         var userRoles = await _userManager.GetRolesAsync(requestingUser);
-        if (paper.SubmitterUserId != userId && !userRoles.Intersect(privilegedRoles).Any())
+
+        var isPrivileged = userRoles.Intersect(privilegedRoles).Any();
+        
+        var isSubmitter = paper.SubmitterUserId == userId;
+
+        var isAssignedReviewer = await dbContext.Set<ReviewAssignment>()
+            .AnyAsync(ra =>
+                    ra.PaperId == paperId &&
+                    ra.ReviewerId == userId &&
+                    ra.Status != ReviewStatus.Withdrawn,
+                cancellationToken);
+
+        var canAccess = isSubmitter || isPrivileged || isAssignedReviewer;
+        
+        if (!canAccess)
         {
-            Log.Warning("GetPaperFileAsync: User {UserId} attempted to access paper {PaperId} without permission", userId, paperId);
+            Log.Warning(
+                "GetPaperFileAsync: User {UserId} attempted to access paper {PaperId} without permission",
+                userId,
+                paperId);
+
             return FileReadResult.NotFound("You do not have permission to access this file.");
         }
-
+        
         // Find the requested file
         var file = paper.Files.FirstOrDefault(f => f.Type == fileType);
         if (file == null)
