@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Reviewer2.Data.Models;
 using Reviewer2.Services.DTOs.PaperSubmission;
 
@@ -57,7 +58,33 @@ public class ReviewerPaperDTO
     /// Each file includes metadata and a URL for retrieval.
     /// </summary>
     public List<PaperFileSummaryDTO> Files { get; set; } = new();
+    
+    /// <summary>
+    /// Gets the URL of the initial submission manuscript file associated with this paper, if available.
+    /// 
+    /// This property is intended for reviewer workflows, where the original submitted
+    /// version of the paper is typically used for evaluation.
+    /// 
+    /// Returns <c>null</c> if no file with the type <c>InitialSubmission</c> is present.
+    /// </summary>
+    public string? InitialSubmissionUrl =>
+        Files?
+            .FirstOrDefault(f => f.FileType == "InitialSubmission")
+            ?.FileUrl;
 
+    /// <summary>
+    /// Gets the URL of the camera-ready (final) version of the manuscript, if available.
+    /// 
+    /// This property is primarily used in post-acceptance workflows, where the finalized
+    /// version of the paper is required for publication or archival purposes.
+    /// 
+    /// Returns <c>null</c> if no file with the type <c>CameraReady</c> is present.
+    /// </summary>
+    public string? CameraReadyUrl =>
+        Files?
+            .FirstOrDefault(f => f.FileType == "CameraReady")
+            ?.FileUrl;
+    
     /// <summary>
     /// Unique identifier of the review assignment linking the reviewer
     /// to this paper.
