@@ -1,0 +1,476 @@
+@page "/submissions"
+@rendermode InteractiveServer
+@using Reviewer2.Blazor.Components.Modals
+@using Reviewer2.Services.DTOs.PaperSubmission
+@using Reviewer2.Services.PaperDecisions
+@using Reviewer2.Services.Submissions.PaperSubmission
+@using Serilog
+@inject IPaperQueryService PaperQueryService
+@inject IPaperDecisionService PaperDecisionService
+@inject AuthenticationStateProvider AuthProvider
+@inject NavigationManager NavManager
+
+<PageTitle>Submissions</PageTitle>
+
+<AuthorizeView>
+    <Authorizing>
+        <p>Authorizing...</p>
+    </Authorizing>
+
+    <NotAuthorized>
+        <div class="alert alert-warning">
+            You are not authorized to view this page.
+        </div>
+    </NotAuthorized>
+
+    <Authorized>
+
+    @if (_isLoading)
+    {
+        <div class="text-center my-5">
+            <div class="spinner-border" role="status"></div>
+            <p>Loading submissions...</p>
+        </div>
+    }
+    else if (!_papers.Any())
+    {
+        <div class="alert alert-info">
+            No submissions found.
+        </div>
+    }
+    else
+    {
+        <div class="d-flex justify-content-between align-items-center my-3">
+            <h3 class="mb-0">@PageTitleText</h3>
+
+            <input type="text"
+                   class="form-control w-auto"
+                   placeholder="Search..."
+                   @bind="_searchString"
+                   @bind:event="oninput" />
+        </div>
+        
+        @if (!string.IsNullOrWhiteSpace(_statusMessage))
+        {
+            <div class="alert alert-@_statusMessageType">
+                @_statusMessage
+            </div>
+        }
+
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped table-hover">
+
+                <thead class="table-light">
+                <tr>
+                    <th role="button" @onclick="() => SortBy(nameof(UserPaperDTO.Title))">
+                        Title @SortIcon(nameof(UserPaperDTO.Title))
+                    </th>
+
+                    @if (_showAllPapers)
+                    {
+                        <th role="button" @onclick="() => SortBy(nameof(UserPaperDTO.Authors))">
+                            Authors @SortIcon(nameof(UserPaperDTO.Authors))
+                        </th>
+                    }
+
+                    <th role="button" @onclick="() => SortBy(nameof(UserPaperDTO.Status))">
+                        Status @SortIcon(nameof(UserPaperDTO.Status))
+                    </th>
+
+                    <th role="button" @onclick="() => SortBy(nameof(UserPaperDTO.SubmittedAtUtc))">
+                        Submitted @SortIcon(nameof(UserPaperDTO.SubmittedAtUtc))
+                    </th>
+
+                    <th style="width:120px;">Actions</th>
+                </tr>
+                </thead>
+
+                <tbody>
+                @foreach (var paper in PagedPapers)
+                {
+                    <tr>
+                        <td>@paper.Title</td>
+
+                        @if (_showAllPapers)
+                        {
+                            <td>@paper.Authors</td>
+                        }
+
+                        <td>@paper.Status</td>
+
+                        <td>
+                            @paper.SubmittedAtUtc?.LocalDateTime.ToString("M/d/yy h:mm tt")
+                        </td>
+
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+
+                                <!-- View -->
+                                <button class="btn btn-primary btn-sm"
+                                        title="View details"
+                                        data-bs-toggle="tooltip"
+                                        @onclick="() => ViewDetails(paper.PaperId)">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+
+                                @if (_canMakeDecisions && CanMakeDecision(paper))
+                                {
+                                    <!-- Divider -->
+                                    <div class="vr mx-1"></div>
+
+                                    <!-- Accept -->
+                                    <button class="btn btn-success btn-sm"
+                                            title="Accept paper"
+                                            disabled="@(_showDecisionModal && _selectedPaperId == paper.PaperId)"
+                                            @onclick="() => OpenDecisionModal(paper.PaperId, AcceptAction)">
+                                        <i class="bi bi-check-lg"></i>
+                                    </button>
+
+                                    <!-- Reject -->
+                                    <button class="btn btn-danger btn-sm"
+                                            title="Reject paper"
+                                            disabled="@(_showDecisionModal && _selectedPaperId == paper.PaperId)"
+                                            @onclick="() => OpenDecisionModal(paper.PaperId, RejectAction)">
+                                        <i class="bi bi-x-lg"></i>
+                                    </button>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+
+            </table>
+        </div>
+        
+        <PaperDecisionModal
+            IsVisible="@_showDecisionModal"
+            Title="@_modalTitle"
+            Message="@_modalMessage"
+            ConfirmText="@_modalConfirmText"
+            ConfirmButtonClass="@_modalButtonClass"
+            OnConfirm="HandleDecisionConfirmed"
+            OnCancel="@CloseModal" />
+
+        <!-- Pagination Controls -->
+
+        <div class="d-flex justify-content-between align-items-center mt-3">
+
+        <div>
+            <label class="me-2">Rows:</label>
+            <select class="form-select d-inline w-auto"
+                    @bind="_pageSize">
+                <option>5</option>
+                <option>10</option>
+                <option>25</option>
+                <option>50</option>
+            </select>
+        </div>
+
+        <div>
+
+        <button class="btn btn-sm btn-secondary me-2"
+                disabled="@(_currentPage == 1)"
+                @onclick="PreviousPage">
+            Previous
+        </button>
+
+        <span class="me-2">
+            Page @_currentPage of @TotalPages
+        </span>
+
+        <button class="btn btn-sm btn-secondary"
+                disabled="@(_currentPage == TotalPages)"
+                @onclick="NextPage">
+            Next
+        </button>
+
+        </div>
+
+        </div>
+    }
+    </Authorized>
+</AuthorizeView>
+
+@code {
+    private string PageTitleText =>
+        _showAllPapers ? "Submissions" : "My Submissions";
+    
+    private bool _isLoading = true;
+    private List<UserPaperDTO> _papers = new();
+    private string _searchString = string.Empty;
+
+    private string _sortColumn = nameof(UserPaperDTO.SubmittedAtUtc);
+    private bool _sortAscending;
+    
+    private string? _statusMessage;
+    private string _statusMessageType = "info"; // bootstrap: success, danger, warning, info
+    
+    // Modal State Variables
+    private bool _showDecisionModal;
+    private Guid _selectedPaperId;
+    private string _pendingAction = ""; // "accept" | "reject"
+    
+    private const string AcceptAction = "accept";
+    private const string RejectAction = "reject";
+
+    private string _modalTitle = "";
+    private string _modalMessage = "";
+    private string _modalConfirmText = "";
+    private string _modalButtonClass = "btn-primary";
+
+    // Pagination Variables
+    private int _pageSize = 10;
+    private int _currentPage = 1;
+
+    // Display Variables
+    private bool _showAllPapers;
+    private bool _canMakeDecisions;
+    
+    private IEnumerable<UserPaperDTO> FilteredPapers =>
+        string.IsNullOrWhiteSpace(_searchString)
+            ? _papers
+            : _papers.Where(p =>
+                p.Title.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ||
+                p.Status.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ||
+                (_showAllPapers && (p.Authors.Contains(_searchString, StringComparison.OrdinalIgnoreCase)))
+            );
+
+    private IEnumerable<UserPaperDTO> SortedFilteredPapers =>
+    _sortColumn switch
+    {
+        nameof(UserPaperDTO.Title) =>
+            _sortAscending
+                ? FilteredPapers.OrderBy(p => p.Title)
+                : FilteredPapers.OrderByDescending(p => p.Title),
+
+        nameof(UserPaperDTO.Status) =>
+            _sortAscending
+                ? FilteredPapers.OrderBy(p => p.Status)
+                : FilteredPapers.OrderByDescending(p => p.Status),
+            
+        nameof(UserPaperDTO.Authors) =>
+            _sortAscending
+                ? FilteredPapers.OrderBy(p => p.Authors)
+                : FilteredPapers.OrderByDescending(p => p.Authors),
+
+        _ =>
+            _sortAscending
+                ? FilteredPapers.OrderBy(p => p.SubmittedAtUtc)
+                : FilteredPapers.OrderByDescending(p => p.SubmittedAtUtc)
+    };
+
+    private IEnumerable<UserPaperDTO> PagedPapers =>
+    SortedFilteredPapers
+    .Skip((_currentPage - 1) * _pageSize)
+    .Take(_pageSize);
+
+    private int TotalPages =>
+    (int)Math.Ceiling(SortedFilteredPapers.Count() / (double)_pageSize);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPapers();
+    }
+
+    private async Task LoadPapers()
+    {
+        _isLoading = true;
+
+        var authState = await AuthProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            var userIdClaim = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+            var roles = user.Claims
+                .Where(c => c.Type == System.Security.Claims.ClaimTypes.Role)
+                .Select(c => c.Value)
+                .ToList();
+
+            if (!string.IsNullOrWhiteSpace(userIdClaim))
+            {
+                var userId = Guid.Parse(userIdClaim);
+
+                if (roles.Contains("Admin") ||
+                    roles.Contains("ConferenceChair") ||
+                    roles.Contains("PaperChair"))
+                {
+                    _papers = (await PaperQueryService.GetAllPapersAsync()).ToList();
+                    _showAllPapers = true;
+                    _canMakeDecisions = true;
+                }
+                else
+                {
+                    _papers = (await PaperQueryService.GetUserPapersAsync(userId)).ToList();
+                    _showAllPapers = false;
+                }
+            }
+        }
+
+        _isLoading = false;
+    }
+    
+    private bool CanMakeDecision(UserPaperDTO paper)
+    {
+        return paper.Status is "Submitted" or "ReviewsCompleted";
+    }
+    
+    private async Task ExecuteDecision(
+        Guid paperId,
+        Func<Guid, Guid, Task> action,
+        string actionName)
+    {
+        _statusMessage = null;
+
+        var (success, userId) = await TryGetCurrentUserIdAsync();
+
+        if (!success || userId is null)
+        {
+            Log.Warning(
+                "{Action} failed for paper {PaperId}: Unable to resolve current user.",
+                actionName, paperId);
+
+            _statusMessage = "Unable to determine current user. Please refresh and try again.";
+            _statusMessageType = "danger";
+            return;
+        }
+
+        try
+        {
+            Log.Information(
+                "User {UserId} attempting to {Action} paper {PaperId}",
+                userId, actionName, paperId);
+
+            await action(paperId, userId.Value);
+
+            Log.Information(
+                "User {UserId} successfully performed {Action} on paper {PaperId}",
+                userId, actionName, paperId);
+
+            _statusMessage = $"Paper successfully {actionName}ed.";
+            _statusMessageType = "success";
+
+            await LoadPapers();
+        }
+        catch (InvalidOperationException ex)
+        {
+            Log.Warning(ex,
+                "{Action} failed for paper {PaperId} by user {UserId}",
+                actionName, paperId, userId);
+
+            _statusMessage = ex.Message; // domain message is usually safe to show
+            _statusMessageType = "warning";
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex,
+                "Unexpected error during {Action} for paper {PaperId} by user {UserId}",
+                actionName, paperId, userId);
+
+            _statusMessage = "An unexpected error occurred. Please try again.";
+            _statusMessageType = "danger";
+        }
+    }
+    
+    private async Task HandleDecisionConfirmed(string? comment)
+    {
+        _showDecisionModal = false;
+
+        switch (_pendingAction)
+        {
+            case "accept":
+                await ExecuteDecision(
+                    _selectedPaperId,
+                    (p, u) => PaperDecisionService.AcceptAsync(p, u, comment),
+                    "accept");
+                break;
+            case "reject":
+                await ExecuteDecision(
+                    _selectedPaperId,
+                    (p, u) => PaperDecisionService.RejectAsync(p, u, comment),
+                    "reject");
+                break;
+        }
+    }
+    
+    private void OpenDecisionModal(Guid paperId, string action)
+    {
+        _selectedPaperId = paperId;
+        _pendingAction = action;
+
+        if (action == "accept")
+        {
+            _modalTitle = "Accept Paper";
+            _modalMessage = "Are you sure you want to accept this paper?";
+            _modalConfirmText = "Accept";
+            _modalButtonClass = "btn-success";
+        }
+        else if (action == "reject")
+        {
+            _modalTitle = "Reject Paper";
+            _modalMessage = "Are you sure you want to reject this paper?";
+            _modalConfirmText = "Reject";
+            _modalButtonClass = "btn-danger";
+        }
+
+        _showDecisionModal = true;
+    }
+
+    private void CloseModal()
+    {
+        _showDecisionModal = false;
+    }
+    
+    private async Task<(bool Success, Guid? UserId)> TryGetCurrentUserIdAsync()
+    {
+        var authState = await AuthProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated != true)
+            return (false, null);
+
+        var userIdClaim = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+        if (!Guid.TryParse(userIdClaim, out var userId))
+            return (false, null);
+
+        return (true, userId);
+    }
+
+    private void SortBy(string column)
+    {
+        if (_sortColumn == column)
+            _sortAscending = !_sortAscending;
+        else
+        {
+            _sortColumn = column;
+            _sortAscending = true;
+        }
+    }
+
+    private string SortIcon(string column)
+    {
+        if (_sortColumn != column) return "";
+
+        return _sortAscending ? "▲" : "▼";
+    }
+
+    private void PreviousPage()
+    {
+        if (_currentPage > 1)
+            _currentPage--;
+    }
+
+    private void NextPage()
+    {
+        if (_currentPage < TotalPages)
+            _currentPage++;
+    }
+
+    private void ViewDetails(Guid paperId)
+    {
+        NavManager.NavigateTo($"/submissions/{paperId}");
+    }
+}

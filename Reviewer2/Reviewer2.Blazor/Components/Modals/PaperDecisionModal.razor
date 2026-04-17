@@ -1,0 +1,67 @@
+@if (IsVisible)
+{
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+
+                <div class="modal-header">
+                    <h5 class="modal-title">@Title</h5>
+                    <button type="button" class="btn-close" @onclick="Close"></button>
+                </div>
+
+                <div class="modal-body">
+                    <p>@Message</p>
+
+                    <div class="mb-3">
+                        <label class="form-label">Comments (optional)</label>
+                        <textarea class="form-control"
+                                  rows="3"
+                                  @bind="_comment">
+                        </textarea>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn btn-secondary"
+                            @onclick="Close">
+                        Cancel
+                    </button>
+
+                    <button class="btn @ConfirmButtonClass"
+                            @onclick="Confirm">
+                        @ConfirmText
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- backdrop -->
+    <div class="modal-backdrop fade show"></div>
+}
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public string Message { get; set; } = "";
+    [Parameter] public string ConfirmText { get; set; } = "Confirm";
+    [Parameter] public string ConfirmButtonClass { get; set; } = "btn-primary";
+
+    [Parameter] public EventCallback<string?> OnConfirm { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    private string? _comment;
+
+    private async Task Confirm()
+    {
+        await OnConfirm.InvokeAsync(_comment);
+        _comment = null;
+    }
+
+    private async Task Close()
+    {
+        await OnCancel.InvokeAsync();
+        _comment = null;
+    }
+}
