@@ -2,21 +2,23 @@
 ### Added
 * Paper chairs have a page from which they can approve papers.
 * When submitting a review or looking at submitted reviews for a paper, an embedded PDF view of the paper itself is visible.
-* Conference/paper chairs and admins can customize conference review forms using the template editor form.
 * The deployment documentation now contains a new section that walks through managing the databases on Postgres Docker
 container. The manual ``psql`` commands documented can be particularly useful for setting up multiple databases on one DBMS. 
 
 ### Fixed
-* Drag and drop logic for reviewers on the reviewer assignment page has been improved with no a full page refresh after
-each drop no longer required.
-* Reviewers can no longer manipulate raw JSON data for a review via the review form.
+* Drag and drop logic for reviewers on the reviewer assignment page has been improved with no full page refresh required after
+a drop operation.
 * Minor formatting tweaks have been made to the deployment documentation to make it more readable and easy to follow, especially
 when viewing the Markdown raw.
 
+### Known Issues
+For conference/paper chairs and admins, the paper preview and title will not always be visible on the reviewing page.
+
 ### Notes
-* This release has the main objective of completing the core reviewing logic in Reviewer2, primarily by adding the ability 
-to approve papers. With this feature now present, the application could be used to manage almost all the core 
-conference administration workflows.
+This release has the main objective of completing the core reviewing logic in *Reviewer2*, primarily by adding the ability 
+to approve or reject papers. With this feature now present, the application could be used to manage almost all the core 
+conference administration workflows. The only major missing feature (besides the "extras" of conference administration) is
+the ability for authors to submit revised papers.
 
 ---
 
