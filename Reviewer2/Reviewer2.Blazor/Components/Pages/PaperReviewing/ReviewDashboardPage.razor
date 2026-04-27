@@ -48,7 +48,7 @@
                        @bind:event="oninput" />
 
                 <AuthorizeView Roles="Admin, ConferenceChair">
-                    <Authorized>
+                    <Authorized Context="authCtx">
                         <NavLink class="btn btn-warning btn-sm"
                                  href="/templates/create">
                             <i class="bi bi-gear"></i> Create Template
