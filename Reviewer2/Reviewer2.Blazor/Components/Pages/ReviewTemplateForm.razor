@@ -8,6 +8,14 @@
 
 <h3>Create Review Template</h3>
 
+@if (_success is not null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @_success
+        <button type="button" class="btn-close" @onclick="() => _success = null"></button>
+    </div>
+}
+
 <EditForm Model="_model" OnValidSubmit="HandleSubmit">
     <DataAnnotationsValidator />
     <ValidationSummary />
@@ -159,6 +167,7 @@
     private ReviewTemplateCreateRequest _model = new();
 
     private string? _error;
+    private string? _success;
 
     private void AddField()
     {
@@ -184,14 +193,23 @@
     private async Task HandleSubmit()
     {
         _error = null;
+        _success = null;
 
         try
         {
             await TemplateService.CreateAsync(_model);
 
+            _success = "Review template created successfully!";
+
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(3000);
+                _success = null;
+                await InvokeAsync(StateHasChanged);
+            });
+
             // Reset form after success
             _model = new ReviewTemplateCreateRequest();
-
         }
         catch (Exception ex)
         {
