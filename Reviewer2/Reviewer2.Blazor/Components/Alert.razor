@@ -1,0 +1,78 @@
+@if (!string.IsNullOrWhiteSpace(Message))
+{
+    <div class="alert alert-@Type alert-dismissible fade show" role="alert">
+        @Message
+
+        @if (Dismissible)
+        {
+            <button type="button"
+                    class="btn-close"
+                    aria-label="Close"
+                    @onclick="Close">
+            </button>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public string? Message { get; set; }
+
+    // success, danger, warning, info, etc.
+    [Parameter] public string Type { get; set; } = "success";
+
+    [Parameter] public bool Dismissible { get; set; } = true;
+
+    // Auto-dismiss delay (ms). Example: 3000 = 3 seconds
+    [Parameter] public int? AutoCloseMs { get; set; }
+
+    // Optional event when alert is closed
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private CancellationTokenSource? _cts;
+
+    protected override void OnParametersSet()
+    {
+        // Reset any previous timer
+        _cts?.Cancel();
+
+        if (AutoCloseMs.HasValue && !string.IsNullOrWhiteSpace(Message))
+        {
+            _cts = new CancellationTokenSource();
+            _ = StartAutoCloseTimer(_cts.Token);
+        }
+    }
+
+    private async Task StartAutoCloseTimer(CancellationToken token)
+    {
+        try
+        {
+            await Task.Delay(AutoCloseMs!.Value, token);
+
+            if (!token.IsCancellationRequested)
+            {
+                await InvokeAsync(Close);
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            // Expected if message changes or component re-renders
+        }
+    }
+
+    private async Task Close()
+    {
+        _cts?.Cancel();
+
+        // Notify parent to clear the message
+        if (OnClose.HasDelegate)
+        {
+            await OnClose.InvokeAsync();
+        }
+    }
+
+    public void Dispose()
+    {
+        _cts?.Cancel();
+        _cts?.Dispose();
+    }
+}
