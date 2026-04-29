@@ -1,0 +1,103 @@
+@using Reviewer2.Data.Models
+@inject IJSRuntime JS
+
+<div class="paper-card" @ref="cardRef">
+    <div class="card-content">
+        <div class="card-top">
+            @* Safely handle the ID prefix *@
+            <span class="paper-id">P-@Paper.Id.ToString().Substring(0, 4).ToUpper()</span>
+            <span class="reviewer-count">👤 @Paper.ReviewAssignments.Count reviewers</span>
+        </div>
+        
+        <div class="card-title">@Paper.Title</div>
+        
+        @* The drop zone for reviewers - the <ul> is what SortableJS targets *@
+        <ul class="reviewer-mini-list">
+            @foreach (var assignment in Paper.ReviewAssignments)
+            {
+                @* We access the name through the Reviewer navigation property *@
+                <li data-reviewer-id="@assignment.ReviewerId" class="reviewer-badge">
+                    @(assignment.Reviewer?.FullName ?? "Unknown")
+                </li>
+            }
+        </ul>
+    </div>
+</div>
+
+<style>
+    .paper-card {
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        transition: transform 0.1s ease;
+    }
+    .card-top {
+        display: flex;
+        justify-content: space-between;
+        font-size: 11px;
+        color: #5f6368;
+        margin-bottom: 8px;
+    }
+    .paper-id { color: #1a73e8; font-weight: bold; }
+    .card-title {
+        font-size: 14px;
+        font-weight: 500;
+        margin-bottom: 10px;
+        line-height: 1.4;
+    }
+    .reviewer-mini-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        min-height: 20px; /* Essential for SortableJS to have a drop target when empty */
+    }
+    .reviewer-badge {
+        background: #f1f3f4;
+        border-radius: 4px;
+        padding: 2px 6px;
+        font-size: 11px;
+        color: #3c4043;
+        border: 1px solid #dadce0;
+    }
+    /* Styles for SortableJS ghosts */
+    .drag-ghost { opacity: 0.4; background: #e8f0fe !important; }
+</style>
+
+@code {
+    [Parameter] public Paper Paper { get; set; } = default!;
+    
+    // This handles the reviewer assignment drop
+    [Parameter] public EventCallback<(Guid paperId, Guid reviewerId)> OnReviewerDropped { get; set; }
+
+    private ElementReference cardRef;
+    private DotNetObjectReference<PaperCard>? objRef;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            objRef = DotNetObjectReference.Create(this);
+            // This initializes the specific card as a drop target for reviewers
+            await JS.InvokeVoidAsync("initPaperColumn", cardRef, objRef, Paper.Id);
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnReviewerDroppedJS(string paperId, string reviewerId)
+    {
+        if (Guid.TryParse(paperId, out var pId) && Guid.TryParse(reviewerId, out var rId))
+        {
+            await OnReviewerDropped.InvokeAsync((pId, rId));
+        }
+    }
+
+    public void Dispose()
+    {
+        objRef?.Dispose();
+    }
+}

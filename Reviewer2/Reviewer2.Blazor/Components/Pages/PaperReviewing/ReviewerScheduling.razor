@@ -1,0 +1,105 @@
+@page "/reviewer-scheduling"
+@using Reviewer2.Data.Models
+@using Reviewer2.Data.Context
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<ApplicationContext> DbFactory
+
+<div class="scheduling-container">
+    <aside class="sidebar">
+        <ReviewerPool Reviewers="Reviewers" />
+    </aside>
+
+    <main class="board-area">
+        <div class="board-header">
+            <h3>Reviewer Scheduling</h3>
+            <SchedulingToolbar />
+        </div>
+
+        <div class="kanban-layout">
+            @foreach (var session in Sessions)
+            {
+                <SessionColumn 
+                    SessionName="@session.Key"
+                    Papers="@session.Value"
+                    OnPaperMoved="HandlePaperMoved"
+                    OnReviewerDropped="HandleReviewerDrop" />
+            }
+        </div>
+    </main>
+</div>
+
+@code {
+    private List<ReviewerItem> Reviewers = new();
+    private Dictionary<string, List<Paper>> Sessions = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+
+        // Load Reviewers
+        var users = await db.Users.AsNoTracking().ToListAsync();
+        Reviewers = users.Select(u => new ReviewerItem {
+            UserId = u.Id,
+            Name = u.FullName ?? "Unknown"
+        }).ToList();
+
+        // Load Papers (example grouping)
+        var papers = await db.Papers
+            .Include(p => p.ReviewAssignments)
+            .AsNoTracking()
+            .ToListAsync();
+
+        // Grouping logic (simplified)
+        Sessions = new Dictionary<string, List<Paper>>
+        {
+            ["Unscheduled"] = papers.Where(p => p.Status != PaperStatus.Scheduled).ToList(),
+            ["Morning Session"] = papers.Where(p => p.Status == PaperStatus.Scheduled).ToList()
+        };
+    }
+
+    /// <summary>
+    /// Logic for moving a paper from one session/bin to another.
+    /// </summary>
+    private async Task HandlePaperMoved((Guid paperId, string sessionName) data)
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        var paper = await db.Papers.FindAsync(data.paperId);
+        
+        if (paper != null)
+        {
+            // Update paper session/status logic here
+            // paper.SessionName = data.sessionName; 
+            await db.SaveChangesAsync();
+            await LoadDataAsync(); // Refresh UI
+        }
+    }
+
+    /// <summary>
+    /// Logic for assigning a reviewer to a specific paper.
+    /// </summary>
+    private async Task HandleReviewerDrop((Guid paperId, Guid reviewerId) data)
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        
+        var exists = await db.ReviewAssignments
+            .AnyAsync(r => r.PaperId == data.paperId && r.ReviewerId == data.reviewerId);
+
+        if (!exists)
+        {
+            db.ReviewAssignments.Add(new ReviewAssignment {
+                Id = Guid.NewGuid(),
+                PaperId = data.paperId,
+                ReviewerId = data.reviewerId,
+                Status = ReviewStatus.Pending
+            });
+
+            await db.SaveChangesAsync();
+            await LoadDataAsync(); // Refresh UI
+        }
+    }
+}

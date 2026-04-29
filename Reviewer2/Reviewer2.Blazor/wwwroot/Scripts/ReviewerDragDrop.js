@@ -13,7 +13,7 @@ export function initReviewerPool(el, dotNetRef) {
     const list = el.querySelector("ul");
     if (!list) return;
 
-    new Sortable(list, {
+    const sortable = new Sortable(list, {
         group: {
             name: "reviewers",
             pull: "clone", // clone from pool
@@ -34,11 +34,11 @@ export function initReviewerPool(el, dotNetRef) {
         },
     });
 
-    initialized.set(el, list);
+    initialized.set(el, sortable);
 }
 
 // =====================
-// PAPER COLUMN (drop target)
+// PAPER COLUMN (drop target for reviewers)
 // =====================
 export function initPaperColumn(el, dotNetRef, paperId) {
     if (!el || initialized.has(el)) return;
@@ -46,7 +46,7 @@ export function initPaperColumn(el, dotNetRef, paperId) {
     const list = el.querySelector("ul");
     if (!list) return;
 
-    new Sortable(list, {
+    const sortable = new Sortable(list, {
         group: {
             name: "reviewers",
             pull: false,
@@ -78,7 +78,53 @@ export function initPaperColumn(el, dotNetRef, paperId) {
         }
     });
 
-    initialized.set(el, list);
+    initialized.set(el, sortable);
+}
+
+// =====================
+// SESSION COLUMN (Drag source & Drop target for papers)
+// =====================
+export function initSessionColumn(el, dotNetRef, sessionName) {
+    if (!el || initialized.has(el)) return;
+
+    // Target the specific container inside the column that holds the papers
+    const container = el.querySelector(".column-body");
+    if (!container) return;
+
+    const sortable = new Sortable(container, {
+        group: "papers", // Shared group name allows dragging between all columns
+        animation: 150,
+        ghostClass: "drag-ghost",
+        chosenClass: "drag-chosen",
+        draggable: ".paper-drop-zone", // Ensures we drag papers, not the "Drop paper here" empty state UI
+
+        // Fired when a paper is dropped into THIS column from another column
+        onAdd: (evt) => {
+            const paperId = evt.item.dataset.paperId;
+
+            // CRITICAL FOR BLAZOR: Immediately remove the DOM node Sortable just moved.
+            // Blazor maintains its own virtual DOM. We delete Sortable's DOM manipulation 
+            // and let Blazor re-render the paper in the new column based on the C# state.
+            evt.item.remove();
+
+            if (dotNetRef && paperId) {
+                log(`Paper ${paperId} dropped into ${sessionName}`);
+                dotNetRef.invokeMethodAsync(
+                    "OnPaperDroppedJS",
+                    paperId,
+                    sessionName
+                );
+            }
+        },
+
+        // Fired if you reorder papers within the SAME column
+        onUpdate: (evt) => {
+            // If you care about sorting order inside the session, handle it here.
+            // Otherwise, you can leave this blank or disable sorting via `sort: false`.
+        }
+    });
+
+    initialized.set(el, sortable);
 }
 
 // =====================
@@ -87,15 +133,15 @@ export function initPaperColumn(el, dotNetRef, paperId) {
 export function destroy(el) {
     if (!el) return;
 
-    const list = el.querySelector("ul");
-    if (!list) return;
-
-    const sortable = initialized.get(list);
+    // Try to find the sortable instance on the element itself or its common child lists
+    const container = el.querySelector("ul") || el.querySelector(".column-body") || el;
+    const sortable = initialized.get(el) || initialized.get(container);
 
     if (sortable) {
         try {
             sortable.destroy();
         } catch { }
-        initialized.delete(list);
+        initialized.delete(el);
+        initialized.delete(container);
     }
 }
