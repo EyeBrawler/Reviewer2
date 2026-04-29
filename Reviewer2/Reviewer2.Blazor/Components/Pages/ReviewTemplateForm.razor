@@ -8,13 +8,14 @@
 
 <h3>Create Review Template</h3>
 
-@if (_success is not null)
-{
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
-        @_success
-        <button type="button" class="btn-close" @onclick="() => _success = null"></button>
-    </div>
-}
+<Alert Message="@_success"
+       Type="success"
+       AutoCloseMs="3000"
+       OnClose="@(() => _success = null)" />
+
+<Alert Message="@_error"
+       Type="danger"
+       OnClose="@(() => _error = null)" />
 
 <EditForm Model="_model" OnValidSubmit="HandleSubmit">
     <DataAnnotationsValidator />
@@ -154,13 +155,6 @@
         </button>
     </div>
 
-    @if (_error is not null)
-    {
-        <div class="alert alert-danger mt-3">
-            @_error
-        </div>
-    }
-
 </EditForm>
 
 @code {
@@ -179,9 +173,9 @@
         _model.Fields.Remove(field);
     }
 
-    private void AddOption(TemplateFieldDTO field)
+    private static void AddOption(TemplateFieldDTO field)
     {
-        field.Options ??= new List<string>();
+        field.Options ??= [];
         field.Options.Add(string.Empty);
     }
 
@@ -199,14 +193,8 @@
         {
             await TemplateService.CreateAsync(_model);
 
-            _success = "Review template created successfully!";
-
-            _ = Task.Run(async () =>
-            {
-                await Task.Delay(3000);
-                _success = null;
-                await InvokeAsync(StateHasChanged);
-            });
+            // Capture the name BEFORE resetting the model
+            _success = $"Template '{_model.Name}' created successfully!";
 
             // Reset form after success
             _model = new ReviewTemplateCreateRequest();
