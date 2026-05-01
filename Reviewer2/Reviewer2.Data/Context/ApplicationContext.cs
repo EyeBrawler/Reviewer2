@@ -162,4 +162,9 @@ public class ApplicationContext
             .HasForeignKey(a => a.PaperId)
             .OnDelete(DeleteBehavior.Cascade);
     }
+    
+    /// <summary>
+    /// Database set representing scheduled paper sessions.
+    /// </summary>
+    public DbSet<PaperSchedule> PaperSchedules { get; set; } = null!;
 }

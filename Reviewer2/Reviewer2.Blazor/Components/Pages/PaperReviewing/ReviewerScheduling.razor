@@ -1,105 +1,206 @@
 @page "/reviewer-scheduling"
+
 @using Reviewer2.Data.Models
 @using Reviewer2.Data.Context
 @using Microsoft.EntityFrameworkCore
+
 @inject IDbContextFactory<ApplicationContext> DbFactory
 
-<div class="scheduling-container">
-    <aside class="sidebar">
-        <ReviewerPool Reviewers="Reviewers" />
-    </aside>
+<div class="container-fluid py-3">
 
-    <main class="board-area">
-        <div class="board-header">
-            <h3>Reviewer Scheduling</h3>
-            <SchedulingToolbar />
-        </div>
+    <!-- HEADER -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4>Reviewer Scheduling</h4>
 
-        <div class="kanban-layout">
-            @foreach (var session in Sessions)
-            {
-                <SessionColumn 
-                    SessionName="@session.Key"
-                    Papers="@session.Value"
-                    OnPaperMoved="HandlePaperMoved"
-                    OnReviewerDropped="HandleReviewerDrop" />
-            }
+        <div class="d-flex gap-2">
+            <button class="btn btn-primary" @onclick="LoadData">Refresh</button>
+
+            <input class="form-control"
+                   style="width:200px"
+                   placeholder="New bin..."
+                   @bind="NewBinName" />
+
+            <button class="btn btn-success" @onclick="AddBin">Add</button>
         </div>
-    </main>
+    </div>
+
+    <!-- BOARD -->
+    <div class="row g-3">
+
+        @foreach (var bin in Bins)
+        {
+            <div class="col-12 col-md-4">
+
+                <div class="card shadow-sm p-3 h-100"
+                     @ondragover:preventDefault="true"
+                     @ondrop="() => Drop(bin.Id)">
+
+                    <!-- HEADER -->
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <strong>@bin.Label</strong>
+
+                        @if (!bin.IsLocked)
+                        {
+                            <button class="btn btn-sm btn-outline-danger"
+                                    @onclick="() => RemoveBin(bin.Id)">
+                                ✕
+                            </button>
+                        }
+                    </div>
+
+                    <div class="text-muted small mb-2">
+                        @bin.Papers.Count papers
+                    </div>
+
+                    <!-- PAPERS -->
+                    @foreach (var paper in bin.Papers)
+                    {
+                        <div class="border rounded p-2 mb-2 bg-light"
+                             draggable="true"
+                             @ondragstart="() => StartDrag(paper)">
+
+                            <div class="fw-bold">@paper.Title</div>
+                            <div class="small text-muted">@paper.Status</div>
+
+                            <!-- show ALL paper options cleanly -->
+                            <div class="small">
+                                @paper.Abstract
+                            </div>
+
+                        </div>
+                    }
+
+                </div>
+            </div>
+        }
+
+    </div>
 </div>
 
 @code {
-    private List<ReviewerItem> Reviewers = new();
-    private Dictionary<string, List<Paper>> Sessions = new();
 
+    // =========================
+    // STATE
+    // =========================
+    private List<Bin> Bins = new();
+    private Paper? DraggedPaper;
+    private string NewBinName = "";
+
+    // =========================
+    // INIT
+    // =========================
     protected override async Task OnInitializedAsync()
     {
-        await LoadDataAsync();
+        await LoadData();
     }
 
-    private async Task LoadDataAsync()
+    // =========================
+    // LOAD DATA
+    // =========================
+    private async Task LoadData()
     {
         await using var db = await DbFactory.CreateDbContextAsync();
 
-        // Load Reviewers
-        var users = await db.Users.AsNoTracking().ToListAsync();
-        Reviewers = users.Select(u => new ReviewerItem {
-            UserId = u.Id,
-            Name = u.FullName ?? "Unknown"
-        }).ToList();
-
-        // Load Papers (example grouping)
         var papers = await db.Papers
-            .Include(p => p.ReviewAssignments)
             .AsNoTracking()
             .ToListAsync();
 
-        // Grouping logic (simplified)
-        Sessions = new Dictionary<string, List<Paper>>
+        Bins = new List<Bin>
         {
-            ["Unscheduled"] = papers.Where(p => p.Status != PaperStatus.Scheduled).ToList(),
-            ["Morning Session"] = papers.Where(p => p.Status == PaperStatus.Scheduled).ToList()
+            new Bin("accepted", "Accepted (All Active Papers)", true)
         };
-    }
 
-    /// <summary>
-    /// Logic for moving a paper from one session/bin to another.
-    /// </summary>
-    private async Task HandlePaperMoved((Guid paperId, string sessionName) data)
-    {
-        await using var db = await DbFactory.CreateDbContextAsync();
-        var paper = await db.Papers.FindAsync(data.paperId);
-        
-        if (paper != null)
+        foreach (var paper in papers)
         {
-            // Update paper session/status logic here
-            // paper.SessionName = data.sessionName; 
-            await db.SaveChangesAsync();
-            await LoadDataAsync(); // Refresh UI
+            Bins[0].Papers.Add(paper);
         }
+
+        StateHasChanged();
     }
 
-    /// <summary>
-    /// Logic for assigning a reviewer to a specific paper.
-    /// </summary>
-    private async Task HandleReviewerDrop((Guid paperId, Guid reviewerId) data)
+    // =========================
+    // ADD BIN
+    // =========================
+    private void AddBin()
     {
-        await using var db = await DbFactory.CreateDbContextAsync();
-        
-        var exists = await db.ReviewAssignments
-            .AnyAsync(r => r.PaperId == data.paperId && r.ReviewerId == data.reviewerId);
+        if (string.IsNullOrWhiteSpace(NewBinName))
+            return;
 
-        if (!exists)
+        var id = Guid.NewGuid().ToString();
+
+        Bins.Add(new Bin(id, NewBinName, false));
+
+        NewBinName = "";
+
+        StateHasChanged();
+    }
+
+    // =========================
+    // REMOVE BIN
+    // =========================
+    private void RemoveBin(string id)
+    {
+        var bin = Bins.FirstOrDefault(b => b.Id == id);
+        if (bin == null) return;
+
+        var main = Bins.First(b => b.Id == "accepted");
+
+        main.Papers.AddRange(bin.Papers);
+
+        Bins.Remove(bin);
+
+        StateHasChanged();
+    }
+
+    // =========================
+    // DRAG
+    // =========================
+    private void StartDrag(Paper paper)
+    {
+        DraggedPaper = paper;
+    }
+
+    // =========================
+    // DROP
+    // =========================
+    private void Drop(string binId)
+    {
+        if (DraggedPaper == null)
+            return;
+
+        foreach (var b in Bins)
         {
-            db.ReviewAssignments.Add(new ReviewAssignment {
-                Id = Guid.NewGuid(),
-                PaperId = data.paperId,
-                ReviewerId = data.reviewerId,
-                Status = ReviewStatus.Pending
-            });
+            b.Papers.RemoveAll(p => p.Id == DraggedPaper.Id);
+        }
 
-            await db.SaveChangesAsync();
-            await LoadDataAsync(); // Refresh UI
+        var target = Bins.FirstOrDefault(b => b.Id == binId);
+
+        if (target != null)
+        {
+            target.Papers.Add(DraggedPaper);
+        }
+
+        DraggedPaper = null;
+
+        StateHasChanged();
+    }
+
+    // =========================
+    // BIN MODEL
+    // =========================
+    public class Bin
+    {
+        public string Id { get; set; }
+        public string Label { get; set; }
+        public List<Paper> Papers { get; set; } = new();
+
+        public bool IsLocked { get; set; }
+
+        public Bin(string id, string label, bool locked)
+        {
+            Id = id;
+            Label = label;
+            IsLocked = locked;
         }
     }
 }
