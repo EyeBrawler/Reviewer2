@@ -491,49 +491,6 @@ namespace Reviewer2.Data.Migrations
                     b.ToTable("paper_files", (string)null);
                 });
 
-            modelBuilder.Entity("Reviewer2.Data.Models.PaperSchedule", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTimeOffset>("EndTime")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("end_time");
-
-                    b.Property<int>("OffsetMinutes")
-                        .HasColumnType("integer")
-                        .HasColumnName("offset_minutes");
-
-                    b.Property<Guid>("PaperId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("paper_id");
-
-                    b.Property<string>("SessionKey")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("session_key");
-
-                    b.Property<DateTimeOffset>("StartTime")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("start_time");
-
-                    b.Property<string>("Track")
-                        .HasColumnType("text")
-                        .HasColumnName("track");
-
-                    b.HasKey("Id")
-                        .HasName("pk_paper_schedules");
-
-                    b.HasIndex("PaperId")
-                        .HasDatabaseName("ix_paper_schedules_paper_id");
-
-                    b.ToTable("paper_schedules", (string)null);
-                });
-
             modelBuilder.Entity("Reviewer2.Data.Models.Review", b =>
                 {
                     b.Property<Guid>("Id")
@@ -759,18 +716,6 @@ namespace Reviewer2.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_paper_files_papers_paper_id");
-                });
-
-            modelBuilder.Entity("Reviewer2.Data.Models.PaperSchedule", b =>
-                {
-                    b.HasOne("Reviewer2.Data.Models.Paper", "Paper")
-                        .WithMany()
-                        .HasForeignKey("PaperId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_paper_schedules_papers_paper_id");
-
-                    b.Navigation("Paper");
                 });
 
             modelBuilder.Entity("Reviewer2.Data.Models.Review", b =>

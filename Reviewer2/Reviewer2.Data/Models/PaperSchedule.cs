@@ -43,14 +43,4 @@ public class PaperSchedule
     /// End time of the scheduled presentation or review slot.
     /// </summary>
     public DateTimeOffset EndTime { get; set; }
-
-    /// <summary>
-    /// Offset in minutes used for internal spacing or ordering logic.
-    /// </summary>
-    public int OffsetMinutes { get; set; }
-
-    /// <summary>
-    /// Optional grouping field such as conference track or category.
-    /// </summary>
-    public string? Track { get; set; }
 }
