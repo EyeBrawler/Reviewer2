@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Reviewer2.Data.Models;
 
@@ -11,28 +12,32 @@ namespace Reviewer2.Data.Models;
 /// It is stored in the database and represents real scheduling state,
 /// not UI grouping or temporary drag-and-drop behavior.
 /// </summary>
-public class PaperSchedule
+public class Session
 {
     /// <summary>
     /// Primary key identifier for the schedule record.
     /// </summary>
-    public int Id { get; set; }
-
-    /// <summary>
-    /// Foreign key referencing the associated paper.
-    /// </summary>
-    public Guid PaperId { get; set; }
-    
-    /// <summary>
-    /// Navigation property to the associated paper.
-    /// </summary>
-    public Paper Paper { get; set; } = default!;
+    public Guid Id { get; set; }
 
     /// <summary>
     /// Identifier for the session or room where the paper is scheduled.
     /// Examples: "Session A", "Room 1", "Morning Block".
     /// </summary>
-    public string SessionKey { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// Physical or logical location where the session is held
+    /// (e.g., room name, building, or virtual meeting link identifier).
+    /// </summary>
+    public string Location { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// Collection of papers assigned to this session.
+    /// 
+    /// Represents a many-to-many relationship between sessions and papers,
+    /// used for scheduling and presentation grouping.
+    /// </summary>
+    public List<Paper> Papers { get; private set; } = [];
 
     /// <summary>
     /// Start time of the scheduled presentation or review slot.

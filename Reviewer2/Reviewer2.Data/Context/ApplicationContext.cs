@@ -166,5 +166,13 @@ public class ApplicationContext
     /// <summary>
     /// Database set representing scheduled paper sessions.
     /// </summary>
-    public DbSet<PaperSchedule> PaperSchedules { get; set; } = null!;
+    public DbSet<Session> PaperSchedules { get; set; } = null!;
+    
+    /// <summary>
+    /// Database set representing all scheduled sessions in the system.
+    /// 
+    /// Used to query, create, update, and delete session scheduling records
+    /// that define how papers are grouped into conference sessions.
+    /// </summary>
+    public DbSet<Session> Sessions { get; set; }
 }

@@ -13,14 +13,24 @@
         <h4>Reviewer Scheduling</h4>
 
         <div class="d-flex gap-2">
-            <button class="btn btn-primary" @onclick="LoadData">Refresh</button>
+
+            <button class="btn btn-primary" @onclick="LoadData">
+                Refresh
+            </button>
 
             <input class="form-control"
                    style="width:200px"
                    placeholder="New bin..."
                    @bind="NewBinName" />
 
-            <button class="btn btn-success" @onclick="AddBin">Add</button>
+            <button class="btn btn-success" @onclick="AddBin">
+                Add
+            </button>
+
+            <button class="btn btn-warning" @onclick="Save">
+                Save
+            </button>
+
         </div>
     </div>
 
@@ -35,7 +45,7 @@
                      @ondragover:preventDefault="true"
                      @ondrop="() => Drop(bin.Id)">
 
-                    <!-- HEADER -->
+                    <!-- BIN HEADER -->
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <strong>@bin.Label</strong>
 
@@ -57,15 +67,11 @@
                     {
                         <div class="border rounded p-2 mb-2 bg-light"
                              draggable="true"
-                             @ondragstart="() => StartDrag(paper)">
+                             @ondragstart="() => StartDrag(paper.Id)">
 
                             <div class="fw-bold">@paper.Title</div>
                             <div class="small text-muted">@paper.Status</div>
-
-                            <!-- show ALL paper options cleanly -->
-                            <div class="small">
-                                @paper.Abstract
-                            </div>
+                            <div class="small">@paper.Abstract</div>
 
                         </div>
                     }
@@ -78,25 +84,15 @@
 </div>
 
 @code {
-
-    // =========================
-    // STATE
-    // =========================
     private List<Bin> Bins = new();
-    private Paper? DraggedPaper;
+    private Guid? DraggedPaperId;
     private string NewBinName = "";
-
-    // =========================
-    // INIT
-    // =========================
+    
     protected override async Task OnInitializedAsync()
     {
         await LoadData();
     }
-
-    // =========================
-    // LOAD DATA
-    // =========================
+    
     private async Task LoadData()
     {
         await using var db = await DbFactory.CreateDbContextAsync();
@@ -107,37 +103,26 @@
 
         Bins = new List<Bin>
         {
-            new Bin("accepted", "Accepted (All Active Papers)", true)
+            new Bin("accepted", "Unscheduled Papers", true)
         };
 
-        foreach (var paper in papers)
-        {
-            Bins[0].Papers.Add(paper);
-        }
+        Bins[0].Papers.AddRange(papers);
 
-        StateHasChanged();
+        await InvokeAsync(StateHasChanged);
     }
-
-    // =========================
-    // ADD BIN
-    // =========================
-    private void AddBin()
+    
+    private Task AddBin()
     {
         if (string.IsNullOrWhiteSpace(NewBinName))
-            return;
+            return Task.CompletedTask;
 
-        var id = Guid.NewGuid().ToString();
-
-        Bins.Add(new Bin(id, NewBinName, false));
+        Bins.Add(new Bin(Guid.NewGuid().ToString(), NewBinName, false));
 
         NewBinName = "";
 
-        StateHasChanged();
+        return InvokeAsync(StateHasChanged);
     }
-
-    // =========================
-    // REMOVE BIN
-    // =========================
+    
     private void RemoveBin(string id)
     {
         var bin = Bins.FirstOrDefault(b => b.Id == id);
@@ -151,49 +136,50 @@
 
         StateHasChanged();
     }
-
-    // =========================
-    // DRAG
-    // =========================
-    private void StartDrag(Paper paper)
+    
+    private void StartDrag(Guid paperId)
     {
-        DraggedPaper = paper;
+        DraggedPaperId = paperId;
     }
-
-    // =========================
-    // DROP
-    // =========================
+    
     private void Drop(string binId)
     {
-        if (DraggedPaper == null)
+        if (DraggedPaperId == null)
+            return;
+
+        var paper = Bins
+            .SelectMany(b => b.Papers)
+            .FirstOrDefault(p => p.Id == DraggedPaperId);
+
+        if (paper == null)
             return;
 
         foreach (var b in Bins)
         {
-            b.Papers.RemoveAll(p => p.Id == DraggedPaper.Id);
+            b.Papers.RemoveAll(p => p.Id == DraggedPaperId);
         }
 
         var target = Bins.FirstOrDefault(b => b.Id == binId);
+        target?.Papers.Add(paper);
 
-        if (target != null)
-        {
-            target.Papers.Add(DraggedPaper);
-        }
-
-        DraggedPaper = null;
+        DraggedPaperId = null;
 
         StateHasChanged();
     }
-
-    // =========================
-    // BIN MODEL
-    // =========================
+    
+    private void Save()
+    {
+        foreach (var bin in Bins)
+        {
+            Console.WriteLine($"{bin.Label}: {bin.Papers.Count} papers");
+        }
+    }
+    
     public class Bin
     {
         public string Id { get; set; }
         public string Label { get; set; }
         public List<Paper> Papers { get; set; } = new();
-
         public bool IsLocked { get; set; }
 
         public Bin(string id, string label, bool locked)
