@@ -1,6 +1,7 @@
 @using System.ComponentModel.DataAnnotations
 @using System.Reflection
 @using Reviewer2.Services.DTOs.ReviewSubmission
+@using Reviewer2.Services.DTOs.ReviewTemplates
 @using Reviewer2.Services.Reviews
 @inject IReviewService ReviewService
 @inject AuthenticationStateProvider AuthStateProvider
@@ -67,17 +68,97 @@
                 <ValidationMessage For="@(() => _model.Recommendation)" />
             </div>
 
-            <!-- Detailed Review -->
-            <div class="mb-3">
-                <label class="form-label">Detailed Review</label>
-                <InputTextArea class="form-control"
-                               rows="8"
-                               @bind-Value="_model.JsonContent" />
-                <div class="form-text text-muted">
-                    @GetFieldHint(nameof(_model.JsonContent))
+            <!-- Dynamic Review Fields -->
+            @foreach (var field in Template.Fields)
+            {
+                <div class="mb-3">
+
+                    <label class="form-label">
+                        @field.Label
+
+                        @if (field.Required)
+                        {
+                            <span class="text-danger">*</span>
+                        }
+                    </label>
+
+                    @switch (field.Type)
+                    {
+                        case ReviewFieldType.Text:
+                        {
+                            <InputTextArea
+                                class="form-control"
+                                rows="4"
+                                @bind-Value="ValueFor(field.Key).StringValue" />
+                            break;
+                        }
+
+                        case ReviewFieldType.Number:
+                        {
+                            <InputNumber TValue="decimal?"
+                                         class="form-control"
+                                         @bind-Value="ValueFor(field.Key).NumberValue"
+                                         min="@field.Min"
+                                         max="@field.Max"
+                                         step="1" />
+                            break;
+                        }
+
+                        case ReviewFieldType.Boolean:
+                        {
+                            <div class="form-check">
+
+                                <InputCheckbox
+                                    class="form-check-input"
+                                    Value="@GetBool(field.Key)"
+                                    ValueChanged="@(value => SetBool(field.Key, value))"
+                                    ValueExpression="@(() => GetBool(field.Key))" />
+
+                            </div>
+
+                            break;
+                        }
+
+                        case ReviewFieldType.Select:
+                        {
+                            <InputSelect TValue="string"
+                                         class="form-select"
+                                         @bind-Value="ValueFor(field.Key).StringValue">
+
+                                <option value="">
+                                    Select...
+                                </option>
+
+                                @foreach (var option in field.Options ?? [])
+                                {
+                                    <option value="@option">
+                                        @option
+                                    </option>
+                                }
+
+                            </InputSelect>
+
+                            break;
+                        }
+
+                        default:
+                        {
+                            <div class="text-danger">
+                                Unsupported field type: @field.Type
+                            </div>
+                            break;
+                        }
+                    }
+
+                    @if (field is { Type: ReviewFieldType.Number, Min: not null, Max: not null })
+                    {
+                        <div class="form-text text-muted">
+                            Enter a value between @field.Min and @field.Max.
+                        </div>
+                    }
+
                 </div>
-                <ValidationMessage For="@(() => _model.JsonContent)" />
-            </div>
+            }
 
             <!-- Actions -->
             <div class="d-flex gap-2">
@@ -93,7 +174,7 @@
                 <!-- Submit (validated) -->
                 <button type="submit"
                         class="btn btn-primary"
-                        disabled="@(!_isValid || _isSubmitting)">
+                        disabled="@_isSubmitting">
                     @(_isSubmitting ? "Submitting..." : "Submit Review")
                 </button>
 
@@ -111,6 +192,9 @@
     [Parameter]
     public ReviewDTO? ExistingReview { get; set; }
 
+    [Parameter, EditorRequired]
+    public required ReviewTemplateDTO Template { get; set; }
+
     [Parameter]
     public EventCallback OnSubmitted { get; set; }
     
@@ -123,59 +207,92 @@
     private bool _isSaving;
     private bool _isSubmitting;
     private string? _errorMessage;
-    private bool _isValid;
     
     // Property info for OverallScore
-    private PropertyInfo? OverallScoreProp => typeof(SubmitReviewDTO).GetProperty(nameof(_model.OverallScore));
+    private static readonly PropertyInfo OverallScoreProp =
+        typeof(SubmitReviewDTO)
+            .GetProperty(nameof(SubmitReviewDTO.OverallScore))!;
 
-    // RangeAttribute for OverallScore
-    private RangeAttribute? OverallScoreRange => OverallScoreProp?.GetCustomAttribute<RangeAttribute>();
+    private static readonly RangeAttribute? OverallScoreRange =
+        OverallScoreProp.GetCustomAttribute<RangeAttribute>();
 
-    // Similarly for ConfidenceScore
-    private PropertyInfo? ConfidenceScoreProp => typeof(SubmitReviewDTO).GetProperty(nameof(_model.ConfidenceScore));
-    private RangeAttribute? ConfidenceScoreRange => ConfidenceScoreProp?.GetCustomAttribute<RangeAttribute>();
+    private static readonly PropertyInfo ConfidenceScoreProp =
+        typeof(SubmitReviewDTO)
+            .GetProperty(nameof(SubmitReviewDTO.ConfidenceScore))!;
+
+    private static readonly RangeAttribute? ConfidenceScoreRange =
+        ConfidenceScoreProp.GetCustomAttribute<RangeAttribute>();
+    
+    private bool GetBool(string key)
+        => ValueFor(key).BoolValue ?? false;
+
+    private void SetBool(string key, bool value)
+    {
+        ValueFor(key).BoolValue = value;
+    }
 
     protected override async Task OnInitializedAsync()
     {
         _currentUserId = await GetUserIdAsync();
     }
 
-    protected override void OnParametersSet()
+    protected override void OnInitialized()
     {
-        if (ExistingReview is not null)
-        {
-            _model = new SubmitReviewDTO
-            {
-                ReviewAssignmentId = ExistingReview.ReviewAssignmentId,
-                OverallScore = ExistingReview.OverallScore,
-                ConfidenceScore = ExistingReview.ConfidenceScore,
-                Recommendation = ExistingReview.Recommendation,
-                JsonContent = ExistingReview.JsonContent
-            };
-        }
-        else
-        {
-            _model = new SubmitReviewDTO
+        _model = ExistingReview is not null
+            ? CreateModelFromExisting()
+            : new SubmitReviewDTO
             {
                 ReviewAssignmentId = ReviewAssignmentId
             };
-        }
+
+        InitializeDynamicFields();
 
         _editContext = new EditContext(_model);
-        _editContext.OnFieldChanged += HandleFieldChanged;
-
-        _editContext.OnFieldChanged += (_, _) =>
-        {
-            var newIsValid = _editContext.Validate();
-            if (newIsValid != _isValid)
-            {
-                _isValid = newIsValid;
-                StateHasChanged();
-            }
-        };
-        
-        _isValid = _editContext.Validate();
     }
+
+    private SubmitReviewDTO CreateModelFromExisting()
+    {
+        if (ExistingReview is null)
+        {
+            throw new InvalidOperationException(
+            $"{nameof(CreateModelFromExisting)} called with no existing review.");
+        }
+
+        return new SubmitReviewDTO
+        {
+            ReviewAssignmentId = ExistingReview.ReviewAssignmentId,
+            OverallScore = ExistingReview.OverallScore,
+            ConfidenceScore = ExistingReview.ConfidenceScore,
+            Recommendation = ExistingReview.Recommendation,
+
+            Values = ExistingReview.Values.ToDictionary(
+                entry => entry.Key,
+                entry => new ReviewValue
+                {
+                    StringValue = entry.Value.StringValue,
+                    NumberValue = entry.Value.NumberValue,
+                    BoolValue = entry.Value.BoolValue
+                })
+        };
+    }
+    
+    private void InitializeDynamicFields()
+    {
+        foreach (var field in Template.Fields)
+        {
+            _model.Values.TryAdd(
+                field.Key,
+                new ReviewValue
+                {
+                    BoolValue = field.Type == ReviewFieldType.Boolean
+                        ? false
+                        : null
+                });
+        }
+    }
+    
+    private ReviewValue ValueFor(string key)
+        => _model.Values[key];
 
     private async Task SaveDraftAsync()
     {
@@ -236,33 +353,20 @@
 
         var userIdClaim = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 
-        if (string.IsNullOrWhiteSpace(userIdClaim))
-        {
-            throw new UnauthorizedAccessException("User identifier claim is missing.");
-        }
-
-        return Guid.Parse(userIdClaim);
+        return string.IsNullOrWhiteSpace(userIdClaim) ? throw new UnauthorizedAccessException("User identifier claim is missing.") : Guid.Parse(userIdClaim);
     }
     
-    private void HandleFieldChanged(object? sender, FieldChangedEventArgs e)
-    {
-        if (_editContext is null) return;
-
-        _isValid = _editContext.Validate();
-        StateHasChanged();
-    }
-    
-    private string GetFieldHint(string propertyName)
+    private static string GetFieldHint(string propertyName)
     {
         var member = typeof(SubmitReviewDTO).GetProperty(propertyName);
         if (member == null) return string.Empty;
 
         var hints = new List<string>();
 
-        if (member.GetCustomAttribute<RangeAttribute>() is RangeAttribute range)
+        if (member.GetCustomAttribute<RangeAttribute>() is { } range)
             hints.Add($"Enter a number between {range.Minimum} and {range.Maximum}.");
 
-        if (member.GetCustomAttribute<StringLengthAttribute>() is StringLengthAttribute strLength)
+        if (member.GetCustomAttribute<StringLengthAttribute>() is { } strLength)
             hints.Add($"Max {strLength.MaximumLength} characters.");
 
         if (member.GetCustomAttribute<RequiredAttribute>() is not null)

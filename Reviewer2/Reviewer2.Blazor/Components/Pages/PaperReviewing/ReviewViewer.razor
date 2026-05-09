@@ -4,11 +4,16 @@
     <div class="card-body">
 
         <h6 class="card-subtitle mb-2">
-            <span class="badge bg-secondary me-2">Reviewer @Index</span>
+            <span class="badge bg-secondary me-2">
+                Reviewer @Index
+            </span>
+
             @if (Review.SubmittedAtUtc is not null)
             {
                 <span class="ms-2">
-                    (@Review.SubmittedAtUtc.Value.ToLocalTime().ToString("MMM dd, yyyy h:mm tt"))
+                    (@Review.SubmittedAtUtc.Value
+                        .ToLocalTime()
+                        .ToString("MMM dd, yyyy h:mm tt"))
                 </span>
             }
         </h6>
@@ -26,17 +31,38 @@
 
         <!-- Recommendation -->
         <div class="mb-2">
-            <strong class="text-primary">Recommendation:</strong>
+            <strong class="text-primary">
+                Recommendation:
+            </strong>
+
             @(string.IsNullOrWhiteSpace(Review.Recommendation)
                 ? "-"
                 : Review.Recommendation)
         </div>
 
-        <!-- JSON Content -->
+        <!-- Dynamic Review Fields -->
         <div class="mt-3">
             <strong>Review Details:</strong>
+
             <div class="border rounded p-2 mt-1 bg-light">
-                <pre class="mb-0">@FormatJson(Review.JsonContent)</pre>
+
+                @if (Review.Values.Count == 0)
+                {
+                    <div class="text-muted">
+                        No review details available.
+                    </div>
+                }
+                else
+                {
+                    @foreach (var field in Review.Values)
+                    {
+                        <div class="mb-2">
+                            <strong>@FormatFieldName(field.Key):</strong>
+                            @DisplayValue(field.Value)
+                        </div>
+                    }
+                }
+
             </div>
         </div>
 
@@ -46,31 +72,23 @@
 @code {
     [Parameter, EditorRequired]
     public required ReviewDTO Review { get; set; }
-    
+
     [Parameter]
     public int Index { get; set; }
 
     private static string DisplayOrDash(int? value)
         => value?.ToString() ?? "-";
 
-    private static string FormatJson(string json)
+    private static string DisplayValue(ReviewValue value)
     {
-        if (string.IsNullOrWhiteSpace(json))
+        if (value.IsEmpty())
             return "-";
 
-        try
-        {
-            using var doc = System.Text.Json.JsonDocument.Parse(json);
-            return System.Text.Json.JsonSerializer.Serialize(
-                doc,
-                new System.Text.Json.JsonSerializerOptions
-                {
-                    WriteIndented = true
-                });
-        }
-        catch
-        {
-            return json; // fallback if invalid JSON
-        }
+        return value.ToString();
+    }
+
+    private static string FormatFieldName(string key)
+    {
+        return string.IsNullOrWhiteSpace(key) ? "-" : key.Replace("_", " ");
     }
 }
