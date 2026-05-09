@@ -1,5 +1,8 @@
 using System;
+using System.Collections.Generic;
+using System.Text.Json;
 using Reviewer2.Data.Models;
+using Serilog;
 
 namespace Reviewer2.Services.DTOs.ReviewSubmission;
 
@@ -8,6 +11,12 @@ namespace Reviewer2.Services.DTOs.ReviewSubmission;
 /// </summary>
 public static class ReviewMappers
 {
+    private static readonly JsonSerializerOptions JsonOptions = new()
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        };
+    
+    
     /// <summary>
     /// Maps a <see cref="Review"/> entity to a <see cref="ReviewDTO"/>.
     /// </summary>
@@ -15,7 +24,7 @@ public static class ReviewMappers
     /// <returns>A <see cref="ReviewDTO"/> representing the review.</returns>
     public static ReviewDTO ToDTO(this Review review)
     {
-        if (review == null) throw new ArgumentNullException(nameof(review));
+        ArgumentNullException.ThrowIfNull(review);
 
         return new ReviewDTO
         {
@@ -26,7 +35,7 @@ public static class ReviewMappers
             OverallScore = review.OverallScore,
             ConfidenceScore = review.ConfidenceScore,
             Recommendation = review.Recommendation,
-            JsonContent = review.JsonContent
+            Values = DeserializeValues(review)
         };
     }
 
@@ -35,11 +44,17 @@ public static class ReviewMappers
     /// Useful when creating or updating a review from client input.
     /// </summary>
     /// <param name="dto">The submit review DTO to map.</param>
-    /// <param name="existingReview">Optional existing review entity for updates.</param>
-    /// <returns>A <see cref="Review"/> entity populated with data from the DTO.</returns>
-    public static Review ToEntity(this SubmitReviewDTO dto, Review? existingReview = null)
+    /// <param name="existingReview">
+    /// Optional existing review entity for update operations.
+    /// </param>
+    /// <returns>
+    /// A <see cref="Review"/> entity populated with data from the DTO.
+    /// </returns>
+    public static Review ToEntity(
+        this SubmitReviewDTO dto,
+        Review? existingReview = null)
     {
-        if (dto == null) throw new ArgumentNullException(nameof(dto));
+        ArgumentNullException.ThrowIfNull(dto);
 
         var review = existingReview ?? new Review
         {
@@ -50,8 +65,57 @@ public static class ReviewMappers
         review.OverallScore = dto.OverallScore;
         review.ConfidenceScore = dto.ConfidenceScore;
         review.Recommendation = dto.Recommendation;
-        review.JsonContent = dto.JsonContent ?? "{}";
+        review.JsonContent = SerializeValues(dto.Values);
 
         return review;
+    }
+    
+    /// <summary>
+    /// Deserializes the review's stored JSON content into structured field
+    /// values, returning an empty collection if the content is missing or invalid.
+    /// </summary>
+    private static Dictionary<string, ReviewValue> DeserializeValues(
+        Review review)
+    {
+        if (string.IsNullOrWhiteSpace(review.JsonContent))
+            return new Dictionary<string, ReviewValue>();
+
+        try
+        {
+            return JsonSerializer.Deserialize<
+                       Dictionary<string, ReviewValue>>(
+                       review.JsonContent,
+                       JsonOptions)
+                   ?? new Dictionary<string, ReviewValue>();
+        }
+        catch (JsonException ex)
+        {
+            Log.Warning(
+                ex,
+                "Failed to deserialize review JSON for Review {ReviewId}, " +
+                "Assignment {AssignmentId}, Template {TemplateId}.",
+                review.Id,
+                review.ReviewAssignmentId,
+                review.ReviewTemplateId);
+
+            return new Dictionary<string, ReviewValue>();
+        }
+    }
+
+    /// <summary>
+    /// Serializes structured review values into JSON for persistence.
+    /// </summary>
+    /// <param name="values">
+    /// The review values to serialize.
+    /// </param>
+    /// <returns>
+    /// A JSON representation of the review values.
+    /// </returns>
+    private static string SerializeValues(
+        Dictionary<string, ReviewValue>? values)
+    {
+        return JsonSerializer.Serialize(
+            values ?? new Dictionary<string, ReviewValue>(),
+            JsonOptions);
     }
 }

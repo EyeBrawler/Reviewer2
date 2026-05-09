@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
 namespace Reviewer2.Services.DTOs.ReviewSubmission;
@@ -35,9 +36,9 @@ public class SubmitReviewDTO
     public string? Recommendation { get; set; }
 
     /// <summary>
-    /// JSON-formatted content containing the structured responses to the review template.
-    /// Must conform to the schema defined by the associated <see cref="Reviewer2.Data.Models.ReviewTemplate"/>.
+    /// Gets or sets the collection of dynamic field values submitted as part
+    /// of the review, keyed by the corresponding review template field name.
     /// </summary>
-    [Required(ErrorMessage = "Review content is required.")]
-    public string JsonContent { get; set; } = "{}";
+    [Required]
+    public Dictionary<string, ReviewValue> Values { get; set; } = new();
 }
