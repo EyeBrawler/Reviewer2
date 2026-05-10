@@ -37,15 +37,26 @@
     }
     else
     {
-    <div class="d-flex justify-content-between align-items-center my-3">
-        <h3 class="mb-0">@PageTitleText</h3>
-        
-        <input type="text"
-               class="form-control w-auto"
-               placeholder="Search..."
-               @bind="_searchString"
-               @bind:event="oninput" />
-    </div>
+        <div class="d-flex justify-content-between align-items-center my-3">
+            <h3 class="mb-0">@PageTitleText</h3>
+
+            <div class="d-flex align-items-center gap-2">
+                <input type="text"
+                       class="form-control w-auto"
+                       placeholder="Search..."
+                       @bind="_searchString"
+                       @bind:event="oninput" />
+
+                <AuthorizeView Roles="Admin, ConferenceChair">
+                    <Authorized Context="authCtx">
+                        <NavLink class="btn btn-warning btn-sm"
+                                 href="/templates/create">
+                            <i class="bi bi-gear"></i> Create Template
+                        </NavLink>
+                    </Authorized>
+                </AuthorizeView>
+            </div>
+        </div>
 
     <div class="table-responsive">
     <table class="table table-bordered table-striped table-hover">

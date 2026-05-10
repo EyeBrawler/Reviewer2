@@ -1,11 +1,14 @@
+@using Reviewer2.Services.CRUD.ReviewTemplates
 @using Reviewer2.Services.DTOs.ReviewAssignments
 @using Reviewer2.Services.DTOs.ReviewSubmission
+@using Reviewer2.Services.DTOs.ReviewTemplates
 @using Reviewer2.Services.Reviews
 @using Reviewer2.Services.ReviewAssignments
 
 @inject IReviewService ReviewService
 @inject IReviewAssignmentService ReviewAssignmentService
 @inject AuthenticationStateProvider AuthStateProvider
+@inject IReviewTemplateService ReviewTemplateService
 
 @if (_assignment is not null)
 {
@@ -39,16 +42,19 @@ else if (_errorMessage is not null)
 {
     <div class="alert alert-danger">@_errorMessage</div>
 }
-else if (_assignment is { CanSubmitReview: true } assignment)
-{
-    <ReviewForm 
+else if (_assignment is { CanSubmitReview: true } assignment &&
+         _template is not null) {
+    <ReviewForm
         ReviewAssignmentId="assignment.ReviewAssignmentId"
         ExistingReview="_myReview"
+        Template="_template"
         OnSubmitted="HandleReviewSubmitted" />
 }
-else if (_canViewAllReviews)
+else if (_canViewAllReviews && _template is not null)
 {
-    <ReviewList Reviews="_reviews" />
+    <ReviewList
+        Reviews="_reviews"
+        Template="_template" />
 }
 else
 {
@@ -75,6 +81,8 @@ else
     private bool _showPreview;
     
     private bool _isPrivilegedUser;
+    
+    private ReviewTemplateDTO? _template;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -111,6 +119,14 @@ else
 
         _assignment = myAssignments
             .FirstOrDefault(a => a.PaperId == PaperId);
+        
+        _template = await ReviewTemplateService.GetActiveTemplateAsync();
+
+        if (_template is null)
+        {
+            throw new InvalidOperationException(
+                "No active review template is configured.");
+        }
 
         // Load my review if assigned
         _myReview = _assignment is null
@@ -142,24 +158,16 @@ else
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
 
-        if (user.Identity?.IsAuthenticated != true)
-        {
-            throw new UnauthorizedAccessException("User is not authenticated.");
-        }
-
-        return user;
+        return user.Identity?.IsAuthenticated != true ? 
+            throw new UnauthorizedAccessException("User is not authenticated.") : user;
     }
 
     private static Guid GetUserId(System.Security.Claims.ClaimsPrincipal user)
     {
         var userIdClaim = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 
-        if (string.IsNullOrWhiteSpace(userIdClaim))
-        {
-            throw new UnauthorizedAccessException("User identifier claim is missing.");
-        }
-
-        return Guid.Parse(userIdClaim);
+        return string.IsNullOrWhiteSpace(userIdClaim) ? 
+            throw new UnauthorizedAccessException("User identifier claim is missing.") : Guid.Parse(userIdClaim);
     }
     
     private void TogglePreview()

@@ -55,6 +55,7 @@ builder.Services.AddScoped<IPaperSubmissionService, PaperSubmissionService>();
 builder.Services.AddScoped<IPaperQueryService, PaperQueryService>();
 builder.Services.AddScoped<IPaperDecisionService, PaperDecisionService>();
 builder.Services.AddScoped<IReviewAssignmentService, ReviewAssignmentService>();
+builder.Services.AddScoped<IReviewTemplateService, ReviewTemplateService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddScoped<IConferenceService, ConferenceService>();
 

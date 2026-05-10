@@ -118,10 +118,7 @@ public class ReviewService : IReviewService
         else
         {
             // update tracked entity properties only
-            assignment.Review.OverallScore = dto.OverallScore;
-            assignment.Review.ConfidenceScore = dto.ConfidenceScore;
-            assignment.Review.Recommendation = dto.Recommendation;
-            assignment.Review.JsonContent = dto.JsonContent;
+            dto.ToEntity(assignment.Review);
         }
 
         // Status transition

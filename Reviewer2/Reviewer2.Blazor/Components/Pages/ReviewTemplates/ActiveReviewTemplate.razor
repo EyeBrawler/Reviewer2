@@ -1,0 +1,57 @@
+@using Reviewer2.Services.DTOs.ReviewTemplates
+
+@if (Template is null)
+{
+    <div class="alert alert-secondary mb-4">
+        No active template.
+    </div>
+}
+else
+{
+    <div class="card shadow mb-4">
+        <div class="card-header">
+            <strong>Current Active Template</strong>
+        </div>
+
+        <div class="card-body">
+
+            <h4>@Template.Name</h4>
+
+            <dl class="mb-3">
+                <dt>Name</dt>
+                <dd>@Template.Name</dd>
+
+                <dt>Version</dt>
+                <dd>@Template.Version</dd>
+
+                <dt>Created</dt>
+                <dd>@Template.CreatedAtUtc.LocalDateTime.ToString("g")</dd>
+            </dl>
+
+            <ul class="mb-0">
+                @foreach (var field in Template.Fields)
+                {
+                    <li>
+                        @field.Label
+                        <small class="text-muted">(@field.Type)</small>
+
+                        @if (field.Required)
+                        {
+                            <span class="badge text-bg-warning ms-1">
+                                Required
+                            </span>
+                        }
+                    </li>
+                }
+            </ul>
+
+        </div>
+    </div>
+}
+
+@code {
+
+    [Parameter, EditorRequired]
+    public ReviewTemplateDTO? Template { get; set; }
+
+}

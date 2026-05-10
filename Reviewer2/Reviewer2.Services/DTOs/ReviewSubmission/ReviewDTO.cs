@@ -1,5 +1,5 @@
 using System;
-using Reviewer2.Data.Models;
+using System.Collections.Generic;
 
 namespace Reviewer2.Services.DTOs.ReviewSubmission;
 
@@ -45,8 +45,39 @@ public class ReviewDTO
     public string? Recommendation { get; init; }
 
     /// <summary>
-    /// Full JSON content representing structured responses to the review template.
-    /// Must conform to the associated <see cref="ReviewTemplate"/>.
+    /// Gets or sets the collection of dynamic review field values associated with this review.
     /// </summary>
-    public string JsonContent { get; init; } = "{}";
+    /// <remarks>
+    /// <para>
+    /// This dictionary contains the structured responses to fields defined by the associated
+    /// <see cref="Reviewer2.Data.Models.ReviewTemplate"/>. Each entry maps a template-defined
+    /// field key to a corresponding <see cref="ReviewValue"/> instance representing the
+    /// reviewer’s input.
+    /// </para>
+    ///
+    /// <para>
+    /// The set of valid keys and the expected data types for each value are determined by the
+    /// template referenced by <see cref="ReviewTemplateId"/>. The application is responsible
+    /// for ensuring that:
+    /// <list type="bullet">
+    /// <item>
+    /// <description>All required template fields are present.</description>
+    /// </item>
+    /// <item>
+    /// <description>Each value conforms to the type and validation rules defined in the template.</description>
+    /// </item>
+    /// <item>
+    /// <description>Only one underlying value is set per <see cref="ReviewValue"/> instance.</description>
+    /// </item>
+    /// </list>
+    /// </para>
+    ///
+    /// <para>
+    /// This property enables flexible, schema-driven review forms without requiring database
+    /// schema changes, while core review metrics (e.g., <see cref="OverallScore"/>,
+    /// <see cref="ConfidenceScore"/>, <see cref="Recommendation"/>) remain strongly typed
+    /// for efficient querying and analysis.
+    /// </para>
+    /// </remarks>
+    public Dictionary<string, ReviewValue> Values { get; set; } = new();
 }

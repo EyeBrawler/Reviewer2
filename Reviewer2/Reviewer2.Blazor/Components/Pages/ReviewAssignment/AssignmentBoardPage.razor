@@ -5,7 +5,6 @@
 @using Reviewer2.Services.ReviewAssignments
 @using Serilog
 @inject IReviewAssignmentService ReviewAssignmentService
-@inject NavigationManager Navigation
 
 @attribute [Authorize(Roles = "Admin, PaperChair")]
 
@@ -28,7 +27,10 @@ else
         @bind-ReviewersPerPaper="_reviewersPerPaper"
         OnPreviewAutoAssign="HandlePreviewAutoAssign" />
 
-    <ErrorAlert Message="@_errorMessage" />
+    <Alert Message="@_errorMessage"
+           Type="danger"
+           AutoCloseMs="3000"
+           OnClose="@ClearError" />
     
     <!-- Main Board -->
     <AssignmentBoard 
@@ -42,7 +44,7 @@ else
         Visible="_showPreview"
         Preview="_preview"
         OnConfirm="HandleConfirmAutoAssign"
-        OnCancel="HandleCancelPreview" />
+        OnCancel="@HandleCancelPreview" />
 }
 
 @code {
@@ -51,7 +53,7 @@ else
 
     // Auto-assign preview state
     private List<AutoAssignmentPreviewDTO> _preview = new();
-    private bool _showPreview = false;
+    private bool _showPreview;
 
     private int _reviewersPerPaper = 3;
     
@@ -147,14 +149,14 @@ else
         _showPreview = false;
     }
     
-    private async Task ShowError(string message)
+    private Task ShowError(string message)
     {
         _errorMessage = message;
-        StateHasChanged();
-
-        await Task.Delay(3000); // 3 seconds
-
+        return Task.CompletedTask;
+    }
+    
+    private void ClearError()
+    {
         _errorMessage = null;
-        StateHasChanged();
     }
 }

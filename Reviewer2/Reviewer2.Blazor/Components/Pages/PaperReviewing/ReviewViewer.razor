@@ -1,10 +1,14 @@
 @using Reviewer2.Services.DTOs.ReviewSubmission
+@using Reviewer2.Services.DTOs.ReviewTemplates
 
 <div class="card shadow-sm">
     <div class="card-body">
 
         <h6 class="card-subtitle mb-2">
-            <span class="badge bg-secondary me-2">Reviewer @Index</span>
+            <span class="badge bg-secondary me-2">
+                Reviewer @Index
+            </span>
+
             @if (Review.SubmittedAtUtc is not null)
             {
                 <span class="ms-2">
@@ -25,19 +29,57 @@
         </div>
 
         <!-- Recommendation -->
-        <div class="mb-2">
-            <strong class="text-primary">Recommendation:</strong>
-            @(string.IsNullOrWhiteSpace(Review.Recommendation)
-                ? "-"
-                : Review.Recommendation)
+        <div class="mb-3">
+
+            <strong class="me-2">
+                Recommendation:
+            </strong>
+
+            <span class="badge bg-primary">
+                @(string.IsNullOrWhiteSpace(Review.Recommendation)
+                    ? "—"
+                    : Review.Recommendation)
+            </span>
+
         </div>
 
-        <!-- JSON Content -->
-        <div class="mt-3">
-            <strong>Review Details:</strong>
-            <div class="border rounded p-2 mt-1 bg-light">
-                <pre class="mb-0">@FormatJson(Review.JsonContent)</pre>
+        <!-- Dynamic Review Fields -->
+        <div class="mt-4">
+
+            <h6 class="fw-semibold mb-3">
+                Review Details
+            </h6>
+
+            <div class="border rounded bg-light p-3">
+
+                @if (Template.Fields.Count == 0)
+                {
+                    <div class="text-muted">
+                        No template fields.
+                    </div>
+                }
+                else
+                {
+                    @foreach (var field in Template.Fields)
+                    {
+                        var value = Review.Values.GetValueOrDefault(field.Key);
+
+                        <div class="row mb-3">
+
+                            <div class="col-sm-4 fw-semibold text-muted">
+                                @field.Label
+                            </div>
+
+                            <div class="col-sm-8">
+                                @DisplayFieldValue(field.Type, value)
+                            </div>
+
+                        </div>
+                    }
+                }
+
             </div>
+
         </div>
 
     </div>
@@ -47,30 +89,37 @@
     [Parameter, EditorRequired]
     public required ReviewDTO Review { get; set; }
     
+    [Parameter, EditorRequired]
+    public required ReviewTemplateDTO Template { get; set; }
+
     [Parameter]
     public int Index { get; set; }
 
     private static string DisplayOrDash(int? value)
         => value?.ToString() ?? "-";
 
-    private static string FormatJson(string json)
+    private static string DisplayFieldValue(
+        ReviewFieldType type,
+        ReviewValue? value)
     {
-        if (string.IsNullOrWhiteSpace(json))
-            return "-";
+        if (value is null || value.IsEmpty())
+            return "—";
 
-        try
+        return type switch
         {
-            using var doc = System.Text.Json.JsonDocument.Parse(json);
-            return System.Text.Json.JsonSerializer.Serialize(
-                doc,
-                new System.Text.Json.JsonSerializerOptions
-                {
-                    WriteIndented = true
-                });
-        }
-        catch
-        {
-            return json; // fallback if invalid JSON
-        }
+            ReviewFieldType.Text =>
+                value.StringValue ?? "—",
+
+            ReviewFieldType.Number =>
+                value.NumberValue?.ToString() ?? "—",
+
+            ReviewFieldType.Boolean =>
+                value.BoolValue ? "Yes" : "No",
+
+            ReviewFieldType.Select =>
+                value.StringValue ?? "—",
+
+            _ => "—"
+        };
     }
 }
