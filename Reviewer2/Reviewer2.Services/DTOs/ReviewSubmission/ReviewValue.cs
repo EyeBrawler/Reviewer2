@@ -1,3 +1,6 @@
+using System.Globalization;
+using Reviewer2.Services.DTOs.ReviewTemplates;
+
 namespace Reviewer2.Services.DTOs.ReviewSubmission;
 
 
@@ -26,7 +29,7 @@ namespace Reviewer2.Services.DTOs.ReviewSubmission;
 public class ReviewValue
 {
     /// <summary>
-    /// Gets or sets the numeric value of the field, if the template defines the field as a number.
+    /// Gets or sets the numeric value of the field if the template defines the field as a number.
     /// </summary>
     /// <remarks>
     /// Typically used for scoring fields (e.g., "Overall Score", "Novelty", "Confidence").
@@ -35,7 +38,7 @@ public class ReviewValue
     public decimal? NumberValue { get; set; }
 
     /// <summary>
-    /// Gets or sets the textual value of the field, if the template defines the field as text.
+    /// Gets or sets the textual value of the field if the template defines the field as text.
     /// </summary>
     /// <remarks>
     /// Used for free-form comments, explanations, or any string-based input.
@@ -44,12 +47,12 @@ public class ReviewValue
     public string? StringValue { get; set; }
 
     /// <summary>
-    /// Gets or sets the boolean value of the field, if the template defines the field as a boolean.
+    /// Gets or sets the boolean value of the field if the template defines the field as a boolean.
     /// </summary>
     /// <remarks>
     /// Typically used for yes/no questions or binary flags within the review form.
     /// </remarks>
-    public bool? BoolValue { get; set; }
+    public bool BoolValue { get; set; }
 
     /// <summary>
     /// Gets a value indicating whether this instance contains no assigned value.
@@ -60,29 +63,62 @@ public class ReviewValue
     public bool IsEmpty()
     {
         return NumberValue is null
-               && StringValue is null
-               && BoolValue is null;
+               && StringValue is null;
     }
 
+    
     /// <summary>
-    /// Gets a value indicating whether this instance contains more than one assigned value.
+    /// Determines whether a <see cref="ReviewValue"/> contains data that does not
+    /// match the expected field type defined by the review template.
     /// </summary>
-    /// <remarks>
-    /// A valid <see cref="ReviewValue"/> should only have one value set. This method can be used
-    /// during validation to detect invalid or conflicting input states.
-    /// </remarks>
+    /// <param name="value">
+    /// The submitted value to inspect.
+    /// </param>
+    /// <param name="expectedType">
+    /// The field type defined by the associated review template.
+    /// </param>
     /// <returns>
-    /// <see langword="true"/> if more than one value property is set; otherwise, <see langword="false"/>.
+    /// <see langword="true"/> if the value contains data in properties that are
+    /// incompatible with the expected field type; otherwise, <see langword="false"/>.
     /// </returns>
-    public bool HasMultipleValues()
+    /// <remarks>
+    /// <para>
+    /// A <see cref="ReviewValue"/> is designed to hold only one logical value at a time,
+    /// but because it contains multiple storage properties, invalid states may occur
+    /// where data is populated in properties that do not correspond to the template's
+    /// expected field type.
+    /// </para>
+    ///
+    /// <para>
+    /// This method validates the structural consistency of the value by checking for
+    /// incompatible data. For example, a field defined as
+    /// <c><see cref="ReviewFieldType.Boolean"/></c> should not contain numeric or
+    /// textual data.
+    /// </para>
+    ///
+    /// <para>
+    /// This method validates shape only and does not enforce business rules such as
+    /// required values, numeric ranges, or string length constraints.
+    /// </para>
+    /// </remarks>
+    private static bool HasWrongShape(
+        ReviewValue value,
+        ReviewFieldType expectedType)
     {
-        var count = 0;
+        return expectedType switch
+        {
+            ReviewFieldType.Text =>
+                value.NumberValue is not null,
 
-        if (NumberValue is not null) count++;
-        if (StringValue is not null) count++;
-        if (BoolValue is not null) count++;
+            ReviewFieldType.Number =>
+                !string.IsNullOrWhiteSpace(value.StringValue),
 
-        return count > 1;
+            ReviewFieldType.Boolean =>
+                value.NumberValue is not null ||
+                !string.IsNullOrWhiteSpace(value.StringValue),
+
+            _ => false
+        };
     }
 
     /// <summary>
@@ -93,9 +129,19 @@ public class ReviewValue
     /// </returns>
     public override string ToString()
     {
-        return NumberValue?.ToString()
-               ?? StringValue
-               ?? BoolValue?.ToString()
-               ?? string.Empty;
+        if (NumberValue is not null)
+            return NumberValue.Value.ToString(CultureInfo.CurrentCulture);
+
+        return !string.IsNullOrWhiteSpace(StringValue) ? StringValue : BoolValue.ToString();
+    }
+    
+    /// <summary>
+    /// Method to clear the set review value.
+    /// </summary>
+    public void Clear()
+    {
+        NumberValue = null;
+        StringValue = null;
+        BoolValue = false;
     }
 }
