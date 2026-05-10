@@ -2,7 +2,7 @@
 ### Added
 * Paper chairs have a page from which they can approve papers.
 * When submitting a review or looking at submitted reviews for a paper, an embedded PDF view of the paper itself is visible.
-* The deployment documentation now contains a new section that walks through managing the databases on Postgres Docker
+* The deployment documentation now contains a new section that walks through managing the databases on the Postgres Docker
 container. The manual ``psql`` commands documented can be particularly useful for setting up multiple databases on one DBMS. 
 
 ### Fixed
@@ -15,7 +15,7 @@ when viewing the Markdown raw.
 For conference/paper chairs and admins, the paper preview and title will not always be visible on the reviewing page.
 
 ### Notes
-This release has the main objective of completing the core reviewing logic in *Reviewer2*, primarily by adding the ability 
+This release has the main goal of completing the core reviewing logic in *Reviewer2*, primarily by adding the ability 
 to approve or reject papers. With this feature now present, the application could be used to manage almost all the core 
 conference administration workflows. The only major missing feature (besides the "extras" of conference administration) is
 the ability for authors to submit revised papers.
@@ -27,14 +27,14 @@ the ability for authors to submit revised papers.
 ### Added
 * New Database tables to store conference metadata (like the call for papers text and deadlines)
 * A new "Reviewer Assignment" page with drag and drop functionality for paper chairs and admins to use for pairing Reviewers to 
-submitted papers. Basic auto assignment/matching is available.
+submitted papers. Basic auto-assignment /matching is available.
 * A new button exists on the home page which allows logged-in users to volunteer to be a reviewer.
-* A new homepage exists that can display user configurable conference information such as a call for papers, the name of the conference,
+* A new homepage exists that can display user-configurable conference information such as a call for papers, the name of the conference,
 and deadlines.
 * The mockup review submission page has been made functional.
 
 ### Changed
-* The primary deployment method for Reviewer2 is now Docker with the Docker compose plugin rather than systemd services. All well known
+* The primary deployment method for Reviewer2 is now Docker with the Docker compose plugin rather than systemd services. All well-known
 options for deployment are generally documented in the ``README.md`` located in the ``Deployment`` folder.
 * The paper submission form now allows other Reviewer2 users to be linked as Authors on a paper.
 
@@ -43,8 +43,8 @@ options for deployment are generally documented in the ``README.md`` located in 
 
 ### Notes
 This release marks a large step toward a more complete conference management workflow in Reviewer2. One of the most
-signigicant features still missing is conference chair paper approval. The fundamentals of the reviewing workflow are
-arguably now present though.
+ significant features still missing is conference chair paper approval. The fundamentals of the reviewing workflow are
+arguably now present, though.
 
 ---
 
@@ -55,7 +55,7 @@ arguably now present though.
 * Deployment documentation including Nginx configuration and application hosting setup.
 * `publish.sh` script to automate deployment workflows.
 * Initial user seeding mechanism for administrative access.
-* Pagination and sorting functionality for the submissions table.
+* Pagination and sorting functionality for the submissions’ table.
 * Enhanced submission details page with additional metadata, including author information and identifiers.
 * Global styling improvements for consistent theming across buttons, tables, badges, and navigation elements.
 
@@ -71,7 +71,7 @@ arguably now present though.
 
 * File upload limitations that previously caused failures with large files.
 * Authorization issues allowing unintended access to submission details.
-* UI issues affecting usability and interaction within submission and admin pages.
+* UI issues that affected usability and interaction within submission and admin pages.
 
 ### Notes
 
