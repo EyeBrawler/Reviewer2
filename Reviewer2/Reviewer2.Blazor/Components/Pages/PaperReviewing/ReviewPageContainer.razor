@@ -50,9 +50,11 @@ else if (_assignment is { CanSubmitReview: true } assignment &&
         Template="_template"
         OnSubmitted="HandleReviewSubmitted" />
 }
-else if (_canViewAllReviews)
+else if (_canViewAllReviews && _template is not null)
 {
-    <ReviewList Reviews="_reviews" />
+    <ReviewList
+        Reviews="_reviews"
+        Template="_template" />
 }
 else
 {
