@@ -181,7 +181,7 @@
         field.Options.Add(string.Empty);
     }
 
-    private void RemoveOption(TemplateFieldDTO field, int index)
+    private static void RemoveOption(TemplateFieldDTO field, int index)
     {
         field.Options?.RemoveAt(index);
     }
