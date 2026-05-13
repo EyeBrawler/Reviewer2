@@ -18,10 +18,9 @@ namespace Reviewer2.Services.DTOs.ReviewAssignments
         /// <param name="assignment">The review assignment to map.</param>
         /// <returns>A fully populated <see cref="ReviewerPaperDTO"/>.</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="assignment"/> or its <see cref="ReviewAssignment.Paper"/> is null.</exception>
-        public static ReviewerPaperDTO ToReviewerPaperDto(this ReviewAssignment assignment)
+        public static ReviewerPaperDTO ToReviewerPaperDTO(this ReviewAssignment assignment)
         {
-            if (assignment == null)
-                throw new ArgumentNullException(nameof(assignment));
+            ArgumentNullException.ThrowIfNull(assignment);
             if (assignment.Paper == null)
                 throw new ArgumentNullException(nameof(assignment.Paper));
 
@@ -46,6 +45,8 @@ namespace Reviewer2.Services.DTOs.ReviewAssignments
 
                         return string.IsNullOrEmpty(role) ? name : $"{name} ({role})";
                     })),
+                ReviewerId = assignment.ReviewerId,
+                ReviewerDisplayName = assignment.Reviewer.FullName,
                 Files = paper.Files.Select(f => new PaperFileSummaryDTO
                 {
                     FileId = f.Id,

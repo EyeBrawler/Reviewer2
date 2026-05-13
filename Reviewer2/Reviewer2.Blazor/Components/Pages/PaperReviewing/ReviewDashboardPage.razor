@@ -71,6 +71,14 @@
                     class="@(_showAuthors ? "" : "d-none")">
                     Authors @SortIcon(nameof(ReviewerPaperDTO.Authors))
                 </th>
+                
+                @if (_isAdminView)
+                {
+                    <th role="button"
+                        @onclick="() => SortBy(nameof(ReviewerPaperDTO.ReviewerDisplayName))">
+                        Reviewer @SortIcon(nameof(ReviewerPaperDTO.ReviewerDisplayName))
+                    </th>
+                }
 
                 <th role="button" @onclick="() => SortBy(nameof(ReviewerPaperDTO.ReviewStatus))">
                     Review Status @SortIcon(nameof(ReviewerPaperDTO.ReviewStatus))
@@ -90,6 +98,10 @@
             <tr>
                 <td>@paper.Title</td>
                 <td class="@(_showAuthors ? "" : "d-none")">@paper.Authors</td>
+                @if (_isAdminView)
+                {
+                    <td>@paper.ReviewerDisplayName</td>
+                }
                 <td>
                     <span class="badge @GetStatusBadge(paper.ReviewStatus)">
                         @FormatReviewStatus(paper.ReviewStatus)
@@ -99,10 +111,17 @@
                     @paper.ReviewSubmittedAtUtc?.LocalDateTime.ToString("M/d/yy h:mm tt")
                 </td>
                 <td>
-                    <button class="btn btn-sm w-100 @(paper.CanSubmitReview ? "btn-primary" : "btn-outline-secondary")"
-                            @onclick="() => OpenReview(paper.PaperId)">
-                        @GetReviewButtonText(paper)
-                    </button>
+                    @if (ShouldShowReviewButton(paper))
+                    {
+                        <button class="btn btn-sm w-100 @GetReviewButtonClass(paper)"
+                                @onclick="() => OpenReview(paper.PaperId)">
+                            @GetReviewButtonText(paper)
+                        </button>
+                    }
+                    else
+                    {
+                        <span class="text-muted">—</span>
+                    }
                 </td>
             </tr>
         }
@@ -150,9 +169,16 @@
 @code {
     // Determines whether author names should be displayed
     private bool _showAuthors; // double-blind default
+    
+    private bool _isAdminView;
+    
+    private bool IsAssignedReviewer(ReviewerPaperDTO paper) =>
+        _currentUserId == paper.ReviewerId;
 
     private string PageTitleText =>
         _showAuthors ? "Review Assignments" : "My Review Assignments";
+    
+    private Guid? _currentUserId;
     
     private bool _isLoading = true;
     private List<ReviewerPaperDTO> _papers = [];
@@ -244,6 +270,8 @@
             if (!string.IsNullOrWhiteSpace(userIdClaim))
             {
                 var userId = Guid.Parse(userIdClaim);
+                
+                _currentUserId = userId;
 
                 // Get the user's roles
                 var roles = user.Claims
@@ -254,8 +282,12 @@
                 // Admins, PaperChair, or ConferenceChair see all review assignments
                 if (roles.Contains("Admin") || roles.Contains("PaperChair") || roles.Contains("ConferenceChair"))
                 {
-                    _papers = (await ReviewAssignmentService.GetAllReviewerAssignmentsAsync()).ToList();
+                    _isAdminView = true;
                     _showAuthors = true;
+
+                    _papers = (await ReviewAssignmentService
+                            .GetAllReviewerAssignmentsAsync())
+                        .ToList();
                 }
                 else
                 {
@@ -268,30 +300,47 @@
         _isLoading = false;
     }
     
-    private static string GetReviewButtonText(ReviewerPaperDTO paper)
+    private string GetReviewButtonText(ReviewerPaperDTO paper)
     {
-        // Chair/Admin (not reviewer)
-        if (paper.ReviewStatus == ReviewStatus.Submitted)
+        var isAssignedReviewer = IsAssignedReviewer(paper);
+
+        // Admin looking at someone else's assignment
+        if (_isAdminView && !isAssignedReviewer)
         {
-            return "View Reviews";
+            return "View Review";
         }
 
-        // Reviewer cases
-        if (paper.CanSubmitReview)
+        // Reviewer or admin reviewing own assignment
+        return paper.ReviewStatus switch
         {
-            return paper.ReviewStatus switch
-            {
-                ReviewStatus.Pending => "Start Review",
-                ReviewStatus.InProgress => "Resume Review",
-                ReviewStatus.Submitted => "View Reviews",
-                ReviewStatus.Declined => "Declined",
-                _ => "Review"
-            };
-        }
+            ReviewStatus.Pending => "Start Review",
+            ReviewStatus.InProgress => "Resume Review",
+            ReviewStatus.Submitted => "View Reviews",
+            ReviewStatus.Declined => "Declined",
+            _ => "Review"
+        };
+    }
+    
+    private string GetReviewButtonClass(ReviewerPaperDTO paper)
+    {
+        var isAssignedReviewer = IsAssignedReviewer(paper);
 
-        return paper.ReviewSubmittedAtUtc != null
-            ? "View Reviews"
-            : "View";
+        if (_isAdminView && !isAssignedReviewer)
+            return "btn-outline-secondary";
+
+        return paper.CanSubmitReview
+            ? "btn-primary"
+            : "btn-outline-secondary";
+    }
+    
+    private bool ShouldShowReviewButton(ReviewerPaperDTO paper)
+    {
+        var isAssignedReviewer = IsAssignedReviewer(paper);
+
+        // Admin viewing someone else's unfinished assignment
+        return !_isAdminView ||
+               isAssignedReviewer ||
+               paper.ReviewSubmittedAtUtc is not null;
     }
 
     private void SortBy(string column)
