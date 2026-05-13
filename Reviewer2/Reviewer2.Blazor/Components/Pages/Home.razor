@@ -62,9 +62,43 @@
     else if (_showLoading)
     {
         <div class="placeholder-glow">
-            <span class="placeholder col-6"></span>
-            <span class="placeholder col-8"></span>
-            <span class="placeholder col-4"></span>
+
+            <!-- Conference header -->
+            <div class="mb-4 d-flex justify-content-between align-items-start">
+
+                <div class="flex-grow-1">
+                    <span class="placeholder col-5 mb-2"></span>
+                    <span class="placeholder col-8"></span>
+                </div>
+
+            </div>
+
+            <!-- Call for Papers -->
+            <div class="mb-4">
+                <span class="placeholder col-3 mb-3"></span>
+
+                <div class="d-flex flex-column gap-2">
+                    <span class="placeholder col-12"></span>
+                    <span class="placeholder col-10"></span>
+                    <span class="placeholder col-9"></span>
+                </div>
+            </div>
+
+            <!-- Deadlines -->
+            <div class="mb-4">
+                <span class="placeholder col-2 mb-3"></span>
+
+                <ul class="list-group">
+                    @for (var i = 0; i < 3; i++)
+                    {
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span class="placeholder col-4"></span>
+                            <span class="placeholder col-2"></span>
+                        </li>
+                    }
+                </ul>
+            </div>
+
         </div>
     }
     
