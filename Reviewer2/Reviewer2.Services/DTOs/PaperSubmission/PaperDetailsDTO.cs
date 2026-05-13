@@ -41,6 +41,11 @@ namespace Reviewer2.Services.DTOs.PaperSubmission
         /// Null if no decision has been recorded.
         /// </summary>
         public DateTimeOffset? DecisionMadeAtUtc { get; set; }
+        
+        /// <summary>
+        /// Gets or sets the unique identifier of the user who submitted the paper. Used for identification and authorization.
+        /// </summary>
+        public Guid SubmitterUserId { get; set; }
 
         /// <summary>
         /// Gets or sets the name of the user who submitted the paper.

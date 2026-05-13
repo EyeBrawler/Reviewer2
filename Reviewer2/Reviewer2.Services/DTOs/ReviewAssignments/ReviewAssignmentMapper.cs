@@ -52,7 +52,8 @@ namespace Reviewer2.Services.DTOs.ReviewAssignments
                     FileId = f.Id,
                     FileName = f.OriginalFileName,
                     FileType = f.Type.ToString(),
-                    FileUrl = $"/api/papers/{paper.Id}/files/{f.Type}"
+                    FileUrl = $"/api/papers/{paper.Id}/files/{f.Type}",
+                    UploadedAtUtc = f.UploadedAtUtc
                 }).ToList(),
 
                 ReviewAssignmentId = assignment.Id,

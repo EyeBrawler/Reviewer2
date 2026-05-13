@@ -29,5 +29,10 @@ namespace Reviewer2.Services.DTOs.PaperSubmission
         /// This URL may be generated dynamically by the service when returning the DTO.
         /// </summary>
         public string? FileUrl { get; set; }
+        
+        /// <summary>
+        /// The time at which the file was uploaded.
+        /// </summary>
+        public DateTimeOffset UploadedAtUtc { get; set; }
     }
 }
