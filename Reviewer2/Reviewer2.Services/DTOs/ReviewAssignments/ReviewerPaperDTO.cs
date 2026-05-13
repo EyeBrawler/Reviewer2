@@ -52,6 +52,11 @@ public class ReviewerPaperDTO
     public string Authors { get; set; } = string.Empty;
     
     /// <summary>
+    /// The ID used to identify the reviewer associated with this review assignment.
+    /// </summary>
+    public Guid ReviewerId { get; set; }
+    
+    /// <summary>
     /// Display name of the reviewer assigned to this paper.
     ///
     /// This is primarily populated for Admin, PaperChair,

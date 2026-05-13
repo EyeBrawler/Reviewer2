@@ -45,6 +45,7 @@ namespace Reviewer2.Services.DTOs.ReviewAssignments
 
                         return string.IsNullOrEmpty(role) ? name : $"{name} ({role})";
                     })),
+                ReviewerId = assignment.ReviewerId,
                 ReviewerDisplayName = assignment.Reviewer.FullName,
                 Files = paper.Files.Select(f => new PaperFileSummaryDTO
                 {
