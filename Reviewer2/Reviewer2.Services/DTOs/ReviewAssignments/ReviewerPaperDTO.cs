@@ -50,6 +50,18 @@ public class ReviewerPaperDTO
     /// author order in the submission. They will not always be displayed
     /// </summary>
     public string Authors { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// Display name of the reviewer assigned to this paper.
+    ///
+    /// This is primarily populated for Admin, PaperChair,
+    /// and ConferenceChair dashboards where all review
+    /// assignments are visible.
+    ///
+    /// For regular reviewers this may be empty or contain
+    /// the current user's display name.
+    /// </summary>
+    public string ReviewerDisplayName { get; set; } = string.Empty;
 
     /// <summary>
     /// Collection of files associated with the paper, such as
@@ -57,7 +69,7 @@ public class ReviewerPaperDTO
     /// 
     /// Each file includes metadata and a URL for retrieval.
     /// </summary>
-    public List<PaperFileSummaryDTO> Files { get; set; } = new();
+    public List<PaperFileSummaryDTO> Files { get; set; } = [];
     
     /// <summary>
     /// Gets the URL of the initial submission manuscript file associated with this paper, if available.

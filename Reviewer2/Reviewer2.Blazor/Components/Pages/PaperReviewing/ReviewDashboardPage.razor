@@ -71,6 +71,14 @@
                     class="@(_showAuthors ? "" : "d-none")">
                     Authors @SortIcon(nameof(ReviewerPaperDTO.Authors))
                 </th>
+                
+                @if (_isAdminView)
+                {
+                    <th role="button"
+                        @onclick="() => SortBy(nameof(ReviewerPaperDTO.ReviewerDisplayName))">
+                        Reviewer @SortIcon(nameof(ReviewerPaperDTO.ReviewerDisplayName))
+                    </th>
+                }
 
                 <th role="button" @onclick="() => SortBy(nameof(ReviewerPaperDTO.ReviewStatus))">
                     Review Status @SortIcon(nameof(ReviewerPaperDTO.ReviewStatus))
@@ -90,6 +98,10 @@
             <tr>
                 <td>@paper.Title</td>
                 <td class="@(_showAuthors ? "" : "d-none")">@paper.Authors</td>
+                @if (_isAdminView)
+                {
+                    <td>@paper.ReviewerDisplayName</td>
+                }
                 <td>
                     <span class="badge @GetStatusBadge(paper.ReviewStatus)">
                         @FormatReviewStatus(paper.ReviewStatus)
@@ -150,6 +162,8 @@
 @code {
     // Determines whether author names should be displayed
     private bool _showAuthors; // double-blind default
+    
+    private bool _isAdminView;
 
     private string PageTitleText =>
         _showAuthors ? "Review Assignments" : "My Review Assignments";
@@ -254,8 +268,12 @@
                 // Admins, PaperChair, or ConferenceChair see all review assignments
                 if (roles.Contains("Admin") || roles.Contains("PaperChair") || roles.Contains("ConferenceChair"))
                 {
-                    _papers = (await ReviewAssignmentService.GetAllReviewerAssignmentsAsync()).ToList();
+                    _isAdminView = true;
                     _showAuthors = true;
+
+                    _papers = (await ReviewAssignmentService
+                            .GetAllReviewerAssignmentsAsync())
+                        .ToList();
                 }
                 else
                 {
