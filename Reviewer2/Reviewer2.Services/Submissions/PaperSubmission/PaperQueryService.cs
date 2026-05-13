@@ -150,6 +150,7 @@ public class PaperQueryService : IPaperQueryService
             Status = paper.Status.ToString(),
             SubmittedAtUtc = paper.SubmittedAtUtc,
             DecisionMadeAtUtc = paper.LastDecisionAtUtc,
+            SubmitterUserId = paper.SubmitterUserId,
             SubmitterName = $"{paper.Submitter.FirstName} {paper.Submitter.LastName}",
             Authors = paper.Authors
                 .OrderBy(a => a.AuthorOrder)

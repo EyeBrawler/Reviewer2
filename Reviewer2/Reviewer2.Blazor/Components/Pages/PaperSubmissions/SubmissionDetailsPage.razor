@@ -2,9 +2,11 @@
 @rendermode InteractiveServer
 @attribute [Authorize]
 @using Microsoft.AspNetCore.Authorization
+@using Reviewer2.Data.Models
 @using Reviewer2.Services.DTOs.PaperSubmission
 @using Reviewer2.Services.Submissions.PaperSubmission
 @inject IPaperQueryService PaperQueryService
+@inject IPaperSubmissionService PaperService
 @inject AuthenticationStateProvider AuthProvider
 @inject NavigationManager NavManager
 
@@ -142,6 +144,66 @@ else
                         }
                     </li>
                 }
+                @if (IsSubmitter)
+                {
+                    <li class="list-group-item">
+
+                        <div class="row g-2 align-items-center">
+
+                            <div class="col-md-4">
+                                <InputSelect class="form-select"
+                                             @bind-Value="_selectedUploadType">
+
+                                    @foreach (var type in _uploadableTypes)
+                                    {
+                                        <option value="@type">
+                                            @FormatFileType(type)
+                                        </option>
+                                    }
+
+                                </InputSelect>
+                            </div>
+
+                            <div class="col-md-5">
+                                <InputFile OnChange="@HandleFileSelection"
+                                           accept=".pdf,application/pdf" />
+                            </div>
+
+                            <div class="col-md-3">
+                                <button class="btn btn-primary w-100"
+                                        disabled="@(_selectedUploadFile == null || _isUploadingRevision)"
+                                        @onclick="UploadFile">
+
+                                    @if (_isUploadingRevision)
+                                    {
+                                        <span class="spinner-border spinner-border-sm"></span>
+                                    }
+                                    else
+                                    {
+                                        <span>Upload</span>
+                                    }
+
+                                </button>
+                            </div>
+
+                        </div>
+
+                        @if (_selectedUploadFile != null)
+                        {
+                            <div class="text-muted small mt-2">
+                                @_selectedUploadFile.Name
+                            </div>
+                        }
+
+                        @if (!string.IsNullOrWhiteSpace(_uploadError))
+                        {
+                            <div class="alert alert-danger mt-2 mb-0">
+                                @_uploadError
+                            </div>
+                        }
+
+                    </li>
+                }
             </ul>
         </section>
 
@@ -164,6 +226,35 @@ else
 
     private PaperDetailsDTO? _paper;
     private bool _isLoading = true;
+    
+    private Guid? _currentUserId;
+
+    private bool IsSubmitter =>
+        _paper != null &&
+        _currentUserId.HasValue &&
+        _paper.SubmitterUserId == _currentUserId;
+
+    private IBrowserFile? _selectedUploadFile;
+
+    private FileType _selectedUploadType = FileType.Revision;
+
+    private readonly List<FileType> _uploadableTypes =
+    [
+        FileType.Revision,
+        FileType.CameraReady,
+        FileType.CopyrightForm
+    ];
+    
+    private static string FormatFileType(FileType type) =>
+        type switch
+        {
+            FileType.CameraReady => "Camera Ready",
+            FileType.CopyrightForm => "Copyright Form",
+            _ => type.ToString()
+        };
+    
+    private string? _uploadError;
+    private bool _isUploadingRevision;
 
     protected override async Task OnInitializedAsync()
     {
@@ -181,8 +272,8 @@ else
 
         if (!string.IsNullOrWhiteSpace(userIdClaim))
         {
-            var userId = Guid.Parse(userIdClaim);
-            _paper = await PaperQueryService.GetPaperDetailsAsync(PaperId, userId);
+            _currentUserId = Guid.Parse(userIdClaim);
+            _paper = await PaperQueryService.GetPaperDetailsAsync(PaperId, _currentUserId.Value);
         }
 
         _isLoading = false;
@@ -196,5 +287,66 @@ else
     private void GoBack()
     {
         NavManager.NavigateTo("/submissions");
+    }
+    
+    private Task HandleFileSelection(InputFileChangeEventArgs e)
+    {
+        _uploadError = null;
+
+        var file = e.File;
+
+        if (file.ContentType != "application/pdf" ||
+            !file.Name.EndsWith(".pdf",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            _uploadError = "Only PDF files are allowed.";
+            return Task.CompletedTask;
+        }
+
+        _selectedUploadFile = file;
+
+        return Task.CompletedTask;
+    }
+    
+    private async Task UploadFile()
+    {
+        if (!IsSubmitter ||
+            _selectedUploadFile == null ||
+            !_currentUserId.HasValue)
+            return;
+
+        _isUploadingRevision = true;
+        _uploadError = null;
+
+        try
+        {
+            await using var fileStream =
+                _selectedUploadFile.OpenReadStream(500 * 1024 * 1024);
+
+            await using var memoryStream = new MemoryStream();
+
+            await fileStream.CopyToAsync(memoryStream);
+
+            memoryStream.Position = 0;
+
+            await PaperService.UploadFileAsync(
+                PaperId,
+                _selectedUploadType,
+                memoryStream,
+                _selectedUploadFile.Name,
+                _currentUserId.Value);
+
+            _selectedUploadFile = null;
+
+            await LoadPaper();
+        }
+        catch (Exception ex)
+        {
+            _uploadError = ex.Message;
+        }
+        finally
+        {
+            _isUploadingRevision = false;
+        }
     }
 }
