@@ -91,7 +91,8 @@ public class PaperQueryService : IPaperQueryService
                 FileId = f.Id,
                 FileName = f.OriginalFileName,
                 FileType = f.Type.ToString(),
-                FileUrl = null // Can be populated later with a service-generated URL
+                FileUrl = null, // Can be populated later with a service-generated URL
+                UploadedAtUtc = f.UploadedAtUtc
             }).ToList()
         }).ToList();
 
@@ -150,6 +151,7 @@ public class PaperQueryService : IPaperQueryService
             Status = paper.Status.ToString(),
             SubmittedAtUtc = paper.SubmittedAtUtc,
             DecisionMadeAtUtc = paper.LastDecisionAtUtc,
+            SubmitterUserId = paper.SubmitterUserId,
             SubmitterName = $"{paper.Submitter.FirstName} {paper.Submitter.LastName}",
             Authors = paper.Authors
                 .OrderBy(a => a.AuthorOrder)
@@ -169,7 +171,8 @@ public class PaperQueryService : IPaperQueryService
                         FileId = f.Id,
                         FileName = f.OriginalFileName,
                         FileType = f.Type.ToString(),
-                        FileUrl = fileUrl
+                        FileUrl = fileUrl,
+                        UploadedAtUtc = f.UploadedAtUtc
                     };
                 })
                 .ToList()
@@ -318,7 +321,8 @@ public class PaperQueryService : IPaperQueryService
                 FileId = f.Id,
                 FileName = f.OriginalFileName,
                 FileType = f.Type.ToString(),
-                FileUrl = $"/api/papers/{p.Id}/files/{f.Type}" // simple API route for now
+                FileUrl = $"/api/papers/{p.Id}/files/{f.Type}", // simple API route
+                UploadedAtUtc = f.UploadedAtUtc
             }).ToList()
         }).ToList();
 
