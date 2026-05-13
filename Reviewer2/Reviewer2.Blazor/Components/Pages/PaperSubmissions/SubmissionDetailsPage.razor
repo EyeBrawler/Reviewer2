@@ -15,10 +15,20 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="mb-0">Paper Details</h1>
 
-        <button class="btn btn-outline-secondary"
-                @onclick="GoBack">
-            ← Back to Submissions
-        </button>
+        <div class="d-flex gap-2">
+
+            <button class="btn btn-primary"
+                    @onclick="GoToReviews">
+                <i class="bi bi-clipboard-check"></i>
+                View Reviews
+            </button>
+
+            <button class="btn btn-outline-secondary"
+                    @onclick="GoBack">
+                ← Back to Submissions
+            </button>
+
+        </div>
     </div>
 
     @if (_isLoading)
@@ -176,6 +186,11 @@ else
         }
 
         _isLoading = false;
+    }
+    
+    private void GoToReviews()
+    {
+        NavManager.NavigateTo($"/papers/{PaperId}/review");
     }
     
     private void GoBack()
