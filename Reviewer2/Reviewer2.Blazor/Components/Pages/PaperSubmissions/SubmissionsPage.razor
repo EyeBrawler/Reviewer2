@@ -96,7 +96,11 @@
                             <td>@paper.Authors</td>
                         }
 
-                        <td>@paper.Status</td>
+                        <td>
+                            <span class="badge @GetPaperStatusBadge(paper.Status)">
+                                @FormatPaperStatus(paper.Status)
+                            </span>
+                        </td>
 
                         <td>
                             @paper.SubmittedAtUtc?.LocalDateTime.ToString("M/d/yy h:mm tt")
@@ -206,6 +210,32 @@
     
     private string? _statusMessage;
     private string _statusMessageType = "info"; // bootstrap: success, danger, warning, info
+    
+    private static string FormatPaperStatus(string status) =>
+        status switch
+        {
+            "Submitted" => "Submitted",
+            "UnderReview" => "Under Review",
+            "ReviewsCompleted" => "Reviews Completed",
+            "RevisionRequired" => "Revision Required",
+            "Accepted" => "Accepted",
+            "Rejected" => "Rejected",
+            "Withdrawn" => "Withdrawn",
+            _ => status
+        };
+    
+    private static string GetPaperStatusBadge(string status) =>
+        status switch
+        {
+            "Submitted" => "bg-secondary",
+            "UnderReview" => "bg-primary",
+            "ReviewsCompleted" => "bg-info text-dark",
+            "RevisionRequired" => "bg-warning text-dark",
+            "Accepted" => "bg-success",
+            "Rejected" => "bg-danger",
+            "Withdrawn" => "bg-dark",
+            _ => "bg-light text-dark"
+        };
     
     // Modal State Variables
     private bool _showDecisionModal;
@@ -387,7 +417,7 @@
             case AcceptAction:
                 if (result.AcceptWithConditions)
                 {
-                    // revisions path
+                    // revision path
                     await ExecuteDecision(
                         _selectedPaperId,
                         (p, u) => PaperDecisionService.RequestRevisionsAsync(p, u, result.Comment),
