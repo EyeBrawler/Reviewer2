@@ -146,7 +146,10 @@ else
                             <a href="@file.FileUrl"
                                target="_blank"
                                class="btn btn-sm btn-outline-primary">
+
+                                <i class="bi bi-eye me-1"></i>
                                 View
+
                             </a>
                         }
                     </li>
@@ -183,10 +186,12 @@ else
 
                                     @if (_isUploadingRevision)
                                     {
-                                        <span class="spinner-border spinner-border-sm"></span>
+                                        <span class="spinner-border spinner-border-sm me-2"></span>
+                                        <span>Uploading...</span>
                                     }
                                     else
                                     {
+                                        <i class="bi bi-upload me-1"></i>
                                         <span>Upload</span>
                                     }
 
