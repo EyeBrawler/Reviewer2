@@ -126,12 +126,23 @@ else
 
         var myAssignments = await ReviewAssignmentService
             .GetReviewerPapersAsync(_currentUserId);
-        
-        _paper = await PaperQueryService
-            .GetPaperDetailsAsync(PaperId, _currentUserId);
 
         _assignment = myAssignments
             .FirstOrDefault(a => a.PaperId == PaperId);
+
+        // Only authors need paper lifecycle visibility checks.
+        // Reviewers already have assignment-based visibility.
+        if (_assignment is null && !_isPrivilegedUser)
+        {
+            _paper = await PaperQueryService
+                .GetPaperDetailsAsync(
+                    PaperId,
+                    _currentUserId);
+        }
+        else
+        {
+            _paper = null;
+        }
         
         _template = await ReviewTemplateService.GetActiveTemplateAsync();
 
@@ -150,7 +161,7 @@ else
 
         // Determine visibility
         var reviewerCanView =
-            _assignment?.ReviewSubmittedAtUtc != null;
+            _assignment?.ReviewSubmittedAtUtc is not null;
 
         var authorCanView =
             _paper is not null &&
