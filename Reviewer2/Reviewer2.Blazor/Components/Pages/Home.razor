@@ -1,5 +1,6 @@
 ﻿@page "/"
 @rendermode InteractiveServer
+@using Reviewer2.Blazor.Components.Pages.ConferenceRegistration
 @using Reviewer2.Services.CRUD.Conferences
 @using Reviewer2.Services.DTOs.ConferenceManagement
 @inject IConferenceService ConferenceService
@@ -101,6 +102,9 @@
 
         </div>
     }
+    <div class="mt-4">
+        <ConferenceRegistrationButton ShowTitle="true" ShowDescription="true"/>
+    </div>
     
     <div class="mt-4">
         <VolunteerReviewerButton ShowTitle="true" ShowDescription="true" />

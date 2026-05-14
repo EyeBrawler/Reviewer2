@@ -7,6 +7,7 @@ using Reviewer2.Blazor.Components.Account;
 using Reviewer2.Data.Context;
 using Reviewer2.Data.Models;
 using Reviewer2.Services.CRUD.ApplicationUser;
+using Reviewer2.Services.CRUD.ConferenceRegistration;
 using Reviewer2.Services.CRUD.FileStorage;
 using Reviewer2.Services.CRUD.Conferences;
 using Reviewer2.Services.CRUD.ReviewTemplates;
@@ -58,6 +59,7 @@ builder.Services.AddScoped<IReviewAssignmentService, ReviewAssignmentService>();
 builder.Services.AddScoped<IReviewTemplateService, ReviewTemplateService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddScoped<IConferenceService, ConferenceService>();
+builder.Services.AddScoped<IConferenceRegistrationService, ConferenceRegistrationService>();
 
 builder.Services.AddMudServices();
 builder.Services.AddRazorPages();

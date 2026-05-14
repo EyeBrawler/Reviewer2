@@ -1,0 +1,346 @@
+@page "/conference/registrations"
+@rendermode InteractiveServer
+@attribute [Authorize]
+
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Authorization
+@using Reviewer2.Services.CRUD.ConferenceRegistration
+@using Reviewer2.Services.DTOs.ConferenceRegistration
+
+@inject IConferenceRegistrationService RegistrationService
+@inject AuthenticationStateProvider AuthProvider
+
+<PageTitle>Conference Registrations</PageTitle>
+
+<AuthorizeView>
+    <Authorizing>
+        <p>Authorizing...</p>
+    </Authorizing>
+
+    <NotAuthorized>
+        <div class="alert alert-warning">
+            You are not authorized to view this page.
+        </div>
+    </NotAuthorized>
+
+    <Authorized>
+        @if (_isLoading)
+        {
+            <div class="text-center my-5">
+                <div class="spinner-border" role="status"></div>
+                <p>Loading...</p>
+            </div>
+        }
+        else
+        {
+            @if (_isAdmin)
+            {
+                @if (!FilteredRegistrations.Any())
+                {
+                    <div class="alert alert-info">
+                        No conference registrations found.
+                    </div>
+                }
+                else
+                {
+                    <div class="d-flex justify-content-between align-items-center my-3">
+                        <h3 class="mb-0">@PageTitleText</h3>
+
+                        <input type="text"
+                               class="form-control w-auto"
+                               placeholder="Search..."
+                               @bind="_search"
+                               @bind:event="oninput" />
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped table-hover">
+                            <thead class="table-light">
+                            <tr>
+                                <th role="button" @onclick="() => SortBy(nameof(ConferenceRegistrationDTO.FullName))">
+                                    Name @SortIcon(nameof(ConferenceRegistrationDTO.FullName))
+                                </th>
+
+                                <th role="button" @onclick="() => SortBy(nameof(ConferenceRegistrationDTO.Email))">
+                                    Email @SortIcon(nameof(ConferenceRegistrationDTO.Email))
+                                </th>
+
+                                <th role="button" @onclick="() => SortBy(nameof(ConferenceRegistrationDTO.Affiliation))">
+                                    Affiliation @SortIcon(nameof(ConferenceRegistrationDTO.Affiliation))
+                                </th>
+
+                                <th>Dietary</th>
+                                <th>Accessibility</th>
+
+                                <th role="button" @onclick="() => SortBy(nameof(ConferenceRegistrationDTO.AttendingBanquet))">
+                                    Banquet
+                                </th>
+
+                                <th role="button" @onclick="() => SortBy(nameof(ConferenceRegistrationDTO.IsActive))">
+                                    Status
+                                </th>
+
+                                <th role="button" @onclick="() => SortBy(nameof(ConferenceRegistrationDTO.RegisteredAtUtc))">
+                                    Registered @SortIcon(nameof(ConferenceRegistrationDTO.RegisteredAtUtc))
+                                </th>
+                            </tr>
+                            </thead>
+
+                            <tbody>
+                            @foreach (var r in PagedRegistrations)
+                            {
+                                <tr>
+                                    <td>@r.FullName</td>
+                                    <td>@r.Email</td>
+                                    <td>@r.Affiliation</td>
+                                    <td>@r.DietaryRestrictions</td>
+                                    <td>@r.AccessibilityNeeds</td>
+
+                                    <td>
+                                        <span class="badge @(r.AttendingBanquet ? "bg-success" : "bg-secondary")">
+                                            @(r.AttendingBanquet ? "Yes" : "No")
+                                        </span>
+                                    </td>
+
+                                    <td>
+                                        <span class="badge @(r.IsActive ? "bg-success" : "bg-danger")">
+                                            @(r.IsActive ? "Active" : "Cancelled")
+                                        </span>
+                                    </td>
+
+                                    <td>
+                                        @r.RegisteredAtUtc.ToLocalTime().ToString("M/d/yy h:mm tt")
+                                    </td>
+                                </tr>
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <div>
+                            <label class="me-2">Rows:</label>
+                            <select class="form-select d-inline w-auto" @bind="_pageSize">
+                                <option>5</option>
+                                <option>10</option>
+                                <option>25</option>
+                                <option>50</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <button class="btn btn-sm btn-secondary me-2"
+                                    disabled="@(_page == 1)"
+                                    @onclick="PrevPage">
+                                Previous
+                            </button>
+
+                            <span class="me-2">
+                                Page @_page of @TotalPages
+                            </span>
+
+                            <button class="btn btn-sm btn-secondary"
+                                    disabled="@(_page == TotalPages)"
+                                    @onclick="NextPage">
+                                Next
+                            </button>
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                @if (_userRegistration is null)
+                {
+                    <div class="text-center my-5">
+                        <div class="card shadow-sm mx-auto" style="max-width: 500px;">
+                            <div class="card-body">
+                                <h4 class="mb-3">Conference Registration</h4>
+                                <p class="text-muted">
+                                    You are not currently registered for the conference.
+                                </p>
+
+                                <a class="btn btn-primary" href="/conference/register">
+                                    Register Now
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="card shadow-sm my-4">
+                        <div class="card-body">
+                            <h4 class="mb-3">My Registration</h4>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <strong>Name:</strong> @_userRegistration.FullName
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Email:</strong> @_userRegistration.Email
+                                </div>
+                                <div class="col-md-6 mt-2">
+                                    <strong>Affiliation:</strong> @_userRegistration.Affiliation
+                                </div>
+                                <div class="col-md-6 mt-2">
+                                    <strong>Banquet:</strong>
+                                    @(_userRegistration.AttendingBanquet ? "Yes" : "No")
+                                </div>
+                                <div class="col-12 mt-2">
+                                    <strong>Status:</strong>
+                                    @(_userRegistration.IsActive ? "Active" : "Cancelled")
+                                </div>
+                            </div>
+
+                            <a class="btn btn-outline-primary mt-3"
+                               href="/conference/register">
+                                Update Registration
+                            </a>
+                        </div>
+                    </div>
+                }
+            }
+        }
+</Authorized>
+</AuthorizeView>
+
+@code {
+
+    private bool _isLoading = true;
+    private List<ConferenceRegistrationDTO> _registrations = [];
+
+    private string _search = string.Empty;
+
+    private string _sortColumn = nameof(ConferenceRegistrationDTO.RegisteredAtUtc);
+    private bool _ascending;
+
+    private int _pageSize = 10;
+    private int _page = 1;
+
+    private bool _isAdmin;
+    
+    private ConferenceRegistrationDTO? _userRegistration;
+
+    private string PageTitleText =>
+        _isAdmin ? "All Conference Registrations" : "My Registration";
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await AuthProvider.GetAuthenticationStateAsync();
+        var user = auth.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            var roles = user.Claims
+                .Where(c => c.Type == ClaimTypes.Role)
+                .Select(c => c.Value)
+                .ToList();
+
+            _isAdmin = roles.Contains("Admin") ||
+                       roles.Contains("ConferenceChair");
+
+            if (_isAdmin)
+            {
+                _registrations =
+                    await RegistrationService.GetAllAsync();
+            }
+            else
+            {
+                var userIdStr =
+                    user.FindFirstValue(ClaimTypes.NameIdentifier);
+
+                if (Guid.TryParse(userIdStr, out var userId))
+                {
+                    _userRegistration =
+                        await RegistrationService.GetByUserIdAsync(userId);
+
+                    if (_userRegistration is not null)
+                    {
+                        _registrations = [_userRegistration];
+                    }
+                    else
+                    {
+                        _registrations = [];
+                    }
+                }
+            }
+        } 
+
+        _isLoading = false;
+    }
+
+
+    private IEnumerable<ConferenceRegistrationDTO> FilteredRegistrations =>
+        string.IsNullOrWhiteSpace(_search)
+            ? _registrations
+            : _registrations.Where(r =>
+                r.FullName.Contains(_search, StringComparison.OrdinalIgnoreCase) ||
+                r.Email.Contains(_search, StringComparison.OrdinalIgnoreCase) ||
+                (r.Affiliation ?? "").Contains(_search, StringComparison.OrdinalIgnoreCase) ||
+                (r.DietaryRestrictions ?? "").Contains(_search, StringComparison.OrdinalIgnoreCase)
+            );
+
+
+    private IEnumerable<ConferenceRegistrationDTO> Sorted =>
+        _sortColumn switch
+        {
+            nameof(ConferenceRegistrationDTO.FullName) =>
+                _ascending ? FilteredRegistrations.OrderBy(x => x.FullName)
+                           : FilteredRegistrations.OrderByDescending(x => x.FullName),
+
+            nameof(ConferenceRegistrationDTO.Email) =>
+                _ascending ? FilteredRegistrations.OrderBy(x => x.Email)
+                           : FilteredRegistrations.OrderByDescending(x => x.Email),
+
+            nameof(ConferenceRegistrationDTO.RegisteredAtUtc) =>
+                _ascending ? FilteredRegistrations.OrderBy(x => x.RegisteredAtUtc)
+                           : FilteredRegistrations.OrderByDescending(x => x.RegisteredAtUtc),
+
+            _ =>
+                FilteredRegistrations.OrderByDescending(x => x.RegisteredAtUtc)
+        };
+
+
+    private IEnumerable<ConferenceRegistrationDTO> PagedRegistrations =>
+        Sorted
+            .Skip((_page - 1) * _pageSize)
+            .Take(_pageSize);
+
+
+    private int TotalPages =>
+        (int)Math.Ceiling(Sorted.Count() / (double)_pageSize);
+
+
+    private void SortBy(string column)
+    {
+        if (_sortColumn == column)
+            _ascending = !_ascending;
+        else
+        {
+            _sortColumn = column;
+            _ascending = true;
+        }
+
+        _page = 1;
+    }
+
+
+    private string SortIcon(string column)
+    {
+        if (_sortColumn != column) return "";
+        return _ascending ? "▲" : "▼";
+    }
+
+
+    private void PrevPage()
+    {
+        if (_page > 1) _page--;
+    }
+
+    private void NextPage()
+    {
+        if (_page < TotalPages) _page++;
+    }
+}
