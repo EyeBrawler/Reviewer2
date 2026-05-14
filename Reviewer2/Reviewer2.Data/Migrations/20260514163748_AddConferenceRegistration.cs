@@ -12,7 +12,7 @@ namespace Reviewer2.Data.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "conference_registration",
+                name: "conference_registrations",
                 columns: table => new
                 {
                     id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -27,9 +27,9 @@ namespace Reviewer2.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("pk_conference_registration", x => x.id);
+                    table.PrimaryKey("pk_conference_registrations", x => x.id);
                     table.ForeignKey(
-                        name: "fk_conference_registration_users_user_id",
+                        name: "fk_conference_registrations_users_user_id",
                         column: x => x.user_id,
                         principalTable: "asp_net_users",
                         principalColumn: "id",
@@ -37,8 +37,8 @@ namespace Reviewer2.Data.Migrations
                 });
 
             migrationBuilder.CreateIndex(
-                name: "ix_conference_registration_user_id",
-                table: "conference_registration",
+                name: "ix_conference_registrations_user_id",
+                table: "conference_registrations",
                 column: "user_id",
                 unique: true);
         }
@@ -47,7 +47,7 @@ namespace Reviewer2.Data.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "conference_registration");
+                name: "conference_registrations");
         }
     }
 }

@@ -12,7 +12,7 @@ using Reviewer2.Data.Context;
 namespace Reviewer2.Data.Migrations
 {
     [DbContext(typeof(ApplicationContext))]
-    [Migration("20260514150722_AddConferenceRegistration")]
+    [Migration("20260514163748_AddConferenceRegistration")]
     partial class AddConferenceRegistration
     {
         /// <inheritdoc />
@@ -407,13 +407,13 @@ namespace Reviewer2.Data.Migrations
                         .HasColumnName("user_id");
 
                     b.HasKey("Id")
-                        .HasName("pk_conference_registration");
+                        .HasName("pk_conference_registrations");
 
                     b.HasIndex("UserId")
                         .IsUnique()
-                        .HasDatabaseName("ix_conference_registration_user_id");
+                        .HasDatabaseName("ix_conference_registrations_user_id");
 
-                    b.ToTable("conference_registration", (string)null);
+                    b.ToTable("conference_registrations", (string)null);
                 });
 
             modelBuilder.Entity("Reviewer2.Data.Models.Deadline", b =>
@@ -743,7 +743,7 @@ namespace Reviewer2.Data.Migrations
                         .HasForeignKey("Reviewer2.Data.Models.ConferenceRegistration", "UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("fk_conference_registration_users_user_id");
+                        .HasConstraintName("fk_conference_registrations_users_user_id");
 
                     b.Navigation("User");
                 });
