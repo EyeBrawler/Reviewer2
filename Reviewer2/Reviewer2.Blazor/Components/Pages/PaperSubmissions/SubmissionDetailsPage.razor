@@ -347,6 +347,27 @@ else
                 memoryStream,
                 _selectedUploadFile.Name,
                 _currentUserId.Value);
+            
+            // Complete workflow transitions for special file types
+            switch (_selectedUploadType)
+            {
+                case FileType.Revision:
+                    await PaperService.ResubmitAfterRevisionAsync(
+                        PaperId,
+                        _currentUserId.Value);
+                    break;
+
+                case FileType.CameraReady:
+                    await PaperService.SubmitCameraReadyAsync(
+                        PaperId,
+                        _currentUserId.Value);
+                    break;
+                case FileType.InitialSubmission:
+                case FileType.CopyrightForm:
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
 
             _selectedUploadFile = null;
 
