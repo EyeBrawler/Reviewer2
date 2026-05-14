@@ -264,6 +264,8 @@ Navigate to the Reviewer2.Data directory of your clone of the repository. The co
 ```bash
 cd Reviewer2/Reviewer2.Data
 ```
+At this point, make sure you have the DOTNET SDK. 
+See [this Microsoft documentation](https://learn.microsoft.com/en-us/dotnet/core/install/linux-ubuntu-install?tabs=dotnet10&pivots=os-linux-ubuntu-2404) for more information.
 
 Set your user secrets. Change fields like passwords and names to match the values you specified when creating the container.
 ```bash
@@ -328,6 +330,7 @@ You may be prompted. Alternatively:
 psql -U postgres -W
 ```
 
+**Note:** If these modes of connecting to your database don't work, see the alternative "direct" route below (Step 9)
 ---
 
 ### 3) Useful `psql` meta-commands
