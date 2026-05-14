@@ -13,29 +13,48 @@
 <PageTitle>Conference Registrations</PageTitle>
 
 <AuthorizeView>
-    <Authorizing>
-        <p>Authorizing...</p>
-    </Authorizing>
-
-    <NotAuthorized>
-        <div class="alert alert-warning">
-            You are not authorized to view this page.
-        </div>
-    </NotAuthorized>
-
     <Authorized>
-        @if (_isLoading)
+        <div class="d-flex justify-content-between align-items-center my-3">
+            <h3 class="mb-0">@PageTitleText</h3>
+
+            <a class="btn btn-primary"
+               href="/conference/register">
+                @(_userRegistration is null ? "Register" : "Update Registration")
+            </a>
+        </div>
+        @if (_userRegistration is null)
         {
-            <div class="text-center my-5">
-                <div class="spinner-border" role="status"></div>
-                <p>Loading...</p>
+            <div class="alert alert-info">
+                You are not currently registered for the conference.
             </div>
         }
         else
         {
-            @if (_isAdmin)
-            {
-                @if (!FilteredRegistrations.Any())
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h5 class="mb-3">My Registration</h5>
+
+                    <div><strong>Name:</strong> @_userRegistration.FullName</div>
+                    <div><strong>Email:</strong> @_userRegistration.Email</div>
+                    <div><strong>Affiliation:</strong> @_userRegistration.Affiliation</div>
+
+                    <div class="mt-2">
+                        <strong>Status:</strong>
+                        @(_userRegistration.IsActive ? "Active" : "Cancelled")
+                    </div>
+                </div>
+            </div>
+        }
+        
+        <AuthorizeView Roles="Admin,PaperChair">
+            <Authorized Context="authContext">
+                @if (_isLoading)
+                {
+                    <div class="text-center my-5">
+                        <div class="spinner-border"></div>
+                    </div>
+                }
+                else if (!FilteredRegistrations.Any())
                 {
                     <div class="alert alert-info">
                         No conference registrations found.
@@ -50,7 +69,7 @@
                                class="form-control w-auto"
                                placeholder="Search..."
                                @bind="_search"
-                               @bind:event="oninput" />
+                               @bind:event="oninput"/>
                     </div>
 
                     <div class="table-responsive">
@@ -147,62 +166,9 @@
                         </div>
                     </div>
                 }
-            }
-            else
-            {
-                @if (_userRegistration is null)
-                {
-                    <div class="text-center my-5">
-                        <div class="card shadow-sm mx-auto" style="max-width: 500px;">
-                            <div class="card-body">
-                                <h4 class="mb-3">Conference Registration</h4>
-                                <p class="text-muted">
-                                    You are not currently registered for the conference.
-                                </p>
-
-                                <a class="btn btn-primary" href="/conference/register">
-                                    Register Now
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                }
-                else
-                {
-                    <div class="card shadow-sm my-4">
-                        <div class="card-body">
-                            <h4 class="mb-3">My Registration</h4>
-
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <strong>Name:</strong> @_userRegistration.FullName
-                                </div>
-                                <div class="col-md-6">
-                                    <strong>Email:</strong> @_userRegistration.Email
-                                </div>
-                                <div class="col-md-6 mt-2">
-                                    <strong>Affiliation:</strong> @_userRegistration.Affiliation
-                                </div>
-                                <div class="col-md-6 mt-2">
-                                    <strong>Banquet:</strong>
-                                    @(_userRegistration.AttendingBanquet ? "Yes" : "No")
-                                </div>
-                                <div class="col-12 mt-2">
-                                    <strong>Status:</strong>
-                                    @(_userRegistration.IsActive ? "Active" : "Cancelled")
-                                </div>
-                            </div>
-
-                            <a class="btn btn-outline-primary mt-3"
-                               href="/conference/register">
-                                Update Registration
-                            </a>
-                        </div>
-                    </div>
-                }
-            }
-        }
-</Authorized>
+            </Authorized>
+        </AuthorizeView>
+    </Authorized>
 </AuthorizeView>
 
 @code {
