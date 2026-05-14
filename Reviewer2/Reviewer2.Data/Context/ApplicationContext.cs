@@ -23,6 +23,11 @@ public class ApplicationContext
     public DbSet<Conference> Conferences => Set<Conference>();
     
     /// <summary>
+    /// DbSet for ConferenceRegistrations
+    /// </summary>
+    public DbSet<ConferenceRegistration> ConferenceRegistrations => Set<ConferenceRegistration>();
+    
+    /// <summary>
     /// DbSet for Deadlines
     /// </summary>
     public DbSet<Deadline> Deadlines => Set<Deadline>();
