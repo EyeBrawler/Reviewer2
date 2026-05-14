@@ -18,7 +18,18 @@
 <div class="container mt-5">
     <div class="card p-4">
         <h4 class="mb-4 text-center">Admin — Role Assignment</h4>
-            <table class="table table-bordered table-striped">
+        
+        <Alert Message="@_successMessage"
+               Type="success"
+               AutoCloseMs="3000"
+               OnClose="@ClearSuccess" />
+
+        <Alert Message="@_errorMessage"
+               Type="danger"
+               AutoCloseMs="4000"
+               OnClose="@ClearError" />
+        
+        <table class="table table-bordered table-striped">
                 <thead>
                     <tr>
                         <th>Name</th>
@@ -73,6 +84,9 @@
     private List<ApplicationUser> _users = [];
     private readonly Dictionary<Guid, HashSet<string>> _roles = new();
     private List<string> _availableRoles = [];
+    
+    private string? _successMessage;
+    private string? _errorMessage;
 
     protected override async Task OnInitializedAsync()
     {
@@ -117,18 +131,44 @@
 
     private async Task SaveRolesAsync(Guid userId)
     {
-        if (!_roles.TryGetValue(userId, out var roles)) return;
+        _successMessage = null;
+        _errorMessage = null;
 
-        var roleList = roles.Select(r => r.Trim()).ToList(); // Trim whitespace
-        var success = await UserService.UpdateUserRolesAsync(userId, roleList);
-
-        if (success)
+        if (!_roles.TryGetValue(userId, out var roles))
         {
-            var refreshed = await UserService.GetRolesAsync(userId.ToString());
-            _roles[userId] = new HashSet<string>(refreshed ?? new List<string>(), StringComparer.OrdinalIgnoreCase);
-            
-            Log.Information("Roles saved for user {UserId}: {Join}", userId, string.Join(", ", _roles[userId]));
+            _errorMessage = "Could not find selected user roles.";
+            return;
         }
+
+        var roleList = roles
+            .Select(r => r.Trim())
+            .ToList();
+
+        var success = await UserService
+            .UpdateUserRolesAsync(userId, roleList);
+
+        if (!success)
+        {
+            _errorMessage = "Failed to update user roles.";
+            return;
+        }
+
+        var refreshed = await UserService
+            .GetRolesAsync(userId.ToString());
+
+        _roles[userId] = new HashSet<string>(
+            refreshed ?? [],
+            StringComparer.OrdinalIgnoreCase);
+
+        var user = _users.FirstOrDefault(u => u.Id == userId);
+
+        _successMessage =
+            $"Roles updated for '{user?.FullName ?? "user"}'.";
+
+        Log.Information(
+            "Roles saved for user {UserId}: {Join}",
+            userId,
+            string.Join(", ", _roles[userId]));
     }
     
     private IEnumerable<string> GetRoles(Guid userId)
@@ -136,5 +176,15 @@
         return _roles.TryGetValue(userId, out var roles)
             ? roles
             : Enumerable.Empty<string>();
+    }
+    
+    private void ClearSuccess()
+    {
+        _successMessage = null;
+    }
+
+    private void ClearError()
+    {
+        _errorMessage = null;
     }
 }

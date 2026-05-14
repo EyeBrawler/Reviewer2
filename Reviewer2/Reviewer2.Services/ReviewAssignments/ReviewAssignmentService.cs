@@ -360,6 +360,7 @@ public class ReviewAssignmentService : IReviewAssignmentService
         var assignments = await dbContext.ReviewAssignments
             .Where(ra => ra.ReviewerId == reviewerId)
             .Include(ra => ra.Review)
+            .Include(ra => ra.Reviewer)
             .Include(ra => ra.Paper)
             .ThenInclude(p => p.Authors)
             .ThenInclude(a => a.User)
@@ -371,7 +372,7 @@ public class ReviewAssignmentService : IReviewAssignmentService
 
         // Map assignments to DTOs using the extension method
         var dtos = assignments
-            .Select(ra => ra.ToReviewerPaperDto())
+            .Select(ra => ra.ToReviewerPaperDTO())
             .ToList();
 
         Log.Information("Mapped {Count} review assignments to ReviewerPaperDTO for reviewer {ReviewerId}", dtos.Count, reviewerId);
@@ -388,6 +389,7 @@ public class ReviewAssignmentService : IReviewAssignmentService
 
         // Eagerly load related data for mapping
         var assignments = await dbContext.ReviewAssignments
+            .Include(ra => ra.Reviewer)
             .Include(ra => ra.Review)
             .Include(ra => ra.Paper)
             .ThenInclude(p => p.Authors)
@@ -400,7 +402,7 @@ public class ReviewAssignmentService : IReviewAssignmentService
 
         // Map assignments to DTOs using the extension method
         var dtos = assignments
-            .Select(ra => ra.ToReviewerPaperDto())
+            .Select(ra => ra.ToReviewerPaperDTO())
             .ToList();
 
         Log.Information("Mapped {Count} review assignments to ReviewerPaperDTO", dtos.Count);

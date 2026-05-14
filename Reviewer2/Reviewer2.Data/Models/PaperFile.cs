@@ -131,14 +131,21 @@ public enum FileType
     InitialSubmission = 0,
 
     /// <summary>
-    /// The final camera-ready version submitted after acceptance.
-    /// This version is typically used for proceedings publication.
+    /// A revised version of the initial paper submission, typically created
+    /// following reviewer feedback.
+    /// This file replaces the initial submission in the review workflow.
     /// </summary>
-    CameraReady = 1,
+    Revision = 1, 
+    
+    /// <summary>
+    /// The final camera-ready version submitted after acceptance.
+    /// This version is typically used for proceeding publication.
+    /// </summary>
+    CameraReady = 2,
 
     /// <summary>
     /// The signed copyright or licensing agreement required
     /// prior to publication.
     /// </summary>
-    CopyrightForm = 2
+    CopyrightForm = 3
 }
