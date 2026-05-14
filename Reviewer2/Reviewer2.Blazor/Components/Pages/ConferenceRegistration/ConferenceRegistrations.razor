@@ -14,160 +14,167 @@
 
 <AuthorizeView>
     <Authorized>
+
+        <!-- HEADER + CTA (ALL USERS) -->
         <div class="d-flex justify-content-between align-items-center my-3">
             <h3 class="mb-0">@PageTitleText</h3>
 
-            <a class="btn btn-primary"
-               href="/conference/register">
+            <a class="btn btn-primary" href="/conference/register">
                 @(_userRegistration is null ? "Register" : "Update Registration")
             </a>
         </div>
-        @if (_userRegistration is null)
-        {
-            <div class="alert alert-info">
-                You are not currently registered for the conference.
-            </div>
-        }
-        else
-        {
-            <div class="card shadow-sm mb-4">
-                <div class="card-body">
-                    <h5 class="mb-3">My Registration</h5>
 
-                    <div><strong>Name:</strong> @_userRegistration.FullName</div>
-                    <div><strong>Email:</strong> @_userRegistration.Email</div>
-                    <div><strong>Affiliation:</strong> @_userRegistration.Affiliation</div>
+        <!-- USER VIEW -->
+        @if (!_isAdmin)
+        {
+            @if (_userRegistration is null)
+            {
+                <div class="alert alert-info">
+                    You are not currently registered for the conference.
+                </div>
+            }
+            else
+            {
+                <div class="card shadow-sm mb-4">
+                    <div class="card-body">
+                        <h5 class="mb-3">My Registration</h5>
 
-                    <div class="mt-2">
-                        <strong>Status:</strong>
-                        @(_userRegistration.IsActive ? "Active" : "Cancelled")
+                        <div><strong>Name:</strong> @_userRegistration.FullName</div>
+                        <div><strong>Email:</strong> @_userRegistration.Email</div>
+                        <div><strong>Affiliation:</strong> @_userRegistration.Affiliation</div>
+
+                        <div class="mt-2">
+                            <strong>Status:</strong>
+                            @(_userRegistration.IsActive ? "Active" : "Cancelled")
+                        </div>
                     </div>
                 </div>
-            </div>
+            }
         }
-        
-        <AuthorizeView Roles="Admin,PaperChair">
-            <Authorized Context="authContext">
-                @if (_isLoading)
-                {
-                    <div class="text-center my-5">
-                        <div class="spinner-border"></div>
-                    </div>
-                }
-                else if (!FilteredRegistrations.Any())
-                {
-                    <div class="alert alert-info">
-                        No conference registrations found.
-                    </div>
-                }
-                else
-                {
-                    <div class="d-flex justify-content-between align-items-center my-3">
-                        <h3 class="mb-0">@PageTitleText</h3>
 
-                        <input type="text"
-                               class="form-control w-auto"
-                               placeholder="Search..."
-                               @bind="_search"
-                               @bind:event="oninput"/>
-                    </div>
+        <!-- ADMIN VIEW -->
+        @if (_isAdmin)
+        {
+            @if (_isLoading)
+            {
+                <div class="text-center my-5">
+                    <div class="spinner-border"></div>
+                </div>
+            }
+            else if (!FilteredRegistrations.Any())
+            {
+                <div class="alert alert-info">
+                    No conference registrations found.
+                </div>
+            }
+            else
+            {
+                <!-- SEARCH -->
+                <div class="d-flex justify-content-between align-items-center my-3">
+                    <input class="form-control w-auto"
+                           placeholder="Search..."
+                           @bind="_search"
+                           @bind:event="oninput" />
+                </div>
 
-                    <div class="table-responsive">
-                        <table class="table table-bordered table-striped table-hover">
-                            <thead class="table-light">
+                <!-- TABLE -->
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped table-hover">
+                        <thead class="table-light">
+                        <tr>
+                            <th role="button" @onclick="() => SortBy(nameof(ConferenceRegistrationDTO.FullName))">
+                                Name @SortIcon(nameof(ConferenceRegistrationDTO.FullName))
+                            </th>
+
+                            <th role="button" @onclick="() => SortBy(nameof(ConferenceRegistrationDTO.Email))">
+                                Email @SortIcon(nameof(ConferenceRegistrationDTO.Email))
+                            </th>
+
+                            <th role="button" @onclick="() => SortBy(nameof(ConferenceRegistrationDTO.Affiliation))">
+                                Affiliation @SortIcon(nameof(ConferenceRegistrationDTO.Affiliation))
+                            </th>
+
+                            <th>Dietary</th>
+                            <th>Accessibility</th>
+
+                            <th role="button" @onclick="() => SortBy(nameof(ConferenceRegistrationDTO.AttendingBanquet))">
+                                Banquet
+                            </th>
+
+                            <th role="button" @onclick="() => SortBy(nameof(ConferenceRegistrationDTO.IsActive))">
+                                Status
+                            </th>
+
+                            <th role="button" @onclick="() => SortBy(nameof(ConferenceRegistrationDTO.RegisteredAtUtc))">
+                                Registered @SortIcon(nameof(ConferenceRegistrationDTO.RegisteredAtUtc))
+                            </th>
+                        </tr>
+                        </thead>
+
+                        <tbody>
+                        @foreach (var r in PagedRegistrations)
+                        {
                             <tr>
-                                <th role="button" @onclick="() => SortBy(nameof(ConferenceRegistrationDTO.FullName))">
-                                    Name @SortIcon(nameof(ConferenceRegistrationDTO.FullName))
-                                </th>
+                                <td>@r.FullName</td>
+                                <td>@r.Email</td>
+                                <td>@r.Affiliation</td>
+                                <td>@r.DietaryRestrictions</td>
+                                <td>@r.AccessibilityNeeds</td>
 
-                                <th role="button" @onclick="() => SortBy(nameof(ConferenceRegistrationDTO.Email))">
-                                    Email @SortIcon(nameof(ConferenceRegistrationDTO.Email))
-                                </th>
+                                <td>
+                                    <span class="badge @(r.AttendingBanquet ? "bg-success" : "bg-secondary")">
+                                        @(r.AttendingBanquet ? "Yes" : "No")
+                                    </span>
+                                </td>
 
-                                <th role="button" @onclick="() => SortBy(nameof(ConferenceRegistrationDTO.Affiliation))">
-                                    Affiliation @SortIcon(nameof(ConferenceRegistrationDTO.Affiliation))
-                                </th>
+                                <td>
+                                    <span class="badge @(r.IsActive ? "bg-success" : "bg-danger")">
+                                        @(r.IsActive ? "Active" : "Cancelled")
+                                    </span>
+                                </td>
 
-                                <th>Dietary</th>
-                                <th>Accessibility</th>
-
-                                <th role="button" @onclick="() => SortBy(nameof(ConferenceRegistrationDTO.AttendingBanquet))">
-                                    Banquet
-                                </th>
-
-                                <th role="button" @onclick="() => SortBy(nameof(ConferenceRegistrationDTO.IsActive))">
-                                    Status
-                                </th>
-
-                                <th role="button" @onclick="() => SortBy(nameof(ConferenceRegistrationDTO.RegisteredAtUtc))">
-                                    Registered @SortIcon(nameof(ConferenceRegistrationDTO.RegisteredAtUtc))
-                                </th>
+                                <td>
+                                    @r.RegisteredAtUtc.ToLocalTime().ToString("M/d/yy h:mm tt")
+                                </td>
                             </tr>
-                            </thead>
+                        }
+                        </tbody>
+                    </table>
+                </div>
 
-                            <tbody>
-                            @foreach (var r in PagedRegistrations)
-                            {
-                                <tr>
-                                    <td>@r.FullName</td>
-                                    <td>@r.Email</td>
-                                    <td>@r.Affiliation</td>
-                                    <td>@r.DietaryRestrictions</td>
-                                    <td>@r.AccessibilityNeeds</td>
-
-                                    <td>
-                                        <span class="badge @(r.AttendingBanquet ? "bg-success" : "bg-secondary")">
-                                            @(r.AttendingBanquet ? "Yes" : "No")
-                                        </span>
-                                    </td>
-
-                                    <td>
-                                        <span class="badge @(r.IsActive ? "bg-success" : "bg-danger")">
-                                            @(r.IsActive ? "Active" : "Cancelled")
-                                        </span>
-                                    </td>
-
-                                    <td>
-                                        @r.RegisteredAtUtc.ToLocalTime().ToString("M/d/yy h:mm tt")
-                                    </td>
-                                </tr>
-                            }
-                            </tbody>
-                        </table>
+                <!-- PAGINATION -->
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <div>
+                        <label class="me-2">Rows:</label>
+                        <select class="form-select d-inline w-auto" @bind="_pageSize">
+                            <option>5</option>
+                            <option>10</option>
+                            <option>25</option>
+                            <option>50</option>
+                        </select>
                     </div>
 
-                    <div class="d-flex justify-content-between align-items-center mt-3">
-                        <div>
-                            <label class="me-2">Rows:</label>
-                            <select class="form-select d-inline w-auto" @bind="_pageSize">
-                                <option>5</option>
-                                <option>10</option>
-                                <option>25</option>
-                                <option>50</option>
-                            </select>
-                        </div>
+                    <div>
+                        <button class="btn btn-sm btn-secondary me-2"
+                                disabled="@(_page == 1)"
+                                @onclick="PrevPage">
+                            Previous
+                        </button>
 
-                        <div>
-                            <button class="btn btn-sm btn-secondary me-2"
-                                    disabled="@(_page == 1)"
-                                    @onclick="PrevPage">
-                                Previous
-                            </button>
+                        <span class="me-2">
+                            Page @_page of @TotalPages
+                        </span>
 
-                            <span class="me-2">
-                                Page @_page of @TotalPages
-                            </span>
-
-                            <button class="btn btn-sm btn-secondary"
-                                    disabled="@(_page == TotalPages)"
-                                    @onclick="NextPage">
-                                Next
-                            </button>
-                        </div>
+                        <button class="btn btn-sm btn-secondary"
+                                disabled="@(_page == TotalPages)"
+                                @onclick="NextPage">
+                            Next
+                        </button>
                     </div>
-                }
-            </Authorized>
-        </AuthorizeView>
+                </div>
+            }
+        }
+
     </Authorized>
 </AuthorizeView>
 
@@ -190,8 +197,7 @@
 
     private string PageTitleText =>
         _isAdmin ? "All Conference Registrations" : "My Registration";
-
-
+    
     protected override async Task OnInitializedAsync()
     {
         var auth = await AuthProvider.GetAuthenticationStateAsync();
@@ -207,32 +213,21 @@
             _isAdmin = roles.Contains("Admin") ||
                        roles.Contains("ConferenceChair");
 
+            var userIdStr = user.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (Guid.TryParse(userIdStr, out var userId))
+            {
+                // ALWAYS load personal registration
+                _userRegistration =
+                    await RegistrationService.GetByUserIdAsync(userId);
+            }
+
+            // admin-only dataset
             if (_isAdmin)
             {
-                _registrations =
-                    await RegistrationService.GetAllAsync();
+                _registrations = await RegistrationService.GetAllAsync();
             }
-            else
-            {
-                var userIdStr =
-                    user.FindFirstValue(ClaimTypes.NameIdentifier);
-
-                if (Guid.TryParse(userIdStr, out var userId))
-                {
-                    _userRegistration =
-                        await RegistrationService.GetByUserIdAsync(userId);
-
-                    if (_userRegistration is not null)
-                    {
-                        _registrations = [_userRegistration];
-                    }
-                    else
-                    {
-                        _registrations = [];
-                    }
-                }
-            }
-        } 
+        }
 
         _isLoading = false;
     }
