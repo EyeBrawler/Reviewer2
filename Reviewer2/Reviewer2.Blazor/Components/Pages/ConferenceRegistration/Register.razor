@@ -1,0 +1,195 @@
+@page "/conference/register"
+@rendermode InteractiveServer
+
+@using System.Security.Claims
+@using Reviewer2.Services.CRUD.ConferenceRegistration
+@using Reviewer2.Services.DTOs.ConferenceRegistration
+@inject IConferenceRegistrationService RegistrationService
+@inject AuthenticationStateProvider AuthStateProvider
+
+<PageTitle>Conference Registration</PageTitle>
+
+<div class="container py-4">
+
+    <h2 class="mb-4">Conference Registration</h2>
+
+    @if (_isLoading)
+    {
+        <div class="alert alert-info">
+            Loading registration...
+        </div>
+    }
+    else if (!string.IsNullOrWhiteSpace(_errorMessage))
+    {
+        <div class="alert alert-danger">
+            @_errorMessage
+        </div>
+    }
+    else
+    {
+        <EditForm Model="_form" OnValidSubmit="HandleSubmit">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div class="card shadow-sm">
+                <div class="card-body">
+
+                    <div class="mb-3">
+                        <label class="form-label">Affiliation</label>
+                        <InputText class="form-control"
+                                   @bind-Value="_form.Affiliation" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Dietary Restrictions</label>
+                        <InputTextArea class="form-control"
+                                       rows="3"
+                                       @bind-Value="_form.DietaryRestrictions" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Accessibility Needs</label>
+                        <InputTextArea class="form-control"
+                                       rows="3"
+                                       @bind-Value="_form.AccessibilityNeeds" />
+                    </div>
+
+                    <div class="form-check mb-3">
+                        <InputCheckbox class="form-check-input"
+                                       @bind-Value="_form.AttendingBanquet" />
+                        <label class="form-check-label">
+                            Attending Banquet
+                        </label>
+                    </div>
+
+                    <button class="btn btn-primary"
+                            type="submit"
+                            disabled="@_isSubmitting">
+
+                        @if (_isSubmitting)
+                        {
+                            <span>
+                                <span class="spinner-border spinner-border-sm me-2"></span>
+                                Saving...
+                            </span>
+                        }
+                        else
+                        {
+                            <span>Save Registration</span>
+                        }
+
+                    </button>
+
+                    @if (_isExisting)
+                    {
+                        <button type="button"
+                                class="btn btn-outline-danger ms-2"
+                                @onclick="CancelRegistration">
+                            Cancel Registration
+                        </button>
+                    }
+
+                </div>
+            </div>
+        </EditForm>
+    }
+
+</div>
+
+@code {
+
+    private ConferenceRegistrationFormDTO _form = new();
+    private bool _isLoading = true;
+    private bool _isSubmitting;
+    private bool _isExisting;
+    private string? _errorMessage;
+
+    private Guid _userId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            var userIdStr = user.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (!Guid.TryParse(userIdStr, out _userId))
+            {
+                _errorMessage = "Invalid user context.";
+                return;
+            }
+
+            var existing = await RegistrationService.GetByUserIdAsync(_userId);
+
+            if (existing is not null)
+            {
+                _isExisting = true;
+
+                _form = new ConferenceRegistrationFormDTO
+                {
+                    Affiliation = existing.Affiliation,
+                    DietaryRestrictions = existing.DietaryRestrictions,
+                    AccessibilityNeeds = existing.AccessibilityNeeds,
+                    AttendingBanquet = existing.AttendingBanquet,
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        try
+        {
+            _isSubmitting = true;
+
+            if (_isExisting)
+            {
+                await RegistrationService.UpdateAsync(_userId, _form);
+            }
+            else
+            {
+                await RegistrationService.CreateAsync(_userId, _form);
+                _isExisting = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+
+    private async Task CancelRegistration()
+    {
+        try
+        {
+            _isSubmitting = true;
+
+            await RegistrationService.CancelAsync(_userId);
+
+            _isExisting = false;
+            _form = new ConferenceRegistrationFormDTO();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+}

@@ -23,6 +23,11 @@ public class ApplicationContext
     public DbSet<Conference> Conferences => Set<Conference>();
     
     /// <summary>
+    /// DbSet for ConferenceRegistrations
+    /// </summary>
+    public DbSet<ConferenceRegistration> ConferenceRegistrations => Set<ConferenceRegistration>();
+    
+    /// <summary>
     /// DbSet for Deadlines
     /// </summary>
     public DbSet<Deadline> Deadlines => Set<Deadline>();
@@ -86,9 +91,10 @@ public class ApplicationContext
         ConfigureReviewAssignment(builder);
         ConfigureReview(builder);
         SetAspNetCoreIdentityDatabaseNamesInSnakeCase(builder);
+        ConfigureConferenceRegistration(builder);
     }
     
-    private void SetAspNetCoreIdentityDatabaseNamesInSnakeCase(ModelBuilder modelBuilder)
+    private static void SetAspNetCoreIdentityDatabaseNamesInSnakeCase(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<ApplicationUser>().ToTable("asp_net_users");
         modelBuilder.Entity<IdentityRole<Guid>>().ToTable("asp_net_roles");
@@ -161,5 +167,17 @@ public class ApplicationContext
             .WithOne(a => a.Paper)
             .HasForeignKey(a => a.PaperId)
             .OnDelete(DeleteBehavior.Cascade);
+    }
+
+    private static void ConfigureConferenceRegistration(ModelBuilder builder)
+    {
+        builder.Entity<ConferenceRegistration>()
+            .HasOne(x => x.User)
+            .WithOne(x => x.ConferenceRegistration)
+            .HasForeignKey<ConferenceRegistration>(x => x.UserId);
+        
+        builder.Entity<ConferenceRegistration>()
+            .HasIndex(x => x.UserId)
+            .IsUnique();
     }
 }

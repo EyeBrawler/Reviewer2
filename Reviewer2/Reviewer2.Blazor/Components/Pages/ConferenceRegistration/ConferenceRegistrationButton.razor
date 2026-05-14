@@ -1,0 +1,111 @@
+@using System.Security.Claims
+@using Reviewer2.Services.CRUD.ConferenceRegistration
+@inject IConferenceRegistrationService RegistrationService
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager NavManager
+
+@if (_isLoading)
+{
+    <p>Loading...</p>
+}
+else if (!_isAuthenticated)
+{
+    @if (ShowLoginMessage)
+    {
+        <p>You must be logged in to register for the conference.</p>
+    }
+}
+else
+{
+    @if (ShowTitle)
+    {
+        <h4>Conference Registration</h4>
+    }
+
+    @if (ShowDescription)
+    {
+        <p>Register for the conference using the button below.</p>
+    }
+
+    <div class="mt-3">
+        <button class="btn btn-primary @ButtonSizeClass"
+                @onclick="GoToRegistration"
+                disabled="@(_isRegistered)">
+
+            @if (_isRegistered)
+            {
+                @AlreadyRegisteredText
+            }
+            else
+            {
+                @ButtonText
+            }
+
+        </button>
+    </div>
+
+    @if (ShowMessage && !string.IsNullOrEmpty(_message))
+    {
+        <div class="alert mt-3 alert-info">
+            @_message
+        </div>
+    }
+}
+
+@code {
+
+    // Parameters
+    [Parameter] public string ButtonText { get; set; } = "Register for Conference";
+    [Parameter] public string AlreadyRegisteredText { get; set; } = "Already Registered";
+    [Parameter] public bool ShowTitle { get; set; }
+    [Parameter] public bool ShowDescription { get; set; }
+    [Parameter] public bool ShowMessage { get; set; } = true;
+    [Parameter] public bool ShowLoginMessage { get; set; } = true;
+    [Parameter] public string ButtonSizeClass { get; set; } = "btn-lg";
+
+    // State
+    private bool _isLoading = true;
+    private bool _isAuthenticated;
+    private bool _isRegistered;
+    private string? _message;
+
+    private Guid _userId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            _isAuthenticated = true;
+
+            var userIdStr = user.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (Guid.TryParse(userIdStr, out var userId))
+            {
+                _userId = userId;
+
+                _isRegistered =
+                    await RegistrationService.ExistsAsync(_userId);
+
+                _message = _isRegistered
+                    ? "You are already registered for the conference."
+                    : null;
+            }
+        }
+
+        _isLoading = false;
+    }
+
+    private void GoToRegistration()
+    {
+        if (_isRegistered)
+        {
+            _message = "You are already registered.";
+            return;
+        }
+
+        NavManager.NavigateTo("/conference/register");
+    }
+}
