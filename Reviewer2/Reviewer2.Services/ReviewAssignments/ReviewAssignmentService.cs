@@ -130,7 +130,6 @@ public class ReviewAssignmentService : IReviewAssignmentService
 
         paper.ReviewAssignments.Add(new ReviewAssignment
         {
-            Id = Guid.NewGuid(),
             PaperId = paperId,
             ReviewerId = reviewerId,
             Status = ReviewStatus.Pending
@@ -145,8 +144,16 @@ public class ReviewAssignmentService : IReviewAssignmentService
                 "Paper {PaperId} transitioned to UnderReview",
                 paperId);
         }
-
-        await context.SaveChangesAsync();
+        
+        try
+        {
+            await context.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Save failed");
+            throw;
+        }
         
         Log.Information(
             "Reviewer {ReviewerId} assigned to paper {PaperId}",
@@ -326,7 +333,6 @@ public class ReviewAssignmentService : IReviewAssignmentService
                 {
                     paper.ReviewAssignments.Add(new ReviewAssignment
                     {
-                        Id = Guid.NewGuid(),
                         PaperId = paper.Id,
                         ReviewerId = reviewer.ReviewerId,
                         Status = ReviewStatus.Pending
