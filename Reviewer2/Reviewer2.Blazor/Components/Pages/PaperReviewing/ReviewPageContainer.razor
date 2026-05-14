@@ -1,14 +1,17 @@
 @using Reviewer2.Services.CRUD.ReviewTemplates
+@using Reviewer2.Services.DTOs.PaperSubmission
 @using Reviewer2.Services.DTOs.ReviewAssignments
 @using Reviewer2.Services.DTOs.ReviewSubmission
 @using Reviewer2.Services.DTOs.ReviewTemplates
 @using Reviewer2.Services.Reviews
 @using Reviewer2.Services.ReviewAssignments
+@using Reviewer2.Services.Submissions.PaperSubmission
 
 @inject IReviewService ReviewService
 @inject IReviewAssignmentService ReviewAssignmentService
 @inject AuthenticationStateProvider AuthStateProvider
 @inject IReviewTemplateService ReviewTemplateService
+@inject IPaperQueryService PaperQueryService
 
 @if (_assignment is not null)
 {
@@ -56,6 +59,12 @@ else if (_canViewAllReviews && _template is not null)
         Reviews="_reviews"
         Template="_template" />
 }
+else if (_assignment is null && !_isPrivilegedUser)
+{
+    <div class="alert alert-info">
+        Reviews are not yet available for this paper.
+    </div>
+}
 else
 {
     <div class="alert alert-info">
@@ -72,6 +81,7 @@ else
 
     private Guid _currentUserId;
 
+    private PaperDetailsDTO? _paper;
     private ReviewerPaperDTO? _assignment;
     private ReviewDTO? _myReview;
     private List<ReviewDTO> _reviews = [];
@@ -116,6 +126,9 @@ else
 
         var myAssignments = await ReviewAssignmentService
             .GetReviewerPapersAsync(_currentUserId);
+        
+        _paper = await PaperQueryService
+            .GetPaperDetailsAsync(PaperId, _currentUserId);
 
         _assignment = myAssignments
             .FirstOrDefault(a => a.PaperId == PaperId);
@@ -135,10 +148,19 @@ else
                 _assignment.ReviewAssignmentId,
                 _currentUserId);
 
-        // Determine visibility (centralized)
+        // Determine visibility
+        var reviewerCanView =
+            _assignment?.ReviewSubmittedAtUtc != null;
+
+        var authorCanView =
+            _paper is not null &&
+            PaperVisibilityPolicy.CanAuthorViewReviews(
+                _paper.Status);
+
         _canViewAllReviews =
             _isPrivilegedUser ||
-            _assignment?.ReviewSubmittedAtUtc != null;
+            reviewerCanView ||
+            authorCanView;
 
         // Load reviews only if allowed
         _reviews = _canViewAllReviews
