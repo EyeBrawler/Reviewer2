@@ -30,7 +30,7 @@ namespace Reviewer2.Services.DTOs.ReviewAssignments
             {
                 PaperId = paper.Id,
                 Title = paper.Title,
-                PaperStatus = paper.Status.ToString(),
+                PaperStatus = paper.Status,
                 SubmittedAtUtc = paper.SubmittedAtUtc,
                 Authors = string.Join(", ", paper.Authors
                     .OrderBy(a => a.AuthorOrder)

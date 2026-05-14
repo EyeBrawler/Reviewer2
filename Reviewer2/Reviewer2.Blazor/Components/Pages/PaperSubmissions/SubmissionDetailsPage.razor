@@ -19,11 +19,14 @@
 
         <div class="d-flex gap-2">
 
-            <button class="btn btn-primary"
-                    @onclick="GoToReviews">
-                <i class="bi bi-clipboard-check"></i>
-                View Reviews
-            </button>
+            @if (_paper is { Status: >= PaperStatus.UnderReview })
+            {
+                <button class="btn btn-primary"
+                        @onclick="GoToReviews">
+                    <i class="bi bi-clipboard-check"></i>
+                    View Reviews
+                </button>
+            }
 
             <button class="btn btn-outline-secondary"
                     @onclick="GoBack">
@@ -347,6 +350,27 @@ else
                 memoryStream,
                 _selectedUploadFile.Name,
                 _currentUserId.Value);
+            
+            // Complete workflow transitions for special file types
+            switch (_selectedUploadType)
+            {
+                case FileType.Revision:
+                    await PaperService.ResubmitAfterRevisionAsync(
+                        PaperId,
+                        _currentUserId.Value);
+                    break;
+
+                case FileType.CameraReady:
+                    await PaperService.SubmitCameraReadyAsync(
+                        PaperId,
+                        _currentUserId.Value);
+                    break;
+                case FileType.InitialSubmission:
+                case FileType.CopyrightForm:
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
 
             _selectedUploadFile = null;
 

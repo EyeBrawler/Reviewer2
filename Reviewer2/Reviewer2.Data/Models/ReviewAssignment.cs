@@ -68,7 +68,7 @@ public class ReviewAssignment
 public enum ReviewStatus
 {
     /// <summary>
-    /// The review has been assigned but the reviewer has not yet started.
+    /// The review has been assigned, but the reviewer has not yet started.
     /// </summary>
     Pending = 0,
 

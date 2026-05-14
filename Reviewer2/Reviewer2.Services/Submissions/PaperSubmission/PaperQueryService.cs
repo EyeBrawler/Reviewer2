@@ -148,7 +148,7 @@ public class PaperQueryService : IPaperQueryService
             PaperId = paper.Id,
             Title = paper.Title,
             Abstract = paper.Abstract,
-            Status = paper.Status.ToString(),
+            Status = paper.Status,
             SubmittedAtUtc = paper.SubmittedAtUtc,
             DecisionMadeAtUtc = paper.LastDecisionAtUtc,
             SubmitterUserId = paper.SubmitterUserId,

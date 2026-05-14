@@ -255,4 +255,138 @@ public class PaperSubmissionService : IPaperSubmissionService
             throw new InvalidOperationException("An unexpected error occurred while submitting the paper. See logs for details.", ex);
         }
     }
+    
+    /// <inheritdoc/>
+    public async Task ResubmitAfterRevisionAsync(Guid paperId, Guid userId)
+    {
+        await using var context = await _contextFactory.CreateDbContextAsync();
+
+        try
+        {
+            var paper = await context.Papers
+                .Include(p => p.Files)
+                .FirstOrDefaultAsync(p => p.Id == paperId);
+
+            if (paper is null)
+            {
+                Log.Warning(
+                    "ResubmitAfterRevisionAsync failed: paper {PaperId} not found",
+                    paperId);
+
+                throw new InvalidOperationException("Paper not found.");
+            }
+
+            if (paper.SubmitterUserId != userId)
+            {
+                Log.Warning(
+                    "Unauthorized revision resubmission attempt for paper {PaperId} by user {UserId}",
+                    paperId,
+                    userId);
+
+                throw new UnauthorizedAccessException(
+                    "You are not authorized to modify this paper.");
+            }
+
+            try
+            {
+                paper.ResubmitAfterRevision();
+            }
+            catch (InvalidOperationException ex)
+            {
+                Log.Warning(
+                    ex,
+                    "Paper {PaperId} failed revision resubmission due to business rule violation",
+                    paperId);
+
+                throw;
+            }
+
+            await context.SaveChangesAsync();
+
+            Log.Information(
+                "Paper {PaperId} successfully resubmitted after revision by user {UserId}",
+                paperId,
+                userId);
+        }
+        catch (Exception ex) when (
+            ex is not (InvalidOperationException or UnauthorizedAccessException))
+        {
+            Log.Error(
+                ex,
+                "Unexpected error during ResubmitAfterRevisionAsync for paper {PaperId} by user {UserId}",
+                paperId,
+                userId);
+
+            throw new InvalidOperationException(
+                "An unexpected error occurred while resubmitting the paper. See logs for details.",
+                ex);
+        }
+    }
+
+    /// <inheritdoc/>
+    public async Task SubmitCameraReadyAsync(Guid paperId, Guid userId)
+    {
+        await using var context = await _contextFactory.CreateDbContextAsync();
+
+        try
+        {
+            var paper = await context.Papers
+                .Include(p => p.Files)
+                .FirstOrDefaultAsync(p => p.Id == paperId);
+
+            if (paper is null)
+            {
+                Log.Warning(
+                    "SubmitCameraReadyAsync failed: paper {PaperId} not found",
+                    paperId);
+
+                throw new InvalidOperationException("Paper not found.");
+            }
+
+            if (paper.SubmitterUserId != userId)
+            {
+                Log.Warning(
+                    "Unauthorized camera-ready submission attempt for paper {PaperId} by user {UserId}",
+                    paperId,
+                    userId);
+
+                throw new UnauthorizedAccessException(
+                    "You are not authorized to modify this paper.");
+            }
+
+            try
+            {
+                paper.SubmitCameraReady();
+            }
+            catch (InvalidOperationException ex)
+            {
+                Log.Warning(
+                    ex,
+                    "Paper {PaperId} failed camera-ready submission due to business rule violation",
+                    paperId);
+
+                throw;
+            }
+
+            await context.SaveChangesAsync();
+
+            Log.Information(
+                "Paper {PaperId} successfully submitted camera-ready version by user {UserId}",
+                paperId,
+                userId);
+        }
+        catch (Exception ex) when (
+            ex is not (InvalidOperationException or UnauthorizedAccessException))
+        {
+            Log.Error(
+                ex,
+                "Unexpected error during SubmitCameraReadyAsync for paper {PaperId} by user {UserId}",
+                paperId,
+                userId);
+
+            throw new InvalidOperationException(
+                "An unexpected error occurred while submitting the camera-ready version. See logs for details.",
+                ex);
+        }
+    }
 }

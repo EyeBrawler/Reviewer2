@@ -116,4 +116,47 @@ public interface IPaperSubmissionService
     /// before submission is allowed.
     /// </remarks>
     Task SubmitAsync(Guid paperId, Guid userId);
+    
+    /// <summary>
+    /// Resubmits a paper after the required revision file
+    /// has been uploaded.
+    /// </summary>
+    /// <param name="paperId">
+    /// The identifier of the paper being resubmitted.
+    /// </param>
+    /// <param name="userId">
+    /// The identifier of the user performing the resubmission.
+    /// </param>
+    /// <returns>
+    /// A task representing the asynchronous operation.
+    /// </returns>
+    /// <remarks>
+    /// The paper must currently be in the RevisionRequired state
+    /// and have an uploaded revision file.
+    /// </remarks>
+    Task ResubmitAfterRevisionAsync(
+        Guid paperId,
+        Guid userId);
+
+
+    /// <summary>
+    /// Submits the camera-ready version of an accepted paper
+    /// after the required file has been uploaded.
+    /// </summary>
+    /// <param name="paperId">
+    /// The identifier of the accepted paper.
+    /// </param>
+    /// <param name="userId">
+    /// The identifier of the user performing the submission.
+    /// </param>
+    /// <returns>
+    /// A task representing the asynchronous operation.
+    /// </returns>
+    /// <remarks>
+    /// The paper must currently be accepted
+    /// and have an uploaded camera-ready file.
+    /// </remarks>
+    Task SubmitCameraReadyAsync(
+        Guid paperId,
+        Guid userId);
 }

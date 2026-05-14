@@ -36,7 +36,7 @@ public class ReviewerPaperDTO
     /// This reflects the overall conference decision process and is
     /// independent of the review assignment status.
     /// </summary>
-    public string PaperStatus { get; set; } = string.Empty;
+    public PaperStatus PaperStatus { get; set; }
 
     /// <summary>
     /// The date and time (UTC) when the paper was originally submitted.

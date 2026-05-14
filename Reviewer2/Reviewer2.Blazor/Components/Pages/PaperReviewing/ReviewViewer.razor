@@ -6,7 +6,9 @@
 
         <h6 class="card-subtitle mb-2">
             <span class="badge bg-secondary me-2">
-                Reviewer @Index
+                @(IsMyReview
+                    ? "Your Review"
+                    : $"Reviewer {Index}")
             </span>
 
             @if (Review.SubmittedAtUtc is not null)
@@ -94,9 +96,16 @@
 
     [Parameter]
     public int Index { get; set; }
+    
+    [Parameter]
+    public Guid? CurrentUserReviewAssignmentId { get; set; }
 
     private static string DisplayOrDash(int? value)
         => value?.ToString() ?? "-";
+    
+    private bool IsMyReview =>
+        CurrentUserReviewAssignmentId is { } assignmentId &&
+        Review.ReviewAssignmentId == assignmentId;
 
     private static string DisplayFieldValue(
         ReviewFieldType type,

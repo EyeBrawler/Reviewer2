@@ -161,7 +161,7 @@ public class Paper
     /// to <see cref="PaperStatus.ReviewsCompleted"/>.
     /// 
     /// This indicates that the required number of reviews has been received
-    /// and the paper is ready for final decision.
+    /// and the paper is ready for a final decision.
     /// </summary>
     /// <exception cref="InvalidOperationException">
     /// Thrown if the paper is not currently under review.
@@ -216,7 +216,7 @@ public class Paper
     /// 
     /// This operation is used after the authors upload an updated version
     /// addressing the requested revisions. The paper may either undergo
-    /// another round of review or proceed directly to decision depending
+    /// another round of review or proceed directly to a decision depending
     /// on conference policy.
     /// </summary>
     /// <exception cref="InvalidOperationException">
@@ -227,6 +227,10 @@ public class Paper
     {
         if (Status != PaperStatus.RevisionRequired)
             throw new InvalidOperationException("Paper is not awaiting revisions.");
+        
+        if (Files.All(f => f.Type != FileType.Revision))
+            throw new InvalidOperationException(
+                "A revised submission file is required.");
 
         Status = PaperStatus.UnderReview;
     }

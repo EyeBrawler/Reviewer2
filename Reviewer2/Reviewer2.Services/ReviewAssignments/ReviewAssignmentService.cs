@@ -92,11 +92,12 @@ public class ReviewAssignmentService : IReviewAssignmentService
     {
         await using var context = await _contextFactory.CreateDbContextAsync();
 
-        // Optional but recommended: verify paper exists
-        bool paperExists = await context.Papers
-            .AnyAsync(p => p.Id == paperId);
-
-        if (!paperExists)
+        // verify paper exists
+        var paper = await context.Papers
+            .Include(p => p.ReviewAssignments)
+            .FirstOrDefaultAsync(p => p.Id == paperId);
+        
+        if (paper is null)
             return AssignmentResult.NotFound;
 
         var reviewerIds = await GetReviewerIdsAsync();
@@ -110,7 +111,7 @@ public class ReviewAssignmentService : IReviewAssignmentService
             .FirstAsync();
         
         // Conflict check (author)
-        bool isAuthor = await context.Authors.AnyAsync(a =>
+        var isAuthor = await context.Authors.AnyAsync(a =>
             a.PaperId == paperId &&
             (
                 (a.UserId != null && a.UserId == reviewer.Id) ||
@@ -121,23 +122,43 @@ public class ReviewAssignmentService : IReviewAssignmentService
             return AssignmentResult.ReviewerIsAuthor;
 
         // Duplicate check
-        bool exists = await context.ReviewAssignments
+        var exists = await context.ReviewAssignments
             .AnyAsync(a => a.PaperId == paperId && a.ReviewerId == reviewerId);
 
         if (exists)
             return AssignmentResult.AlreadyAssigned;
 
-        var assignment = new ReviewAssignment
+        paper.ReviewAssignments.Add(new ReviewAssignment
         {
-            Id = Guid.NewGuid(),
             PaperId = paperId,
             ReviewerId = reviewerId,
             Status = ReviewStatus.Pending
-        };
+        });
 
-        context.ReviewAssignments.Add(assignment);
+        // Domain transition
+        if (paper.Status == PaperStatus.Submitted)
+        {
+            paper.MoveToUnderReview();
 
-        await context.SaveChangesAsync();
+            Log.Information(
+                "Paper {PaperId} transitioned to UnderReview",
+                paperId);
+        }
+        
+        try
+        {
+            await context.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Save failed");
+            throw;
+        }
+        
+        Log.Information(
+            "Reviewer {ReviewerId} assigned to paper {PaperId}",
+            reviewerId,
+            paperId);
 
         return AssignmentResult.Success;
     }
@@ -167,12 +188,12 @@ public class ReviewAssignmentService : IReviewAssignmentService
         await using var context = await _contextFactory.CreateDbContextAsync();
 
         // Ensure paper exists
-        bool paperExists = await context.Papers
+        var paperExists = await context.Papers
             .AsNoTracking()
             .AnyAsync(p => p.Id == paperId);
 
         if (!paperExists)
-            return new List<ReviewerCandidateDTO>();
+            return [];
 
         // Get author user IDs (for conflict detection)
         var authorUserIds = await context.Authors
@@ -256,9 +277,9 @@ public class ReviewAssignmentService : IReviewAssignmentService
         await using var context = await _contextFactory.CreateDbContextAsync();
 
         var papers = await context.Papers
+            .Include(p => p.ReviewAssignments)
             .Where(p => p.Status == PaperStatus.Submitted ||
                         p.Status == PaperStatus.UnderReview)
-            .Select(p => new { p.Id, p.Title })
             .ToListAsync();
 
         // Global assignment counts (mutable for fairness)
@@ -284,7 +305,7 @@ public class ReviewAssignmentService : IReviewAssignmentService
                 {
                     PaperId = paper.Id,
                     Title = paper.Title,
-                    SuggestedReviewers = new(),
+                    SuggestedReviewers = [],
                     IsIncomplete = false
                 });
 
@@ -306,23 +327,31 @@ public class ReviewAssignmentService : IReviewAssignmentService
                 assignmentCounts[reviewer.ReviewerId] =
                     assignmentCounts.GetValueOrDefault(reviewer.ReviewerId) + 1;
 
-                if (!existingReviewerIds.Contains(reviewer.ReviewerId))
+                if (existingReviewerIds.Contains(reviewer.ReviewerId)) continue;
+                
+                if (persist)
                 {
-                    if (persist)
+                    paper.ReviewAssignments.Add(new ReviewAssignment
                     {
-                        context.ReviewAssignments.Add(new ReviewAssignment
-                        {
-                            Id = Guid.NewGuid(),
-                            PaperId = paper.Id,
-                            ReviewerId = reviewer.ReviewerId,
-                            Status = ReviewStatus.Pending
-                        });
+                        PaperId = paper.Id,
+                        ReviewerId = reviewer.ReviewerId,
+                        Status = ReviewStatus.Pending
+                    });
+                    
+                    // Domain transition
+                    if (paper.Status == PaperStatus.Submitted)
+                    {
+                        paper.MoveToUnderReview();
 
-                        created++;
+                        Log.Information(
+                            "Paper {PaperId} transitioned to UnderReview during auto-assignment",
+                            paper.Id);
                     }
 
-                    existingReviewerIds.Add(reviewer.ReviewerId);
+                    created++;
                 }
+
+                existingReviewerIds.Add(reviewer.ReviewerId);
             }
 
             results.Add(new AutoAssignmentPreviewDTO

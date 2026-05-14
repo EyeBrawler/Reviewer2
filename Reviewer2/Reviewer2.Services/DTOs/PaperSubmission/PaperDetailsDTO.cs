@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Reviewer2.Data.Models;
 
 namespace Reviewer2.Services.DTOs.PaperSubmission
 {
@@ -28,7 +29,7 @@ namespace Reviewer2.Services.DTOs.PaperSubmission
         /// <summary>
         /// Gets or sets the current workflow status of the paper (e.g., Draft, Submitted, Accepted).
         /// </summary>
-        public string Status { get; set; } = string.Empty;
+        public PaperStatus Status { get; set; }
 
         /// <summary>
         /// Gets or sets the UTC date and time when the paper was submitted.
@@ -56,12 +57,12 @@ namespace Reviewer2.Services.DTOs.PaperSubmission
         /// Gets or sets a list of authors for the paper.
         /// Each entry is formatted as "Name (Role)" for display purposes.
         /// </summary>
-        public List<string> Authors { get; set; } = new();
+        public List<string> Authors { get; set; } = [];
 
         /// <summary>
         /// Gets or sets the list of files associated with the paper.
-        /// Includes file type, name, and optional URL for preview or download.
+        /// Includes a file type, name, and optional URL for preview or download.
         /// </summary>
-        public List<PaperFileSummaryDTO> Files { get; set; } = new();
+        public List<PaperFileSummaryDTO> Files { get; set; } = [];
     }
 }
