@@ -23,4 +23,10 @@ public class ApplicationUser : IdentityUser<Guid>
     /// Gets the full name of the user by combining the first and last names.
     /// </summary>
     public string FullName => $"{FirstName} {LastName}";
+    
+    /// <summary>
+    /// A navigation property for the conference registration associated with this user.
+    /// Could be null as not every user may register to attend the conference.
+    /// </summary>
+    public ConferenceRegistration? ConferenceRegistration { get; set; }
 }
