@@ -10,12 +10,13 @@
 else
 {
     <div class="d-flex flex-column gap-3">
-        @for (int i = 0; i < Reviews.Count; i++)
+        @for (var i = 0; i < Reviews.Count; i++)
         {
             <ReviewViewer
                 Review="Reviews[i]"
                 Index="@(i + 1)"
-                Template="Template" />
+                Template="Template"
+                CurrentUserReviewAssignmentId="CurrentUserReviewAssignmentId"/>
         }
     </div>
 }
@@ -26,4 +27,14 @@ else
     
     [Parameter, EditorRequired]
     public required ReviewTemplateDTO Template { get; set; }
+    
+    /// <summary>
+    /// The review assignment associated with the current user, if the
+    /// current user is an assigned reviewer for this paper.
+    ///
+    /// This is used to disclose which review belongs to the current
+    /// reviewer while preserving anonymity for all other users.
+    /// </summary>
+    [Parameter]
+    public Guid? CurrentUserReviewAssignmentId { get; set; }
 }

@@ -57,7 +57,8 @@ else if (_canViewAllReviews && _template is not null)
 {
     <ReviewList
         Reviews="_reviews"
-        Template="_template" />
+        Template="_template" 
+        CurrentUserReviewAssignmentId="_assignment?.ReviewAssignmentId"/>
 }
 else if (_assignment is null && !_isPrivilegedUser)
 {
