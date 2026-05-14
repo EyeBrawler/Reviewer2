@@ -161,7 +161,7 @@ public class Paper
     /// to <see cref="PaperStatus.ReviewsCompleted"/>.
     /// 
     /// This indicates that the required number of reviews has been received
-    /// and the paper is ready for final decision.
+    /// and the paper is ready for a final decision.
     /// </summary>
     /// <exception cref="InvalidOperationException">
     /// Thrown if the paper is not currently under review.
