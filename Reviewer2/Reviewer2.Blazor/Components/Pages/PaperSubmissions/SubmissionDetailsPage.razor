@@ -19,11 +19,14 @@
 
         <div class="d-flex gap-2">
 
-            <button class="btn btn-primary"
-                    @onclick="GoToReviews">
-                <i class="bi bi-clipboard-check"></i>
-                View Reviews
-            </button>
+            @if (_paper is { Status: >= PaperStatus.UnderReview })
+            {
+                <button class="btn btn-primary"
+                        @onclick="GoToReviews">
+                    <i class="bi bi-clipboard-check"></i>
+                    View Reviews
+                </button>
+            }
 
             <button class="btn btn-outline-secondary"
                     @onclick="GoBack">
