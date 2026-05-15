@@ -259,7 +259,8 @@ public class Paper
     {
         if (Status != PaperStatus.ReviewsCompleted &&
             Status != PaperStatus.Submitted &&
-            Status != PaperStatus.RevisionRequired)
+            Status != PaperStatus.RevisionRequired &&
+            Status != PaperStatus.UnderReview)
             throw new InvalidOperationException(
                 "Paper must be either submitted or have completed reviews to be accepted.");
 
@@ -292,7 +293,9 @@ public class Paper
     public void Reject(Guid chairUserId, string? comment)
     {
         if (Status != PaperStatus.ReviewsCompleted &&
-            Status != PaperStatus.Submitted)
+            Status != PaperStatus.Submitted &&
+            Status != PaperStatus.RevisionRequired &&
+            Status != PaperStatus.UnderReview)
             throw new InvalidOperationException(
                 "Paper must be either submitted or have completed reviews to be rejected.");
 

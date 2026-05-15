@@ -349,7 +349,8 @@
     {
         return paper.Status is "Submitted" 
             or "ReviewsCompleted" 
-            or "RevisionRequired";
+            or "RevisionRequired"
+            or "UnderReview";
     }
     
     private async Task ExecuteDecision(
